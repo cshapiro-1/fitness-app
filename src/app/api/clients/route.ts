@@ -9,7 +9,7 @@ export async function GET() {
   const clients = await prisma.client.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { workouts: true } } },
+    include: { _count: { select: { workoutSessions: true } } },
   });
   return NextResponse.json(clients);
 }

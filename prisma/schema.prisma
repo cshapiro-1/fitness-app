@@ -61,6 +61,7 @@ model Client {
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workouts  Workout[]
+  workoutSessions WorkoutSession[]
 }
 
 model Workout {
@@ -74,4 +75,34 @@ model Workout {
   notes     String?
   createdAt DateTime @default(now())
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model WorkoutSession {
+  id          String            @id @default(cuid())
+  clientId    String
+  startedAt   DateTime
+  completedAt DateTime
+  notes       String?
+  createdAt   DateTime          @default(now())
+  client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercises   WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id               String       @id @default(cuid())
+  workoutSessionId String
+  name             String
+  order            Int
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  sets             WorkoutSet[]
+}
+
+model WorkoutSet {
+  id                String        @id @default(cuid())
+  workoutExerciseId String
+  order             Int
+  weight            Float
+  reps              Int
+  notes             String?
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
 }

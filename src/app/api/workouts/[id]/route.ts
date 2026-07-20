@@ -7,12 +7,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const workout = await prisma.workout.findFirst({
+  const workout = await prisma.workoutSession.findFirst({
     where: { id },
     include: { client: { select: { userId: true } } },
   });
   if (!workout || workout.client.userId !== session.user.id)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
-  await prisma.workout.delete({ where: { id } });
+  await prisma.workoutSession.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

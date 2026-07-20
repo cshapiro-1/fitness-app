@@ -1,50 +1,133 @@
 "use client";
-import React, { useEffect, useState, useCallback } from "react";
-import { signOut } from "next-auth/react";
-import { Trash2, Plus, LogOut, TrendingUp, Dumbbell, Users, ChevronRight } from "lucide-react";
 
-interface Client { id: string; name: string; notes?: string; createdAt: string; _count?: { workouts: number } }
-interface Workout { id: string; clientId: string; exercise: string; weight: number; sets: number; reps: number; date: string; notes?: string }
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { signOut } from "next-auth/react";
+import { Trash2, Plus, LogOut, TrendingUp, Dumbbell, Users, ChevronRight, Clock3 } from "lucide-react";
+
+interface Client {
+  id: string;
+  name: string;
+  notes?: string;
+  createdAt: string;
+  _count?: { workoutSessions: number };
+}
+
+interface WorkoutSet {
+  id: string;
+  order: number;
+  weight: number;
+  reps: number;
+  notes?: string | null;
+}
+
+interface WorkoutExercise {
+  id: string;
+  order: number;
+  name: string;
+  sets: WorkoutSet[];
+}
+
+interface WorkoutSession {
+  id: string;
+  clientId: string;
+  startedAt: string;
+  completedAt: string;
+  notes?: string | null;
+  exercises: WorkoutExercise[];
+}
+
+type DraftSet = { weight: string; reps: string; notes: string };
+type DraftExercise = { name: string; sets: DraftSet[] };
+type DraftWorkout = { startedAt: string; notes: string; exercises: DraftExercise[] };
+
+const REST_PRESETS = [15, 30, 45, 60, 90, 120, 150, 180, 210, 240, 300];
+const EXERCISE_OPTIONS = [
+  "Bench Press", "Incline Bench Press", "Decline Bench Press", "Dumbbell Bench Press", "Push Up", "Weighted Push Up",
+  "Overhead Press", "Seated Dumbbell Press", "Arnold Press", "Lateral Raise", "Front Raise", "Rear Delt Fly",
+  "Pull Up", "Chin Up", "Lat Pulldown", "Bent Over Row", "Seated Cable Row", "Single Arm Dumbbell Row",
+  "Deadlift", "Romanian Deadlift", "Trap Bar Deadlift", "Rack Pull", "Good Morning", "Barbell Shrug",
+  "Back Squat", "Front Squat", "Goblet Squat", "Leg Press", "Hack Squat", "Bulgarian Split Squat",
+  "Lunge", "Walking Lunge", "Step Up", "Leg Extension", "Leg Curl", "Nordic Curl",
+  "Hip Thrust", "Glute Bridge", "Cable Kickback", "Calf Raise", "Seated Calf Raise", "Donkey Calf Raise",
+  "Barbell Curl", "Dumbbell Curl", "Hammer Curl", "Preacher Curl", "Triceps Pushdown", "Skull Crusher",
+  "Close Grip Bench Press", "Overhead Triceps Extension", "Cable Fly", "Chest Fly", "Face Pull", "Upright Row",
+  "Plank", "Hanging Leg Raise", "Cable Crunch", "Russian Twist", "Ab Wheel", "Farmer Carry",
+  "Hip Abduction", "Hip Adduction", "Machine Row", "Machine Chest Press", "Machine Shoulder Press", "T Bar Row",
+  "Smith Squat", "Smith RDL", "Landmine Press", "Landmine Row", "Sled Push", "Sled Pull",
+];
+
+const formatRestLabel = (seconds: number) => {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (!remainder) return `${mins}m`;
+  return `${mins}m${remainder}s`;
+};
+
+const formatClock = (seconds: number) => {
+  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
+  return `${mins}:${secs}`;
+};
+
 type Analytics = Record<string, { maxWeight: number; avgWeight: number; totalVolume: number; sessions: number }>;
 
-function computeAnalytics(workouts: Workout[]): Analytics {
-  const byEx: Record<string, Workout[]> = {};
-  for (const w of workouts) { byEx[w.exercise] = byEx[w.exercise] || []; byEx[w.exercise].push(w); }
-  const out: Analytics = {};
-  for (const [ex, list] of Object.entries(byEx)) {
-    out[ex] = {
-      maxWeight: Math.max(...list.map(l => l.weight)),
-      avgWeight: Math.round(list.reduce((s, l) => s + l.weight, 0) / list.length * 10) / 10,
-      totalVolume: list.reduce((s, l) => s + l.weight * l.sets * l.reps, 0),
-      sessions: list.length,
+function computeAnalytics(workouts: WorkoutSession[]): Analytics {
+  const bucket: Record<string, { weights: number[]; volume: number; sessions: Set<string> }> = {};
+  workouts.forEach((workout) => {
+    workout.exercises.forEach((exercise) => {
+      if (!bucket[exercise.name]) {
+        bucket[exercise.name] = { weights: [], volume: 0, sessions: new Set<string>() };
+      }
+      exercise.sets.forEach((setEntry) => {
+        bucket[exercise.name].weights.push(setEntry.weight);
+        bucket[exercise.name].volume += setEntry.weight * setEntry.reps;
+      });
+      bucket[exercise.name].sessions.add(workout.id);
+    });
+  });
+
+  const result: Analytics = {};
+  Object.entries(bucket).forEach(([exercise, data]) => {
+    const totalWeight = data.weights.reduce((sum, weight) => sum + weight, 0);
+    result[exercise] = {
+      maxWeight: data.weights.length ? Math.max(...data.weights) : 0,
+      avgWeight: data.weights.length ? Math.round((totalWeight / data.weights.length) * 10) / 10 : 0,
+      totalVolume: Math.round(data.volume),
+      sessions: data.sessions.size,
     };
-  }
-  return out;
+  });
+
+  return result;
 }
 
 export function Dashboard({ userName, userImage }: { userName: string; userImage: string | null }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selected, setSelected] = useState<Client | null>(null);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
   const [newName, setNewName] = useState("");
-  const [exercise, setExercise] = useState("Deadlift");
-  const [weight, setWeight] = useState("100");
-  const [sets, setSets] = useState("3");
-  const [reps, setReps] = useState("5");
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [workoutNotes, setWorkoutNotes] = useState("");
-  const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
+
+  const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
+  const [exercisePicker, setExercisePicker] = useState("");
+  const [savingWorkout, setSavingWorkout] = useState(false);
+
+  const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
+  const [restTimerActive, setRestTimerActive] = useState(false);
 
   const fetchClients = useCallback(async () => {
     setLoadingClients(true);
     const res = await fetch("/api/clients");
-    if (res.ok) { const data = await res.json(); setClients(data); if (data.length && !selected) setSelected(data[0]); }
+    if (res.ok) {
+      const data = await res.json();
+      setClients(data);
+      if (data.length && !selected) setSelected(data[0]);
+    }
     setLoadingClients(false);
-  }, []);
+  }, [selected]);
 
   const fetchWorkouts = useCallback(async (clientId: string) => {
     setLoadingWorkouts(true);
@@ -53,41 +136,198 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     setLoadingWorkouts(false);
   }, []);
 
-  useEffect(() => { fetchClients(); }, [fetchClients]);
-  useEffect(() => { if (selected) fetchWorkouts(selected.id); else setWorkouts([]); }, [selected, fetchWorkouts]);
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  useEffect(() => {
+    if (selected) fetchWorkouts(selected.id);
+    else setWorkouts([]);
+  }, [selected, fetchWorkouts]);
+
+  useEffect(() => {
+    if (!restTimerActive) return;
+    const timer = window.setInterval(() => {
+      setRestSecondsRemaining((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          setRestTimerActive(false);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [restTimerActive]);
 
   const addClient = async () => {
     if (!newName.trim()) return;
-    const res = await fetch("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newName.trim() }) });
-    if (res.ok) { const c = await res.json(); setClients(prev => [...prev, c]); setSelected(c); setNewName(""); }
+    const res = await fetch("/api/clients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim() }),
+    });
+    if (res.ok) {
+      const client = await res.json();
+      setClients((prev) => [...prev, client]);
+      setSelected(client);
+      setNewName("");
+    }
   };
 
   const deleteClient = async (id: string) => {
-    if (!confirm("Delete this client and all their workouts?")) return;
+    if (!confirm("Delete this client and all workout history?")) return;
     await fetch(`/api/clients/${id}`, { method: "DELETE" });
-    setClients(prev => prev.filter(c => c.id !== id));
-    if (selected?.id === id) setSelected(clients.find(c => c.id !== id) ?? null);
+    setClients((prev) => prev.filter((client) => client.id !== id));
+    if (selected?.id === id) {
+      const next = clients.find((client) => client.id !== id) ?? null;
+      setSelected(next);
+    }
   };
 
-  const logWorkout = async () => {
-    if (!selected || !exercise.trim()) return;
-    setSaving(true);
+  const startWorkout = () => {
+    setActiveWorkout({ startedAt: new Date().toISOString(), notes: "", exercises: [] });
+    setExercisePicker("");
+    setTab("log");
+  };
+
+  const addExerciseToWorkout = () => {
+    if (!activeWorkout || !exercisePicker.trim()) return;
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: [...current.exercises, { name: exercisePicker.trim(), sets: [{ weight: "", reps: "", notes: "" }] }],
+      };
+    });
+    setExercisePicker("");
+  };
+
+  const removeExercise = (exerciseIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return { ...current, exercises: current.exercises.filter((_, index) => index !== exerciseIndex) };
+    });
+  };
+
+  const updateExerciseName = (exerciseIndex: number, value: string) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) =>
+          index === exerciseIndex ? { ...exercise, name: value } : exercise,
+        ),
+      };
+    });
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) =>
+          index === exerciseIndex
+            ? { ...exercise, sets: [...exercise.sets, { weight: "", reps: "", notes: "" }] }
+            : exercise,
+        ),
+      };
+    });
+  };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          const nextSets = exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex);
+          return { ...exercise, sets: nextSets.length ? nextSets : [{ weight: "", reps: "", notes: "" }] };
+        }),
+      };
+    });
+  };
+
+  const updateSet = (exerciseIndex: number, setIndex: number, field: keyof DraftSet, value: string) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          return {
+            ...exercise,
+            sets: exercise.sets.map((setEntry, currentSetIndex) =>
+              currentSetIndex === setIndex ? { ...setEntry, [field]: value } : setEntry,
+            ),
+          };
+        }),
+      };
+    });
+  };
+
+  const completeWorkout = async () => {
+    if (!selected || !activeWorkout) return;
+
+    const normalizedExercises = activeWorkout.exercises
+      .map((exercise) => ({
+        name: exercise.name.trim(),
+        sets: exercise.sets
+          .map((setEntry) => ({
+            weight: Number(setEntry.weight),
+            reps: Number(setEntry.reps),
+            notes: setEntry.notes.trim(),
+          }))
+          .filter((setEntry) => Number.isFinite(setEntry.weight) && setEntry.weight >= 0 && Number.isFinite(setEntry.reps) && setEntry.reps > 0),
+      }))
+      .filter((exercise) => exercise.name && exercise.sets.length > 0);
+
+    if (!normalizedExercises.length) {
+      alert("Add at least one exercise with one valid set before completing the workout.");
+      return;
+    }
+
+    setSavingWorkout(true);
     const res = await fetch("/api/workouts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: selected.id, exercise: exercise.trim(), weight: Number(weight), sets: Number(sets), reps: Number(reps), date, notes: workoutNotes }),
+      body: JSON.stringify({
+        clientId: selected.id,
+        startedAt: activeWorkout.startedAt,
+        completedAt: new Date().toISOString(),
+        notes: activeWorkout.notes,
+        exercises: normalizedExercises,
+      }),
     });
-    if (res.ok) { const w = await res.json(); setWorkouts(prev => [w, ...prev]); setWorkoutNotes(""); fetchClients(); }
-    setSaving(false);
+
+    if (res.ok) {
+      const createdWorkout = await res.json();
+      setWorkouts((prev) => [createdWorkout, ...prev]);
+      setActiveWorkout(null);
+      setExercisePicker("");
+      setTab("history");
+      setRestTimerActive(false);
+      setRestSecondsRemaining(0);
+      fetchClients();
+    }
+
+    setSavingWorkout(false);
   };
 
   const deleteWorkout = async (id: string) => {
     await fetch(`/api/workouts/${id}`, { method: "DELETE" });
-    setWorkouts(prev => prev.filter(w => w.id !== id));
+    setWorkouts((prev) => prev.filter((workout) => workout.id !== id));
     fetchClients();
   };
 
-  const analytics = computeAnalytics(workouts);
+  const totalDraftSets = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return activeWorkout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
+  }, [activeWorkout]);
+
+  const analytics = useMemo(() => computeAnalytics(workouts), [workouts]);
 
   return (
     <div className="app">
@@ -106,7 +346,6 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       </header>
 
       <div className="layout">
-        {/* Sidebar */}
         <aside className="sidebar">
           <div className="sidebar-header">
             <Users size={14} />
@@ -114,23 +353,29 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
             <span className="client-count">{clients.length}</span>
           </div>
           <div className="new-client-row">
-            <input className="input" placeholder="New client name" value={newName}
-              onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && addClient()} />
-            <button className="btn-icon" onClick={addClient} title="Add client"><Plus size={16} /></button>
+            <input
+              className="input"
+              placeholder="New client name"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && addClient()}
+            />
+            <button className="btn-icon" onClick={addClient} title="Add client">
+              <Plus size={16} />
+            </button>
           </div>
           <div className="client-list">
-            {loadingClients && <div className="empty-state">Loading…</div>}
-            {!loadingClients && clients.length === 0 && <div className="empty-state">No clients yet</div>}
-            {clients.map(c => (
-              <div key={c.id} className={`client-item${selected?.id === c.id ? " active" : ""}`} onClick={() => setSelected(c)}>
+            {loadingClients && <div className="empty-state">Loading...</div>}
+            {!loadingClients && !clients.length && <div className="empty-state">No clients yet</div>}
+            {clients.map((client) => (
+              <div key={client.id} className={`client-item${selected?.id === client.id ? " active" : ""}`} onClick={() => setSelected(client)}>
                 <div className="client-item-main">
-                  <span className="client-name">{c.name}</span>
-                  <span className="client-meta">{c._count?.workouts ?? 0} workouts</span>
+                  <span className="client-name">{client.name}</span>
+                  <span className="client-meta">{client._count?.workoutSessions ?? 0} workouts</span>
                 </div>
                 <div className="client-item-actions">
                   <ChevronRight size={14} className="client-arrow" />
-                  <button className="btn-ghost-danger" onClick={e => { e.stopPropagation(); deleteClient(c.id); }} title="Delete">
+                  <button className="btn-ghost-danger" onClick={(event) => { event.stopPropagation(); deleteClient(client.id); }} title="Delete">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -139,7 +384,6 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           </div>
         </aside>
 
-        {/* Main */}
         <main className="main">
           {!selected ? (
             <div className="placeholder">
@@ -151,66 +395,185 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
               <div className="main-header">
                 <h2 className="client-heading">{selected.name}</h2>
                 <div className="tabs">
-                  {(["log", "history", "analytics"] as const).map(t => (
-                    <button key={t} className={`tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {(["log", "history", "analytics"] as const).map((currentTab) => (
+                    <button key={currentTab} className={`tab${tab === currentTab ? " active" : ""}`} onClick={() => setTab(currentTab)}>
+                      {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                     </button>
                   ))}
                 </div>
               </div>
 
               {tab === "log" && (
-                <div className="card">
-                  <h3 className="section-title">Log Workout</h3>
-                  <div className="form-grid">
-                    <label className="field">
-                      <span>Exercise</span>
-                      <input className="input" value={exercise} onChange={e => setExercise(e.target.value)} />
-                    </label>
-                    <label className="field">
-                      <span>Date</span>
-                      <input className="input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-                    </label>
-                    <label className="field">
-                      <span>Weight (lbs)</span>
-                      <input className="input" type="number" value={weight} onChange={e => setWeight(e.target.value)} />
-                    </label>
-                    <label className="field">
-                      <span>Sets</span>
-                      <input className="input" type="number" value={sets} onChange={e => setSets(e.target.value)} />
-                    </label>
-                    <label className="field">
-                      <span>Reps</span>
-                      <input className="input" type="number" value={reps} onChange={e => setReps(e.target.value)} />
-                    </label>
-                    <label className="field">
-                      <span>Notes</span>
-                      <input className="input" placeholder="Optional" value={workoutNotes} onChange={e => setWorkoutNotes(e.target.value)} />
-                    </label>
-                  </div>
-                  <button className="btn-primary" onClick={logWorkout} disabled={saving}>
-                    {saving ? "Saving…" : "Save Workout"}
-                  </button>
+                <div className="card workout-builder-card">
+                  <h3 className="section-title">Workout Builder</h3>
+
+                  {!activeWorkout && (
+                    <div className="builder-empty">
+                      <p>Start a workout to build exercises and sets.</p>
+                      <button className="btn-primary" onClick={startWorkout}>Start New Workout</button>
+                    </div>
+                  )}
+
+                  {activeWorkout && (
+                    <>
+                      <div className="builder-top-row">
+                        <div className="workout-meta">
+                          <span>Started: {new Date(activeWorkout.startedAt).toLocaleTimeString()}</span>
+                          <span>Exercises: {activeWorkout.exercises.length}</span>
+                          <span>Sets: {totalDraftSets}</span>
+                        </div>
+                        <button className="btn-ghost-danger" onClick={() => setActiveWorkout(null)}>Discard Workout</button>
+                      </div>
+
+                      <label className="field workout-notes-field">
+                        <span>Workout Notes</span>
+                        <input
+                          className="input"
+                          placeholder="How did this session feel?"
+                          value={activeWorkout.notes}
+                          onChange={(event) => setActiveWorkout((current) => current ? { ...current, notes: event.target.value } : current)}
+                        />
+                      </label>
+
+                      <div className="exercise-picker">
+                        <input
+                          className="input"
+                          list="exercise-options"
+                          placeholder="Choose or type an exercise"
+                          value={exercisePicker}
+                          onChange={(event) => setExercisePicker(event.target.value)}
+                        />
+                        <datalist id="exercise-options">
+                          {EXERCISE_OPTIONS.map((exerciseName) => (
+                            <option key={exerciseName} value={exerciseName} />
+                          ))}
+                        </datalist>
+                        <button className="btn-primary" onClick={addExerciseToWorkout}>Add Exercise</button>
+                      </div>
+
+                      <div className="exercise-list">
+                        {!activeWorkout.exercises.length && <div className="empty-state">Add your first exercise to begin.</div>}
+                        {activeWorkout.exercises.map((exercise, exerciseIndex) => (
+                          <div className="exercise-card" key={`${exercise.name}-${exerciseIndex}`}>
+                            <div className="exercise-card-header">
+                              <input
+                                className="input"
+                                list="exercise-options"
+                                value={exercise.name}
+                                onChange={(event) => updateExerciseName(exerciseIndex, event.target.value)}
+                              />
+                              <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+
+                            <div className="set-list">
+                              {exercise.sets.map((setEntry, setIndex) => (
+                                <div className="set-row" key={`${exerciseIndex}-${setIndex}`}>
+                                  <div className="set-index">Set {setIndex + 1}</div>
+                                  <input
+                                    className="input"
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    placeholder="Weight"
+                                    value={setEntry.weight}
+                                    onChange={(event) => updateSet(exerciseIndex, setIndex, "weight", event.target.value)}
+                                  />
+                                  <input
+                                    className="input"
+                                    type="number"
+                                    min="1"
+                                    placeholder="Reps"
+                                    value={setEntry.reps}
+                                    onChange={(event) => updateSet(exerciseIndex, setIndex, "reps", event.target.value)}
+                                  />
+                                  <input
+                                    className="input"
+                                    placeholder="Notes"
+                                    value={setEntry.notes}
+                                    onChange={(event) => updateSet(exerciseIndex, setIndex, "notes", event.target.value)}
+                                  />
+                                  <button className="btn-ghost-danger" onClick={() => removeSet(exerciseIndex, setIndex)} title="Remove set">
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            <button className="btn-icon add-set-btn" onClick={() => addSet(exerciseIndex)}>
+                              <Plus size={14} />
+                              <span>Add Set</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="rest-timer-card">
+                        <div className="section-title rest-title">
+                          <Clock3 size={16} />
+                          Rest Timer
+                        </div>
+                        <div className="rest-controls">
+                          {REST_PRESETS.map((seconds) => (
+                            <button key={seconds} className="tab" onClick={() => { setRestSecondsRemaining(seconds); setRestTimerActive(true); }}>
+                              {formatRestLabel(seconds)}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="rest-status">{restTimerActive ? `Rest: ${formatClock(restSecondsRemaining)}` : "Ready"}</div>
+                        <div className="rest-actions">
+                          <button className="btn-primary" onClick={() => setRestTimerActive((current) => !current)}>
+                            {restTimerActive ? "Pause" : "Resume"}
+                          </button>
+                          <button className="btn-ghost-danger" onClick={() => { setRestTimerActive(false); setRestSecondsRemaining(0); }}>
+                            Reset Timer
+                          </button>
+                        </div>
+                      </div>
+
+                      <button className="btn-primary complete-btn" onClick={completeWorkout} disabled={savingWorkout}>
+                        {savingWorkout ? "Saving Workout..." : "Complete Workout"}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
               {tab === "history" && (
                 <div className="card">
                   <h3 className="section-title">Workout History</h3>
-                  {loadingWorkouts && <div className="empty-state">Loading…</div>}
-                  {!loadingWorkouts && workouts.length === 0 && <div className="empty-state">No workouts logged yet</div>}
-                  <div className="workout-list">
-                    {workouts.map(w => (
-                      <div key={w.id} className="workout-row">
-                        <div className="workout-info">
-                          <span className="workout-exercise">{w.exercise}</span>
-                          <span className="workout-detail">{w.weight} lbs · {w.sets}×{w.reps}</span>
-                          {w.notes && <span className="workout-notes">{w.notes}</span>}
+                  {loadingWorkouts && <div className="empty-state">Loading...</div>}
+                  {!loadingWorkouts && !workouts.length && <div className="empty-state">No workouts logged yet</div>}
+                  <div className="history-list">
+                    {workouts.map((workout) => (
+                      <div key={workout.id} className="history-card">
+                        <div className="history-card-header">
+                          <div>
+                            <div className="history-date">{new Date(workout.completedAt).toLocaleString()}</div>
+                            <div className="history-meta">{workout.exercises.length} exercises</div>
+                          </div>
+                          <button className="btn-ghost-danger" onClick={() => deleteWorkout(workout.id)}>
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                        <div className="workout-right">
-                          <span className="workout-date">{w.date}</span>
-                          <button className="btn-ghost-danger" onClick={() => deleteWorkout(w.id)}><Trash2 size={13} /></button>
-                        </div>
+
+                        {workout.notes && <div className="history-notes">{workout.notes}</div>}
+
+                        {workout.exercises.map((exercise) => (
+                          <div key={exercise.id} className="history-exercise">
+                            <div className="history-exercise-name">{exercise.name}</div>
+                            <div className="history-set-list">
+                              {exercise.sets.map((setEntry) => (
+                                <div key={setEntry.id} className="history-set-row">
+                                  <span>Set {setEntry.order + 1}</span>
+                                  <span>{setEntry.weight} lbs x {setEntry.reps}</span>
+                                  <span>{setEntry.notes || "-"}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -223,16 +586,16 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                     <TrendingUp size={16} />
                     Analytics
                   </h3>
-                  {Object.keys(analytics).length === 0 && <div className="empty-state">Log workouts to see analytics</div>}
+                  {!Object.keys(analytics).length && <div className="empty-state">Log workouts to see analytics</div>}
                   <div className="analytics-grid">
-                    {Object.entries(analytics).map(([ex, a]) => (
-                      <div key={ex} className="analytics-card">
-                        <div className="analytics-exercise">{ex}</div>
+                    {Object.entries(analytics).map(([exerciseName, stats]) => (
+                      <div key={exerciseName} className="analytics-card">
+                        <div className="analytics-exercise">{exerciseName}</div>
                         <div className="analytics-stats">
-                          <div className="stat"><span className="stat-value">{a.maxWeight}</span><span className="stat-label">Max lbs</span></div>
-                          <div className="stat"><span className="stat-value">{a.avgWeight}</span><span className="stat-label">Avg lbs</span></div>
-                          <div className="stat"><span className="stat-value">{a.totalVolume.toLocaleString()}</span><span className="stat-label">Total vol</span></div>
-                          <div className="stat"><span className="stat-value">{a.sessions}</span><span className="stat-label">Sessions</span></div>
+                          <div className="stat"><span className="stat-value">{stats.maxWeight}</span><span className="stat-label">Max lbs</span></div>
+                          <div className="stat"><span className="stat-value">{stats.avgWeight}</span><span className="stat-label">Avg lbs</span></div>
+                          <div className="stat"><span className="stat-value">{stats.totalVolume.toLocaleString()}</span><span className="stat-label">Volume</span></div>
+                          <div className="stat"><span className="stat-value">{stats.sessions}</span><span className="stat-label">Sessions</span></div>
                         </div>
                       </div>
                     ))}
