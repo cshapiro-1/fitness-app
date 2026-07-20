@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fitness App
 
-## Getting Started
+Next.js trainer dashboard with:
 
-First, run the development server:
+- Google sign-in via NextAuth
+- Neon Postgres via Prisma driver adapter
+- Vercel deployment
+
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy env template and fill values:
+
+```bash
+cp .env.example .env.local
+```
+
+Required variables:
+
+- `DATABASE_URL` (Neon connection string)
+- `NEXTAUTH_URL` (`http://localhost:3000` locally)
+- `NEXTAUTH_SECRET` (long random string)
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+3. Generate Prisma client:
+
+```bash
+npm run build
+```
+
+4. Run dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Google OAuth Configuration
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+In Google Cloud Console, create an OAuth client and set:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Authorized JavaScript origins:
+	- `http://localhost:3000`
+	- `https://<your-vercel-domain>`
+- Authorized redirect URIs:
+	- `http://localhost:3000/api/auth/callback/google`
+	- `https://<your-vercel-domain>/api/auth/callback/google`
 
-## Learn More
+## Vercel Deployment
 
-To learn more about Next.js, take a look at the following resources:
+Set the same environment variables in Vercel Project Settings, then deploy.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Build command:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run build
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The app uses Next.js App Router API routes and server sessions for route protection.
