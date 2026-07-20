@@ -70,35 +70,163 @@ const formatClock = (seconds: number) => {
   return `${mins}:${secs}`;
 };
 
-type Analytics = Record<string, { maxWeight: number; avgWeight: number; totalVolume: number; sessions: number }>;
+type ExerciseTrendPoint = {
+  completedAt: string;
+  workoutId: string;
+  topWeight: number;
+  topReps: number;
+};
 
-function computeAnalytics(workouts: WorkoutSession[]): Analytics {
-  const bucket: Record<string, { weights: number[]; volume: number; sessions: Set<string> }> = {};
-  workouts.forEach((workout) => {
-    workout.exercises.forEach((exercise) => {
-      if (!bucket[exercise.name]) {
-        bucket[exercise.name] = { weights: [], volume: 0, sessions: new Set<string>() };
-      }
-      exercise.sets.forEach((setEntry) => {
-        bucket[exercise.name].weights.push(setEntry.weight);
-        bucket[exercise.name].volume += setEntry.weight * setEntry.reps;
-      });
-      bucket[exercise.name].sessions.add(workout.id);
-    });
-  });
+type ExerciseAnalytics = {
+  name: string;
+  maxWeight: number;
+  maxReps: number;
+  avgTopWeight: number;
+  sessions: number;
+  totalSets: number;
+  trend: ExerciseTrendPoint[];
+};
 
-  const result: Analytics = {};
-  Object.entries(bucket).forEach(([exercise, data]) => {
-    const totalWeight = data.weights.reduce((sum, weight) => sum + weight, 0);
-    result[exercise] = {
-      maxWeight: data.weights.length ? Math.max(...data.weights) : 0,
-      avgWeight: data.weights.length ? Math.round((totalWeight / data.weights.length) * 10) / 10 : 0,
-      totalVolume: Math.round(data.volume),
-      sessions: data.sessions.size,
+type WorkoutAnalytics = {
+  id: string;
+  completedAt: string;
+  exerciseCount: number;
+  setCount: number;
+  peakWeight: number;
+  peakReps: number;
+};
+
+type DashboardAnalytics = {
+  workouts: WorkoutAnalytics[];
+  exercises: ExerciseAnalytics[];
+  overall: {
+    totalWorkouts: number;
+    totalExercises: number;
+    totalSets: number;
+    heaviestSet: { exercise: string; weight: number; reps: number; completedAt: string } | null;
+    highestRepSet: { exercise: string; weight: number; reps: number; completedAt: string } | null;
+    mostTrainedExercise: { exercise: string; sessions: number } | null;
+  };
+};
+
+function computeAnalytics(workouts: WorkoutSession[]): DashboardAnalytics {
+  const exerciseBuckets = new Map<string, { sets: Array<{ weight: number; reps: number; workoutId: string; completedAt: string }>; sessions: Set<string> }>();
+
+  const workoutsSummary = workouts.map((workout) => {
+    const summary = {
+      id: workout.id,
+      completedAt: workout.completedAt,
+      exerciseCount: workout.exercises.length,
+      setCount: workout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0),
+      peakWeight: 0,
+      peakReps: 0,
     };
+
+    workout.exercises.forEach((exercise) => {
+      const topWeight = exercise.sets.reduce((max, setEntry) => Math.max(max, setEntry.weight), 0);
+      const topReps = exercise.sets.reduce((max, setEntry) => Math.max(max, setEntry.reps), 0);
+      summary.peakWeight = Math.max(summary.peakWeight, topWeight);
+      summary.peakReps = Math.max(summary.peakReps, topReps);
+
+      if (!exerciseBuckets.has(exercise.name)) {
+        exerciseBuckets.set(exercise.name, { sets: [], sessions: new Set<string>() });
+      }
+
+      const bucket = exerciseBuckets.get(exercise.name)!;
+      bucket.sessions.add(workout.id);
+      exercise.sets.forEach((setEntry) => {
+        bucket.sets.push({
+          weight: setEntry.weight,
+          reps: setEntry.reps,
+          workoutId: workout.id,
+          completedAt: workout.completedAt,
+        });
+      });
+    });
+
+    return summary;
   });
 
-  return result;
+  const exercises = Array.from(exerciseBuckets.entries())
+    .map(([name, data]) => {
+      const sortedSets = [...data.sets].sort((left, right) => new Date(left.completedAt).getTime() - new Date(right.completedAt).getTime());
+      const trendMap = new Map<string, ExerciseTrendPoint>();
+
+      sortedSets.forEach((setEntry) => {
+        const current = trendMap.get(setEntry.workoutId);
+        if (!current || setEntry.weight > current.topWeight || (setEntry.weight === current.topWeight && setEntry.reps > current.topReps)) {
+          trendMap.set(setEntry.workoutId, {
+            completedAt: setEntry.completedAt,
+            workoutId: setEntry.workoutId,
+            topWeight: setEntry.weight,
+            topReps: setEntry.reps,
+          });
+        }
+      });
+
+      const trend = Array.from(trendMap.values()).sort((left, right) => new Date(left.completedAt).getTime() - new Date(right.completedAt).getTime());
+      const maxWeight = sortedSets.reduce((best, setEntry) => Math.max(best, setEntry.weight), 0);
+      const maxReps = sortedSets.reduce((best, setEntry) => Math.max(best, setEntry.reps), 0);
+      const avgTopWeight = trend.length
+        ? Math.round((trend.reduce((sum, point) => sum + point.topWeight, 0) / trend.length) * 10) / 10
+        : 0;
+
+      return {
+        name,
+        maxWeight,
+        maxReps,
+        avgTopWeight,
+        sessions: data.sessions.size,
+        totalSets: sortedSets.length,
+        trend,
+      };
+    })
+    .sort((left, right) => right.maxWeight - left.maxWeight || right.sessions - left.sessions || left.name.localeCompare(right.name));
+
+  const heaviestSet = exercises.reduce<DashboardAnalytics["overall"]["heaviestSet"]>((best, exercise) => {
+    const candidate = exercise.trend.reduce<DashboardAnalytics["overall"]["heaviestSet"]>((exerciseBest, point) => {
+      if (!exerciseBest || point.topWeight > exerciseBest.weight || (point.topWeight === exerciseBest.weight && point.topReps > exerciseBest.reps)) {
+        return { exercise: exercise.name, weight: point.topWeight, reps: point.topReps, completedAt: point.completedAt };
+      }
+      return exerciseBest;
+    }, null);
+
+    if (!best) return candidate;
+    if (!candidate) return best;
+    if (candidate.weight > best.weight || (candidate.weight === best.weight && candidate.reps > best.reps)) return candidate;
+    return best;
+  }, null);
+
+  const highestRepSet = exercises.reduce<DashboardAnalytics["overall"]["highestRepSet"]>((best, exercise) => {
+    const candidate = exercise.trend.reduce<DashboardAnalytics["overall"]["highestRepSet"]>((exerciseBest, point) => {
+      if (!exerciseBest || point.topReps > exerciseBest.reps || (point.topReps === exerciseBest.reps && point.topWeight > exerciseBest.weight)) {
+        return { exercise: exercise.name, weight: point.topWeight, reps: point.topReps, completedAt: point.completedAt };
+      }
+      return exerciseBest;
+    }, null);
+
+    if (!best) return candidate;
+    if (!candidate) return best;
+    if (candidate.reps > best.reps || (candidate.reps === best.reps && candidate.weight > best.weight)) return candidate;
+    return best;
+  }, null);
+
+  const mostTrainedExercise = exercises[0]
+    ? { exercise: exercises[0].name, sessions: exercises[0].sessions }
+    : null;
+
+  return {
+    workouts: workoutsSummary.sort((left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime()),
+    exercises,
+    overall: {
+      totalWorkouts: workouts.length,
+      totalExercises: exercises.length,
+      totalSets: workoutsSummary.reduce((sum, workout) => sum + workout.setCount, 0),
+      heaviestSet,
+      highestRepSet,
+      mostTrainedExercise,
+    },
+  };
 }
 
 export function Dashboard({ userName, userImage }: { userName: string; userImage: string | null }) {
@@ -586,20 +714,86 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                     <TrendingUp size={16} />
                     Analytics
                   </h3>
-                  {!Object.keys(analytics).length && <div className="empty-state">Log workouts to see analytics</div>}
-                  <div className="analytics-grid">
-                    {Object.entries(analytics).map(([exerciseName, stats]) => (
-                      <div key={exerciseName} className="analytics-card">
-                        <div className="analytics-exercise">{exerciseName}</div>
-                        <div className="analytics-stats">
-                          <div className="stat"><span className="stat-value">{stats.maxWeight}</span><span className="stat-label">Max lbs</span></div>
-                          <div className="stat"><span className="stat-value">{stats.avgWeight}</span><span className="stat-label">Avg lbs</span></div>
-                          <div className="stat"><span className="stat-value">{stats.totalVolume.toLocaleString()}</span><span className="stat-label">Volume</span></div>
-                          <div className="stat"><span className="stat-value">{stats.sessions}</span><span className="stat-label">Sessions</span></div>
+                  {!analytics.workouts.length && <div className="empty-state">Log workouts to see analytics</div>}
+                  {!!analytics.workouts.length && (
+                    <>
+                      <div className="analytics-summary-grid">
+                        <div className="analytics-summary-card">
+                          <span className="stat-label">Workouts</span>
+                          <span className="analytics-summary-value">{analytics.overall.totalWorkouts}</span>
+                        </div>
+                        <div className="analytics-summary-card">
+                          <span className="stat-label">Exercises</span>
+                          <span className="analytics-summary-value">{analytics.overall.totalExercises}</span>
+                        </div>
+                        <div className="analytics-summary-card">
+                          <span className="stat-label">Sets Logged</span>
+                          <span className="analytics-summary-value">{analytics.overall.totalSets}</span>
+                        </div>
+                        <div className="analytics-summary-card">
+                          <span className="stat-label">Top Exercise</span>
+                          <span className="analytics-summary-value analytics-summary-value-small">
+                            {analytics.overall.mostTrainedExercise ? analytics.overall.mostTrainedExercise.exercise : "-"}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      <div className="analytics-pr-grid">
+                        <div className="analytics-pr-card">
+                          <span className="stat-label">Heaviest Set</span>
+                          <div className="analytics-pr-value">
+                            {analytics.overall.heaviestSet ? `${analytics.overall.heaviestSet.weight} lbs` : "-"}
+                          </div>
+                          {analytics.overall.heaviestSet && (
+                            <div className="analytics-pr-detail">
+                              {analytics.overall.heaviestSet.exercise} · {analytics.overall.heaviestSet.reps} reps · {new Date(analytics.overall.heaviestSet.completedAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="analytics-pr-card">
+                          <span className="stat-label">Highest Reps</span>
+                          <div className="analytics-pr-value">
+                            {analytics.overall.highestRepSet ? `${analytics.overall.highestRepSet.reps} reps` : "-"}
+                          </div>
+                          {analytics.overall.highestRepSet && (
+                            <div className="analytics-pr-detail">
+                              {analytics.overall.highestRepSet.exercise} · {analytics.overall.highestRepSet.weight} lbs · {new Date(analytics.overall.highestRepSet.completedAt).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="analytics-grid">
+                        {analytics.exercises.map((exercise) => (
+                          <div key={exercise.name} className="analytics-card">
+                            <div className="analytics-exercise">{exercise.name}</div>
+                            <div className="analytics-stats">
+                              <div className="stat"><span className="stat-value">{exercise.maxWeight}</span><span className="stat-label">Max lbs</span></div>
+                              <div className="stat"><span className="stat-value">{exercise.maxReps}</span><span className="stat-label">Max reps</span></div>
+                              <div className="stat"><span className="stat-value">{exercise.avgTopWeight}</span><span className="stat-label">Avg top set</span></div>
+                              <div className="stat"><span className="stat-value">{exercise.sessions}</span><span className="stat-label">Sessions</span></div>
+                            </div>
+
+                            <div className="analytics-metric-row">
+                              <span className="analytics-metric-label">Total sets</span>
+                              <span className="analytics-metric-value">{exercise.totalSets}</span>
+                            </div>
+
+                            <div className="analytics-trend">
+                              <div className="analytics-trend-title">Weight over time</div>
+                              {exercise.trend.map((point) => (
+                                <div key={`${exercise.name}-${point.workoutId}`} className="analytics-trend-row">
+                                  <span>{new Date(point.completedAt).toLocaleDateString()}</span>
+                                  <span>{point.topWeight} lbs</span>
+                                  <span>{point.topReps} reps</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </>
