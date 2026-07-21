@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
 import { Trash2, Plus, LogOut, TrendingUp, Dumbbell, Users, ChevronRight, Clock3 } from "lucide-react";
 
@@ -73,25 +73,30 @@ const formatClock = (seconds: number) => {
   return `${mins}:${secs}`;
 };
 
-function playTimerDing() {
+function playTimerDing(context: AudioContext | null) {
+  if (!context) return;
+
   try {
-    const context = new window.AudioContext();
-    const oscillator = context.createOscillator();
-    const gainNode = context.createGain();
+    const playTone = (offsetSeconds: number, frequency: number) => {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      const startAt = context.currentTime + offsetSeconds;
 
-    oscillator.type = "triangle";
-    oscillator.frequency.setValueAtTime(880, context.currentTime);
-    gainNode.gain.setValueAtTime(0.001, context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.45);
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, startAt);
+      gainNode.gain.setValueAtTime(0.001, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(0.22, startAt + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startAt + 0.22);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + 0.45);
-    oscillator.onended = () => {
-      context.close().catch(() => undefined);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + 0.24);
     };
+
+    // Two short tones to make the finish sound harder to miss.
+    playTone(0, 880);
+    playTone(0.26, 988);
   } catch {
     // Ignore sound failures on restricted browsers.
   }
@@ -275,6 +280,23 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [restTimerActive, setRestTimerActive] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const ensureAudioContext = useCallback(async () => {
+    if (typeof window === "undefined") return null;
+
+    if (!audioContextRef.current) {
+      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      audioContextRef.current = new Ctx();
+    }
+
+    if (audioContextRef.current.state === "suspended") {
+      await audioContextRef.current.resume();
+    }
+
+    return audioContextRef.current;
+  }, []);
 
   const fetchClients = useCallback(async () => {
     setLoadingClients(true);
@@ -310,7 +332,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         if (current <= 1) {
           window.clearInterval(timer);
           setRestTimerActive(false);
-          playTimerDing();
+          playTimerDing(audioContextRef.current);
           return 0;
         }
         return current - 1;
@@ -318,6 +340,15 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     }, 1000);
     return () => window.clearInterval(timer);
   }, [restTimerActive]);
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => undefined);
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
 
   const addClient = async () => {
     if (!newName.trim()) return;
@@ -802,14 +833,25 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                         </div>
                         <div className="rest-controls">
                           {REST_PRESETS.map((seconds) => (
-                            <button key={seconds} className="tab" onClick={() => { setRestSecondsRemaining(seconds); setRestTimerActive(true); }}>
+                            <button
+                              key={seconds}
+                              className="tab"
+                              onClick={async () => {
+                                await ensureAudioContext();
+                                setRestSecondsRemaining(seconds);
+                                setRestTimerActive(true);
+                              }}
+                            >
                               {formatRestLabel(seconds)}
                             </button>
                           ))}
                         </div>
                         <div className="rest-status">{restTimerActive ? `Rest: ${formatClock(restSecondsRemaining)}` : "Ready"}</div>
                         <div className="rest-actions">
-                          <button className="btn-primary" onClick={() => setRestTimerActive((current) => !current)}>
+                          <button className="btn-primary" onClick={async () => {
+                            await ensureAudioContext();
+                            setRestTimerActive((current) => !current);
+                          }}>
                             {restTimerActive ? "Pause" : "Resume"}
                           </button>
                           <button className="btn-ghost-danger" onClick={() => { setRestTimerActive(false); setRestSecondsRemaining(0); }}>
