@@ -7,6 +7,7 @@ import { Trash2, Plus, LogOut, TrendingUp, Dumbbell, Users, ChevronRight, Clock3
 interface Client {
   id: string;
   name: string;
+  email?: string | null;
   notes?: string;
   createdAt: string;
   _count?: { workoutSessions: number };
@@ -30,17 +31,19 @@ interface WorkoutExercise {
 interface WorkoutSession {
   id: string;
   clientId: string;
-  startedAt: string;
-  completedAt: string;
+  status: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
+  startedAt?: string | null;
+  completedAt?: string | null;
   notes?: string | null;
+  createdAt: string;
   exercises: WorkoutExercise[];
 }
 
 type DraftSet = { weight: string; reps: string; notes: string };
 type DraftExercise = { name: string; sets: DraftSet[] };
-type DraftWorkout = { startedAt: string; notes: string; exercises: DraftExercise[] };
+type DraftWorkout = { startedAt: string; notes: string; exercises: DraftExercise[]; plannedWorkoutId?: string | null };
 
-const REST_PRESETS = [15, 30, 45, 60, 90, 120, 150, 180, 210, 240, 300];
+const REST_PRESETS = Array.from({ length: 20 }, (_, index) => (index + 1) * 15);
 const EXERCISE_OPTIONS = [
   "Bench Press", "Incline Bench Press", "Decline Bench Press", "Dumbbell Bench Press", "Push Up", "Weighted Push Up",
   "Overhead Press", "Seated Dumbbell Press", "Arnold Press", "Lateral Raise", "Front Raise", "Rear Delt Fly",
@@ -69,6 +72,30 @@ const formatClock = (seconds: number) => {
   const secs = (seconds % 60).toString().padStart(2, "0");
   return `${mins}:${secs}`;
 };
+
+function playTimerDing() {
+  try {
+    const context = new window.AudioContext();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.type = "triangle";
+    oscillator.frequency.setValueAtTime(880, context.currentTime);
+    gainNode.gain.setValueAtTime(0.001, context.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.45);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.45);
+    oscillator.onended = () => {
+      context.close().catch(() => undefined);
+    };
+  } catch {
+    // Ignore sound failures on restricted browsers.
+  }
+}
 
 type ExerciseTrendPoint = {
   completedAt: string;
@@ -113,9 +140,10 @@ function computeAnalytics(workouts: WorkoutSession[]): DashboardAnalytics {
   const exerciseBuckets = new Map<string, { sets: Array<{ weight: number; reps: number; workoutId: string; completedAt: string }>; sessions: Set<string> }>();
 
   const workoutsSummary = workouts.map((workout) => {
+    const completedAt = workout.completedAt ?? workout.startedAt ?? workout.createdAt;
     const summary = {
       id: workout.id,
-      completedAt: workout.completedAt,
+      completedAt,
       exerciseCount: workout.exercises.length,
       setCount: workout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0),
       peakWeight: 0,
@@ -139,7 +167,7 @@ function computeAnalytics(workouts: WorkoutSession[]): DashboardAnalytics {
           weight: setEntry.weight,
           reps: setEntry.reps,
           workoutId: workout.id,
-          completedAt: workout.completedAt,
+          completedAt,
         });
       });
     });
@@ -237,11 +265,13 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
   const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
   const [exercisePicker, setExercisePicker] = useState("");
   const [savingWorkout, setSavingWorkout] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
 
   const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
   const [restTimerActive, setRestTimerActive] = useState(false);
@@ -280,6 +310,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         if (current <= 1) {
           window.clearInterval(timer);
           setRestTimerActive(false);
+          playTimerDing();
           return 0;
         }
         return current - 1;
@@ -290,17 +321,23 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   const addClient = async () => {
     if (!newName.trim()) return;
+    const normalizedEmail = newEmail.trim().toLowerCase();
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim() }),
+      body: JSON.stringify({ name: newName.trim(), email: normalizedEmail || null }),
     });
     if (res.ok) {
       const client = await res.json();
       setClients((prev) => [...prev, client]);
       setSelected(client);
       setNewName("");
+      setNewEmail("");
+      return;
     }
+
+    const body = await res.json().catch(() => null);
+    if (body?.error) alert(body.error);
   };
 
   const deleteClient = async (id: string) => {
@@ -314,9 +351,45 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   };
 
   const startWorkout = () => {
-    setActiveWorkout({ startedAt: new Date().toISOString(), notes: "", exercises: [] });
+    setActiveWorkout({ startedAt: new Date().toISOString(), notes: "", exercises: [], plannedWorkoutId: null });
     setExercisePicker("");
     setTab("log");
+  };
+
+  const beginPlannedWorkout = async (workout: WorkoutSession) => {
+    if (workout.status === "PLANNED") {
+      const res = await fetch(`/api/workouts/${workout.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "IN_PROGRESS",
+          startedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        alert(body?.error || "Unable to begin workout");
+        return;
+      }
+    }
+
+    setActiveWorkout({
+      startedAt: workout.startedAt || new Date().toISOString(),
+      notes: workout.notes || "",
+      plannedWorkoutId: workout.id,
+      exercises: workout.exercises.map((exercise) => ({
+        name: exercise.name,
+        sets: exercise.sets.map((setEntry) => ({
+          weight: String(setEntry.weight),
+          reps: String(setEntry.reps),
+          notes: setEntry.notes || "",
+        })),
+      })),
+    });
+
+    setTab("log");
+    fetchWorkouts(workout.clientId);
   };
 
   const addExerciseToWorkout = () => {
@@ -396,6 +469,53 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     });
   };
 
+  const saveWorkoutPlan = async () => {
+    if (!selected || !activeWorkout) return;
+
+    const normalizedExercises = activeWorkout.exercises
+      .map((exercise) => ({
+        name: exercise.name.trim(),
+        sets: exercise.sets
+          .map((setEntry) => ({
+            weight: Number(setEntry.weight),
+            reps: Number(setEntry.reps),
+            notes: setEntry.notes.trim(),
+          }))
+          .filter((setEntry) => Number.isFinite(setEntry.weight) && setEntry.weight >= 0 && Number.isFinite(setEntry.reps) && setEntry.reps > 0),
+      }))
+      .filter((exercise) => exercise.name && exercise.sets.length > 0);
+
+    if (!normalizedExercises.length) {
+      alert("Add at least one exercise with one valid set before saving a workout plan.");
+      return;
+    }
+
+    setSavingPlan(true);
+    const res = await fetch("/api/workouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: selected.id,
+        status: "PLANNED",
+        notes: activeWorkout.notes,
+        exercises: normalizedExercises,
+      }),
+    });
+
+    if (res.ok) {
+      const plannedWorkout = await res.json();
+      setWorkouts((prev) => [plannedWorkout, ...prev]);
+      setActiveWorkout(null);
+      setExercisePicker("");
+      fetchClients();
+    } else {
+      const body = await res.json().catch(() => null);
+      alert(body?.error || "Could not save workout plan");
+    }
+
+    setSavingPlan(false);
+  };
+
   const completeWorkout = async () => {
     if (!selected || !activeWorkout) return;
 
@@ -418,11 +538,12 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     }
 
     setSavingWorkout(true);
-    const res = await fetch("/api/workouts", {
-      method: "POST",
+    const res = await fetch(activeWorkout.plannedWorkoutId ? `/api/workouts/${activeWorkout.plannedWorkoutId}` : "/api/workouts", {
+      method: activeWorkout.plannedWorkoutId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: selected.id,
+        status: "COMPLETED",
         startedAt: activeWorkout.startedAt,
         completedAt: new Date().toISOString(),
         notes: activeWorkout.notes,
@@ -432,13 +553,21 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
     if (res.ok) {
       const createdWorkout = await res.json();
-      setWorkouts((prev) => [createdWorkout, ...prev]);
+      setWorkouts((prev) => {
+        const withoutCurrent = activeWorkout.plannedWorkoutId
+          ? prev.filter((workout) => workout.id !== activeWorkout.plannedWorkoutId)
+          : prev;
+        return [createdWorkout, ...withoutCurrent];
+      });
       setActiveWorkout(null);
       setExercisePicker("");
       setTab("history");
       setRestTimerActive(false);
       setRestSecondsRemaining(0);
       fetchClients();
+    } else {
+      const body = await res.json().catch(() => null);
+      alert(body?.error || "Could not complete workout");
     }
 
     setSavingWorkout(false);
@@ -455,7 +584,13 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     return activeWorkout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
   }, [activeWorkout]);
 
-  const analytics = useMemo(() => computeAnalytics(workouts), [workouts]);
+  const completedWorkouts = useMemo(() => workouts.filter((workout) => workout.status === "COMPLETED"), [workouts]);
+  const plannedWorkouts = useMemo(
+    () => workouts.filter((workout) => workout.status === "PLANNED" || workout.status === "IN_PROGRESS"),
+    [workouts],
+  );
+
+  const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
 
   return (
     <div className="app">
@@ -486,6 +621,13 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
               placeholder="New client name"
               value={newName}
               onChange={(event) => setNewName(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && addClient()}
+            />
+            <input
+              className="input"
+              placeholder="Client email (optional)"
+              value={newEmail}
+              onChange={(event) => setNewEmail(event.target.value)}
               onKeyDown={(event) => event.key === "Enter" && addClient()}
             />
             <button className="btn-icon" onClick={addClient} title="Add client">
@@ -537,8 +679,24 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
                   {!activeWorkout && (
                     <div className="builder-empty">
-                      <p>Start a workout to build exercises and sets.</p>
+                      <p>Build a new workout or begin a saved workout plan.</p>
                       <button className="btn-primary" onClick={startWorkout}>Start New Workout</button>
+                      {!!plannedWorkouts.length && (
+                        <div className="planned-list">
+                          <h4 className="planned-list-title">Planned Workouts</h4>
+                          {plannedWorkouts.map((plannedWorkout) => (
+                            <div key={plannedWorkout.id} className="planned-row">
+                              <div>
+                                <div className="planned-row-title">{plannedWorkout.status === "IN_PROGRESS" ? "In Progress" : "Planned"} · {plannedWorkout.exercises.length} exercises</div>
+                                <div className="planned-row-meta">{new Date(plannedWorkout.createdAt).toLocaleString()}</div>
+                              </div>
+                              <button className="btn-primary" onClick={() => beginPlannedWorkout(plannedWorkout)}>
+                                {plannedWorkout.status === "IN_PROGRESS" ? "Resume Workout" : "Begin Workout"}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -660,9 +818,14 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                         </div>
                       </div>
 
-                      <button className="btn-primary complete-btn" onClick={completeWorkout} disabled={savingWorkout}>
-                        {savingWorkout ? "Saving Workout..." : "Complete Workout"}
-                      </button>
+                      <div className="workout-action-row">
+                        <button className="btn-icon" onClick={saveWorkoutPlan} disabled={savingPlan || savingWorkout}>
+                          <span>{savingPlan ? "Saving Plan..." : "Save Workout Plan"}</span>
+                        </button>
+                        <button className="btn-primary complete-btn" onClick={completeWorkout} disabled={savingWorkout || savingPlan}>
+                          {savingWorkout ? "Saving Workout..." : "Complete Workout"}
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
@@ -672,13 +835,13 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                 <div className="card">
                   <h3 className="section-title">Workout History</h3>
                   {loadingWorkouts && <div className="empty-state">Loading...</div>}
-                  {!loadingWorkouts && !workouts.length && <div className="empty-state">No workouts logged yet</div>}
+                  {!loadingWorkouts && !completedWorkouts.length && <div className="empty-state">No workouts logged yet</div>}
                   <div className="history-list">
-                    {workouts.map((workout) => (
+                    {completedWorkouts.map((workout) => (
                       <div key={workout.id} className="history-card">
                         <div className="history-card-header">
                           <div>
-                            <div className="history-date">{new Date(workout.completedAt).toLocaleString()}</div>
+                            <div className="history-date">{workout.completedAt ? new Date(workout.completedAt).toLocaleString() : "-"}</div>
                             <div className="history-meta">{workout.exercises.length} exercises</div>
                           </div>
                           <button className="btn-ghost-danger" onClick={() => deleteWorkout(workout.id)}>

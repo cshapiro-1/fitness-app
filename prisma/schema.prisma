@@ -8,6 +8,17 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  TRAINER
+  CLIENT
+}
+
+enum WorkoutSessionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -48,20 +59,25 @@ model User {
   emailVerified DateTime?
   name      String?
   image     String?
+  role      UserRole  @default(TRAINER)
+  clientProfileId String? @unique
   accounts  Account[]
   sessions  Session[]
   clients   Client[]
+  clientProfile Client? @relation("ClientLogin", fields: [clientProfileId], references: [id], onDelete: SetNull)
 }
 
 model Client {
   id        String    @id @default(cuid())
   userId    String
   name      String
+  email     String?   @unique
   notes     String?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workouts  Workout[]
   workoutSessions WorkoutSession[]
+  loginUser User?     @relation("ClientLogin")
 }
 
 model Workout {
@@ -80,8 +96,9 @@ model Workout {
 model WorkoutSession {
   id          String            @id @default(cuid())
   clientId    String
-  startedAt   DateTime
-  completedAt DateTime
+  status      WorkoutSessionStatus @default(COMPLETED)
+  startedAt   DateTime?
+  completedAt DateTime?
   notes       String?
   createdAt   DateTime          @default(now())
   client      Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)

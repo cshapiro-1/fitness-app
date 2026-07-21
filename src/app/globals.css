@@ -52,7 +52,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   margin-left: auto; background: var(--bg); border: 1px solid var(--border);
   border-radius: 10px; padding: 1px 7px; font-size: 0.72rem; color: var(--text-2);
 }
-.new-client-row { display: flex; gap: 6px; padding: 0 12px 12px; }
+.new-client-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; padding: 0 12px 12px; }
 .client-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
 
 .client-item {
@@ -187,6 +187,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 .workout-builder-card { display: flex; flex-direction: column; gap: 14px; }
 .builder-empty { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.planned-list { width: 100%; border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.planned-list-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-2); }
+.planned-row { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.planned-row-title { font-weight: 600; }
+.planned-row-meta { font-size: 0.75rem; color: var(--text-3); }
 .builder-top-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .workout-meta { display: flex; gap: 12px; color: var(--text-2); font-size: 0.82rem; flex-wrap: wrap; }
 .workout-notes-field { margin-bottom: 4px; }
@@ -206,6 +211,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .rest-status { font-weight: 700; color: var(--primary); font-size: 1rem; }
 .rest-actions { display: flex; gap: 8px; }
 .complete-btn { width: fit-content; }
+.workout-action-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.client-main { display: flex; flex-direction: column; gap: 16px; }
 
 .history-list { display: flex; flex-direction: column; gap: 10px; }
 .history-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
@@ -219,6 +227,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .history-set-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px; font-size: 0.8rem; color: var(--text-2); }
 
 @media (max-width: 900px) {
+  .new-client-row { grid-template-columns: 1fr; }
   .set-row { grid-template-columns: 1fr 1fr; }
   .set-index { grid-column: 1 / -1; }
   .set-row .btn-ghost-danger { justify-self: end; }
