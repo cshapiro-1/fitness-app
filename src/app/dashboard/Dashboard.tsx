@@ -283,19 +283,23 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const ensureAudioContext = useCallback(async () => {
-    if (typeof window === "undefined") return null;
+    try {
+      if (typeof window === "undefined") return null;
 
-    if (!audioContextRef.current) {
-      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return null;
-      audioContextRef.current = new Ctx();
+      if (!audioContextRef.current) {
+        const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return null;
+        audioContextRef.current = new Ctx();
+      }
+
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume();
+      }
+
+      return audioContextRef.current;
+    } catch {
+      return null;
     }
-
-    if (audioContextRef.current.state === "suspended") {
-      await audioContextRef.current.resume();
-    }
-
-    return audioContextRef.current;
   }, []);
 
   const fetchClients = useCallback(async () => {
@@ -836,8 +840,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                             <button
                               key={seconds}
                               className="tab"
-                              onClick={async () => {
-                                await ensureAudioContext();
+                              onClick={() => {
+                                ensureAudioContext().catch(() => null);
                                 setRestSecondsRemaining(seconds);
                                 setRestTimerActive(true);
                               }}
@@ -848,8 +852,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                         </div>
                         <div className="rest-status">{restTimerActive ? `Rest: ${formatClock(restSecondsRemaining)}` : "Ready"}</div>
                         <div className="rest-actions">
-                          <button className="btn-primary" onClick={async () => {
-                            await ensureAudioContext();
+                          <button className="btn-primary" onClick={() => {
+                            ensureAudioContext().catch(() => null);
                             setRestTimerActive((current) => !current);
                           }}>
                             {restTimerActive ? "Pause" : "Resume"}
