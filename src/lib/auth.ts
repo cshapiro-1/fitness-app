@@ -8,6 +8,7 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const shouldEnableFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
 
 const runtimeSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "local-dev-secret";
+const isProduction = process.env.NODE_ENV === "production";
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -71,7 +72,7 @@ if (shouldEnableFallbackLogin) {
 export const authOptions: NextAuthOptions = {
   secret: runtimeSecret,
   pages: { signIn: "/auth/signin" },
-  useSecureCookies: process.env.NODE_ENV === "production",
+  useSecureCookies: isProduction,
   providers,
   session: { strategy: "jwt" },
   callbacks: {
