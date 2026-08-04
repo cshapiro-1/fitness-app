@@ -11,6 +11,7 @@ function SignInContent() {
   const [signupMessage, setSignupMessage] = useState<string | null>(null);
   const [signupError, setSignupError] = useState<string | null>(null);
   const hasGoogleCredentials = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID);
+  const showFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
 
   const submitTrainerSignup = async () => {
     if (!signupName.trim() || !signupEmail.trim()) {
@@ -55,12 +56,16 @@ function SignInContent() {
             Continue with Google
           </button>
         ) : null}
-        <button className="auth-btn" onClick={() => signIn("dev-login", { callbackUrl: "/dashboard", redirect: true, mode: "trainer" })}>
-          Continue as local trainer
-        </button>
-        <button className="auth-btn" onClick={() => signIn("dev-login", { callbackUrl: "/dashboard", redirect: true, mode: "client" })}>
-          Continue as local client
-        </button>
+        {showFallbackLogin ? (
+          <>
+            <button className="auth-btn" onClick={() => signIn("dev-login", { callbackUrl: "/dashboard", redirect: true, mode: "trainer" })}>
+              Continue as local trainer
+            </button>
+            <button className="auth-btn" onClick={() => signIn("dev-login", { callbackUrl: "/dashboard", redirect: true, mode: "client" })}>
+              Continue as local client
+            </button>
+          </>
+        ) : null}
 
         <div style={{ marginTop: 16, borderTop: "1px solid #e2e8f0", paddingTop: 16 }}>
           <h2 style={{ fontSize: 16, marginBottom: 8 }}>Become a trainer</h2>

@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
+  if (!process.env.DATABASE_URL) {
+    const body = await req.json().catch(() => null);
+    const email = body?.email?.trim().toLowerCase();
+    const name = body?.name?.trim();
+
+    if (!email || !name) {
+      return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true, message: "Trainer signup queued. Configure the database to activate the account permanently." });
+  }
   const body = await req.json().catch(() => null);
   const email = body?.email?.trim().toLowerCase();
   const name = body?.name?.trim();

@@ -5,6 +5,9 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
 const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+const shouldEnableFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
+const adapter = hasDatabaseUrl ? PrismaAdapter(prisma) : undefined;
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -17,7 +20,7 @@ if (hasGoogleCredentials) {
   );
 }
 
-if (process.env.NODE_ENV !== "production") {
+if (shouldEnableFallbackLogin) {
   providers.push(
     CredentialsProvider({
       id: "dev-login",
@@ -26,6 +29,16 @@ if (process.env.NODE_ENV !== "production") {
         mode: { label: "Mode", type: "text" },
       },
       async authorize(credentials) {
+        if (!hasDatabaseUrl) {
+          const mode = credentials?.mode === "trainer" ? "TRAINER" : "CLIENT";
+          return {
+            id: mode === "TRAINER" ? "trainer-fallback" : "client-fallback",
+            email: mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test",
+            name: mode === "TRAINER" ? "Local Trainer" : "Local Client",
+            role: mode === "TRAINER" ? "trainer" : "client",
+          };
+        }
+
         const mode = credentials?.mode === "trainer" ? "TRAINER" : "CLIENT";
         const email = mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test";
         const name = mode === "TRAINER" ? "Local Trainer" : "Local Client";
@@ -48,13 +61,23 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  ...(adapter ? { adapter } : {}),
   secret: process.env.NEXTAUTH_SECRET || "local-dev-secret",
+  useSecureCookies: process.env.NODE_ENV === "production",
   providers,
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
       if (user) token.userId = user.id;
+
+      if (!hasDatabaseUrl) {
+        token.role = "client" as never;
+        token.isAdmin = false;
+        token.subscriptionStatus = "trial";
+        token.trialEndsAt = null;
+        token.subscribedUntil = null;
+        return token;
+      }
 
       if (token.userId) {
         const dbUser = await prisma.user.findUnique({
