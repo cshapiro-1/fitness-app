@@ -10,6 +10,7 @@ const shouldEnableFallbackLogin = process.env.NODE_ENV !== "production" || !hasG
 const adapter = hasDatabaseUrl ? PrismaAdapter(prisma) : undefined;
 
 const runtimeSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "local-dev-secret";
+const runtimeUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || "http://localhost:3000";
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -65,6 +66,7 @@ if (shouldEnableFallbackLogin) {
 export const authOptions: NextAuthOptions = {
   ...(adapter ? { adapter } : {}),
   secret: runtimeSecret,
+  pages: { signIn: "/auth/signin" },
   useSecureCookies: process.env.NODE_ENV === "production",
   providers,
   session: { strategy: "jwt" },
@@ -163,5 +165,4 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  pages: { signIn: "/auth/signin" },
 };
