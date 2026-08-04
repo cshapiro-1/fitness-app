@@ -9,6 +9,8 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const shouldEnableFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
 const adapter = hasDatabaseUrl ? PrismaAdapter(prisma) : undefined;
 
+const runtimeSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "local-dev-secret";
+
 const providers: NextAuthOptions["providers"] = [];
 
 if (hasGoogleCredentials) {
@@ -62,7 +64,7 @@ if (shouldEnableFallbackLogin) {
 
 export const authOptions: NextAuthOptions = {
   ...(adapter ? { adapter } : {}),
-  secret: process.env.NEXTAUTH_SECRET || "local-dev-secret",
+  secret: runtimeSecret,
   useSecureCookies: process.env.NODE_ENV === "production",
   providers,
   session: { strategy: "jwt" },
