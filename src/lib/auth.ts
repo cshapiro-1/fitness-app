@@ -77,10 +77,16 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
-      if (user) token.userId = user.id;
+      if (user) {
+        token.userId = user.id;
+        const authUser = user as typeof user & { role?: string };
+        if (typeof authUser.role === "string") {
+          token.role = authUser.role as never;
+        }
+      }
 
       if (!hasDatabaseUrl) {
-        token.role = "CLIENT" as never;
+        token.role = (token.role as "TRAINER" | "CLIENT" | undefined) ?? "CLIENT";
         token.isAdmin = false;
         token.subscriptionStatus = "trial";
         token.trialEndsAt = null;

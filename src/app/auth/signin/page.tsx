@@ -1,13 +1,18 @@
 "use client";
+
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-function SignInContent() {
+function SignInContent({
+  hasGoogleCredentials,
+  showFallbackLogin,
+}: {
+  hasGoogleCredentials: boolean;
+  showFallbackLogin: boolean;
+}) {
   const params = useSearchParams();
   const error = params.get("error");
-  const hasGoogleCredentials = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID);
-  const showFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -56,9 +61,12 @@ function SignInContent() {
 }
 
 export default function SignInPage() {
+  const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const showFallbackLogin = true;
+
   return (
     <Suspense fallback={<div className="auth-page" />}>
-      <SignInContent />
+      <SignInContent hasGoogleCredentials={hasGoogleCredentials} showFallbackLogin={showFallbackLogin} />
     </Suspense>
   );
 }
