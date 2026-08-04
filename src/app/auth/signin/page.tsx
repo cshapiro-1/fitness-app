@@ -1,43 +1,13 @@
 "use client";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 
 function SignInContent() {
   const params = useSearchParams();
   const error = params.get("error");
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupMessage, setSignupMessage] = useState<string | null>(null);
-  const [signupError, setSignupError] = useState<string | null>(null);
   const hasGoogleCredentials = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID);
   const showFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
-
-  const submitTrainerSignup = async () => {
-    if (!signupName.trim() || !signupEmail.trim()) {
-      setSignupError("Please add your name and email.");
-      return;
-    }
-
-    setSignupError(null);
-    setSignupMessage(null);
-
-    const res = await fetch("/api/trainers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: signupName.trim(), email: signupEmail.trim().toLowerCase() }),
-    });
-
-    const body = await res.json().catch(() => null);
-    if (!res.ok) {
-      setSignupError(body?.error || "Unable to activate trainer access.");
-      return;
-    }
-
-    setSignupMessage(body?.message || "Trainer signup complete. Your first month is free.");
-    setSignupName("");
-    setSignupEmail("");
-  };
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -70,11 +40,15 @@ function SignInContent() {
         <div style={{ marginTop: 16, borderTop: "1px solid #e2e8f0", paddingTop: 16 }}>
           <h2 style={{ fontSize: 16, marginBottom: 8 }}>Become a trainer</h2>
           <p style={{ fontSize: 13, color: "#64748b", marginBottom: 8 }}>Start with 1 month free, then $10/month.</p>
-          <input className="input" placeholder="Your name" value={signupName} onChange={(event) => setSignupName(event.target.value)} style={{ marginBottom: 8 }} />
-          <input className="input" placeholder="Your email" value={signupEmail} onChange={(event) => setSignupEmail(event.target.value)} style={{ marginBottom: 8 }} />
-          {signupError && <div style={{ color: "#b91c1c", fontSize: 12, marginBottom: 8 }}>{signupError}</div>}
-          {signupMessage && <div style={{ color: "#15803d", fontSize: 12, marginBottom: 8 }}>{signupMessage}</div>}
-          <button className="auth-btn" onClick={submitTrainerSignup}>Start trainer access</button>
+          {hasGoogleCredentials ? (
+            <button className="auth-btn" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}>
+              Continue with Google as trainer
+            </button>
+          ) : (
+            <button className="auth-btn" onClick={() => signIn("dev-login", { callbackUrl: "/dashboard", redirect: true, mode: "trainer" })}>
+              Continue as trainer
+            </button>
+          )}
         </div>
       </div>
     </div>
