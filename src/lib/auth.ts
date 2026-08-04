@@ -1,17 +1,56 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  secret: process.env.NEXTAUTH_SECRET,
-  providers: [
+const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
+const providers: NextAuthOptions["providers"] = [];
+
+if (hasGoogleCredentials) {
+  providers.push(
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
-  ],
+  );
+}
+
+if (process.env.NODE_ENV !== "production") {
+  providers.push(
+    CredentialsProvider({
+      id: "dev-login",
+      name: "Dev Login",
+      credentials: {
+        mode: { label: "Mode", type: "text" },
+      },
+      async authorize(credentials) {
+        const mode = credentials?.mode === "trainer" ? "TRAINER" : "CLIENT";
+        const email = mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test";
+        const name = mode === "TRAINER" ? "Local Trainer" : "Local Client";
+
+        const user = await prisma.user.upsert({
+          where: { email },
+          update: { name, role: mode },
+          create: { email, name, role: mode },
+        });
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name || name,
+          role: mode === "TRAINER" ? "trainer" : "client",
+        };
+      },
+    }),
+  );
+}
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET || "local-dev-secret",
+  providers,
   session: { strategy: "jwt" },
   callbacks: {
     async jwt({ token, user }) {
@@ -27,35 +66,50 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (dbUser) {
-          let role = dbUser.role;
+          let role: "trainer" | "client" | "pending" = dbUser.role === "TRAINER" ? "trainer" : dbUser.role === "CLIENT" ? "client" : "pending";
           let clientProfileId = dbUser.clientProfileId;
+          token.isAdmin = dbUser.isAdmin;
+          token.subscriptionStatus = dbUser.subscriptionStatus;
+          token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
+          token.subscribedUntil = dbUser.subscribedUntil?.toISOString() ?? null;
 
-          // Automatically link a new account as a client login when email matches an existing client record.
-          if (dbUser.role === "TRAINER" && dbUser.clients.length === 0 && !dbUser.clientProfileId) {
-            const matchingClient = await prisma.client.findFirst({
-              where: { email: dbUser.email, loginUser: null },
+          if (dbUser.role === "TRAINER" && !dbUser.clientProfileId) {
+            const existingClient = await prisma.client.findFirst({
+              where: {
+                OR: [
+                  { email: dbUser.email, loginUser: null },
+                  { userId: dbUser.id, name: "My Workouts" },
+                ],
+              },
               select: { id: true },
             });
 
-            if (matchingClient) {
-              const updated = await prisma.user.update({
-                where: { id: dbUser.id },
-                data: {
-                  role: "CLIENT",
-                  clientProfileId: matchingClient.id,
-                },
-                select: {
-                  role: true,
-                  clientProfileId: true,
-                },
-              });
+            const selfProfile = existingClient ?? await prisma.client.create({
+              data: {
+                userId: dbUser.id,
+                name: "My Workouts",
+                email: dbUser.email,
+                notes: "Personal trainer workouts",
+              },
+              select: { id: true },
+            });
 
-              role = updated.role;
-              clientProfileId = updated.clientProfileId;
-            }
+            const updated = await prisma.user.update({
+              where: { id: dbUser.id },
+              data: {
+                clientProfileId: selfProfile.id,
+              },
+              select: {
+                role: true,
+                clientProfileId: true,
+              },
+            });
+
+            role = updated.role === "TRAINER" ? "trainer" : updated.role === "CLIENT" ? "client" : "pending";
+            clientProfileId = updated.clientProfileId;
           }
 
-          token.role = role;
+          token.role = role as never;
           token.clientProfileId = clientProfileId;
         }
       }
@@ -64,9 +118,22 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.userId as string;
-        session.user.role = (token.role as "TRAINER" | "CLIENT") ?? "TRAINER";
-        session.user.clientProfileId = token.clientProfileId ?? null;
+        const user = session.user as typeof session.user & {
+          id: string;
+          role: "trainer" | "client" | "pending";
+          clientProfileId?: string | null;
+          isAdmin?: boolean;
+          subscriptionStatus?: string | null;
+          trialEndsAt?: Date | null;
+          subscribedUntil?: Date | null;
+        };
+        user.id = token.userId as string;
+        user.role = (token.role as "trainer" | "client" | "pending") ?? "pending";
+        user.clientProfileId = token.clientProfileId ?? null;
+        user.isAdmin = Boolean(token.isAdmin);
+        user.subscriptionStatus = (token.subscriptionStatus as string | undefined) ?? "trial";
+        user.trialEndsAt = token.trialEndsAt ? new Date(token.trialEndsAt as string) : null;
+        user.subscribedUntil = token.subscribedUntil ? new Date(token.subscribedUntil as string) : null;
       }
       return session;
     },

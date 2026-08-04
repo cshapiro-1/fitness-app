@@ -271,6 +271,9 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
@@ -355,24 +358,38 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   }, []);
 
   const addClient = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      setFormError("Add a client name first so onboarding can begin.");
+      return;
+    }
+
+    setFormError(null);
+    setSuccessMessage(null);
+
     const normalizedEmail = newEmail.trim().toLowerCase();
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), email: normalizedEmail || null }),
+      body: JSON.stringify({ name: newName.trim(), email: normalizedEmail || null, notes: newNotes.trim() || null }),
     });
+
     if (res.ok) {
       const client = await res.json();
       setClients((prev) => [...prev, client]);
       setSelected(client);
       setNewName("");
       setNewEmail("");
+      setNewNotes("");
+      setSuccessMessage(`${client.name} is ready for workouts.`);
       return;
     }
 
     const body = await res.json().catch(() => null);
-    if (body?.error) alert(body.error);
+    if (body?.error) {
+      setFormError(body.error);
+    } else {
+      setFormError("Unable to add this client right now.");
+    }
   };
 
   const deleteClient = async (id: string) => {
@@ -650,42 +667,80 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
             <span>Clients</span>
             <span className="client-count">{clients.length}</span>
           </div>
-          <div className="new-client-row">
-            <input
-              className="input"
-              placeholder="New client name"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && addClient()}
-            />
-            <input
-              className="input"
-              placeholder="Client email (optional)"
-              value={newEmail}
-              onChange={(event) => setNewEmail(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && addClient()}
-            />
-            <button className="btn-icon" onClick={addClient} title="Add client">
-              <Plus size={16} />
-            </button>
+          <div className="onboarding-card">
+            <div className="onboarding-card-header">
+              <div>
+                <div className="onboarding-card-title">Quick add client</div>
+                <div className="onboarding-card-subtitle">Create a client profile in one pass.</div>
+              </div>
+              <span className="chip">New</span>
+            </div>
+
+            <div className="onboarding-form">
+              <label className="field">
+                <span>Name</span>
+                <input
+                  className="input"
+                  placeholder="Client name"
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && addClient()}
+                />
+              </label>
+
+              <label className="field">
+                <span>Email</span>
+                <input
+                  className="input"
+                  placeholder="Optional"
+                  value={newEmail}
+                  onChange={(event) => setNewEmail(event.target.value)}
+                  onKeyDown={(event) => event.key === "Enter" && addClient()}
+                />
+              </label>
+
+              <label className="field field-full">
+                <span>Notes</span>
+                <textarea
+                  className="input"
+                  placeholder="Goals, preferences, or context"
+                  rows={3}
+                  value={newNotes}
+                  onChange={(event) => setNewNotes(event.target.value)}
+                />
+              </label>
+
+              {formError && <div className="onboarding-alert onboarding-alert-error">{formError}</div>}
+              {successMessage && <div className="onboarding-alert onboarding-alert-success">{successMessage}</div>}
+
+              <button className="btn-primary onboarding-submit" onClick={addClient} title="Add client">
+                <Plus size={16} />
+                <span>Add client</span>
+              </button>
+            </div>
           </div>
           <div className="client-list">
             {loadingClients && <div className="empty-state">Loading...</div>}
-            {!loadingClients && !clients.length && <div className="empty-state">No clients yet</div>}
-            {clients.map((client) => (
-              <div key={client.id} className={`client-item${selected?.id === client.id ? " active" : ""}`} onClick={() => setSelected(client)}>
-                <div className="client-item-main">
-                  <span className="client-name">{client.name}</span>
-                  <span className="client-meta">{client._count?.workoutSessions ?? 0} workouts</span>
+            {!loadingClients && !clients.length && <div className="empty-state">No clients yet — add the first one above to begin onboarding.</div>}
+            {clients.map((client) => {
+              const isSelfProfile = client.name === "My Workouts";
+              return (
+                <div key={client.id} className={`client-item${selected?.id === client.id ? " active" : ""}`} onClick={() => setSelected(client)}>
+                  <div className="client-item-main">
+                    <span className="client-name">{client.name}{isSelfProfile ? " • Self" : ""}</span>
+                    <span className="client-meta">{client._count?.workoutSessions ?? 0} workouts</span>
+                  </div>
+                  <div className="client-item-actions">
+                    <ChevronRight size={14} className="client-arrow" />
+                    {!isSelfProfile && (
+                      <button className="btn-ghost-danger" onClick={(event) => { event.stopPropagation(); deleteClient(client.id); }} title="Delete">
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="client-item-actions">
-                  <ChevronRight size={14} className="client-arrow" />
-                  <button className="btn-ghost-danger" onClick={(event) => { event.stopPropagation(); deleteClient(client.id); }} title="Delete">
-                    <Trash2 size={13} />
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </aside>
 
