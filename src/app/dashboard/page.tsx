@@ -6,9 +6,17 @@ import { ClientDashboard } from "./ClientDashboard";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/auth/signin");
-  if (session.user.role === "CLIENT") {
-    return <ClientDashboard userName={session.user.name ?? "Client"} userImage={session.user.image ?? null} />;
+
+  if (!session?.user) {
+    redirect("/auth/signin");
   }
-  return <Dashboard userName={session.user.name ?? "Trainer"} userImage={session.user.image ?? null} />;
+
+  const userName = session.user.name ?? (session.user.role === "CLIENT" ? "Client" : "Trainer");
+  const userImage = session.user.image ?? null;
+
+  if (session.user.role === "CLIENT") {
+    return <ClientDashboard userName={userName} userImage={userImage} />;
+  }
+
+  return <Dashboard userName={userName} userImage={userImage} />;
 }

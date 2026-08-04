@@ -24,7 +24,7 @@ if (hasGoogleCredentials) {
 if (shouldEnableFallbackLogin) {
   providers.push(
     CredentialsProvider({
-      id: "dev-login",
+      id: "credentials",
       name: "Dev Login",
       credentials: {
         mode: { label: "Mode", type: "text" },
