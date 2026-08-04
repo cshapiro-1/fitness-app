@@ -15,8 +15,8 @@ type IncomingExercise = {
   sets: IncomingSet[];
 };
 
-async function findAccessibleWorkout(userId: string, role: "trainer" | "client", clientProfileId: string | null | undefined, workoutId: string) {
-  if (role === "client") {
+async function findAccessibleWorkout(userId: string, role: "TRAINER" | "CLIENT", clientProfileId: string | null | undefined, workoutId: string) {
+  if (role === "CLIENT") {
     if (!clientProfileId) return null;
     return prisma.workoutSession.findFirst({ where: { id: workoutId, clientId: clientProfileId } });
   }
@@ -32,7 +32,7 @@ async function findAccessibleWorkout(userId: string, role: "trainer" | "client",
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "trainer") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "TRAINER") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { id } = await params;
   const workout = await findAccessibleWorkout(session.user.id, session.user.role, session.user.clientProfileId, id);
   if (!workout)
@@ -45,7 +45,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const role = session.user.role === "client" || session.user.role === "trainer" ? session.user.role : "client";
+  const role = session.user.role === "CLIENT" || session.user.role === "TRAINER" ? session.user.role : "CLIENT";
   const { id } = await params;
   const workout = await findAccessibleWorkout(session.user.id, role, session.user.clientProfileId, id);
   if (!workout) return NextResponse.json({ error: "Not found" }, { status: 404 });

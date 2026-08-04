@@ -22,7 +22,7 @@ async function getOwnedClient(userId: string, clientId: string) {
 type AuthSession = {
   user: {
     id: string;
-    role: "trainer" | "client" | "pending";
+    role: "TRAINER" | "CLIENT";
     clientProfileId?: string | null;
   };
 } | null;
@@ -30,7 +30,7 @@ type AuthSession = {
 async function resolveAccessibleClient(session: AuthSession, requestedClientId: string | null) {
   if (!session?.user?.id) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
 
-  if (session.user.role === "client") {
+  if (session.user.role === "CLIENT") {
     if (!session.user.clientProfileId) {
       return { error: NextResponse.json({ error: "No client profile linked" }, { status: 403 }) };
     }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (session.user.role !== "trainer") {
+  if (session.user.role !== "TRAINER") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

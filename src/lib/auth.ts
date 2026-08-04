@@ -1,16 +1,13 @@
 import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
 
 const hasGoogleCredentials = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 const shouldEnableFallbackLogin = process.env.NODE_ENV !== "production" || !hasGoogleCredentials;
-const adapter = hasDatabaseUrl ? PrismaAdapter(prisma) : undefined;
 
 const runtimeSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "local-dev-secret";
-const runtimeUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || "http://localhost:3000";
 
 const providers: NextAuthOptions["providers"] = [];
 
@@ -38,7 +35,7 @@ if (shouldEnableFallbackLogin) {
             id: mode === "TRAINER" ? "trainer-fallback" : "client-fallback",
             email: mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test",
             name: mode === "TRAINER" ? "Local Trainer" : "Local Client",
-            role: mode === "TRAINER" ? "trainer" : "client",
+            role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
           };
         }
 
@@ -56,7 +53,7 @@ if (shouldEnableFallbackLogin) {
           id: user.id,
           email: user.email,
           name: user.name || name,
-          role: mode === "TRAINER" ? "trainer" : "client",
+          role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
         };
       },
     }),
@@ -64,7 +61,6 @@ if (shouldEnableFallbackLogin) {
 }
 
 export const authOptions: NextAuthOptions = {
-  ...(adapter ? { adapter } : {}),
   secret: runtimeSecret,
   pages: { signIn: "/auth/signin" },
   useSecureCookies: process.env.NODE_ENV === "production",
@@ -75,7 +71,7 @@ export const authOptions: NextAuthOptions = {
       if (user) token.userId = user.id;
 
       if (!hasDatabaseUrl) {
-        token.role = "client" as never;
+        token.role = "CLIENT" as never;
         token.isAdmin = false;
         token.subscriptionStatus = "trial";
         token.trialEndsAt = null;
@@ -147,7 +143,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         const user = session.user as typeof session.user & {
           id: string;
-          role: "trainer" | "client" | "pending";
+          role: "TRAINER" | "CLIENT";
           clientProfileId?: string | null;
           isAdmin?: boolean;
           subscriptionStatus?: string | null;
@@ -155,7 +151,7 @@ export const authOptions: NextAuthOptions = {
           subscribedUntil?: Date | null;
         };
         user.id = token.userId as string;
-        user.role = (token.role as "trainer" | "client" | "pending") ?? "pending";
+        user.role = ((token.role as "TRAINER" | "CLIENT") ?? "CLIENT") as "TRAINER" | "CLIENT";
         user.clientProfileId = token.clientProfileId ?? null;
         user.isAdmin = Boolean(token.isAdmin);
         user.subscriptionStatus = (token.subscriptionStatus as string | undefined) ?? "trial";
