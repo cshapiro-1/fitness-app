@@ -29,32 +29,40 @@ if (shouldEnableFallbackLogin) {
         mode: { label: "Mode", type: "text" },
       },
       async authorize(credentials) {
-        if (!hasDatabaseUrl) {
-          const mode = credentials?.mode === "trainer" ? "TRAINER" : "CLIENT";
-          return {
-            id: mode === "TRAINER" ? "trainer-fallback" : "client-fallback",
-            email: mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test",
-            name: mode === "TRAINER" ? "Local Trainer" : "Local Client",
-            role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
-          };
-        }
-
         const mode = credentials?.mode === "trainer" ? "TRAINER" : "CLIENT";
         const email = mode === "TRAINER" ? "trainer.local@local.test" : "client.local@local.test";
         const name = mode === "TRAINER" ? "Local Trainer" : "Local Client";
 
-        const user = await prisma.user.upsert({
-          where: { email },
-          update: { name, role: mode },
-          create: { email, name, role: mode },
-        });
+        if (!hasDatabaseUrl) {
+          return {
+            id: mode === "TRAINER" ? "trainer-fallback" : "client-fallback",
+            email,
+            name,
+            role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
+          };
+        }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name || name,
-          role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
-        };
+        try {
+          const user = await prisma.user.upsert({
+            where: { email },
+            update: { name, role: mode },
+            create: { email, name, role: mode },
+          });
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name || name,
+            role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
+          };
+        } catch {
+          return {
+            id: mode === "TRAINER" ? "trainer-fallback" : "client-fallback",
+            email,
+            name,
+            role: mode === "TRAINER" ? "TRAINER" : "CLIENT",
+          };
+        }
       },
     }),
   );
@@ -80,60 +88,68 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (token.userId) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.userId },
-          include: {
-            clients: { select: { id: true }, take: 1 },
-            clientProfile: { select: { id: true } },
-          },
-        });
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.userId },
+            include: {
+              clients: { select: { id: true }, take: 1 },
+              clientProfile: { select: { id: true } },
+            },
+          });
 
-        if (dbUser) {
-          let role: "trainer" | "client" | "pending" = dbUser.role === "TRAINER" ? "trainer" : dbUser.role === "CLIENT" ? "client" : "pending";
-          let clientProfileId = dbUser.clientProfileId;
-          token.isAdmin = dbUser.isAdmin;
-          token.subscriptionStatus = dbUser.subscriptionStatus;
-          token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
-          token.subscribedUntil = dbUser.subscribedUntil?.toISOString() ?? null;
+          if (dbUser) {
+            let role: "TRAINER" | "CLIENT" = dbUser.role === "TRAINER" ? "TRAINER" : "CLIENT";
+            let clientProfileId = dbUser.clientProfileId;
+            token.isAdmin = dbUser.isAdmin;
+            token.subscriptionStatus = dbUser.subscriptionStatus;
+            token.trialEndsAt = dbUser.trialEndsAt?.toISOString() ?? null;
+            token.subscribedUntil = dbUser.subscribedUntil?.toISOString() ?? null;
 
-          if (dbUser.role === "TRAINER" && !dbUser.clientProfileId) {
-            const existingClient = await prisma.client.findFirst({
-              where: {
-                OR: [
-                  { email: dbUser.email, loginUser: null },
-                  { userId: dbUser.id, name: "My Workouts" },
-                ],
-              },
-              select: { id: true },
-            });
+            if (dbUser.role === "TRAINER" && !dbUser.clientProfileId) {
+              const existingClient = await prisma.client.findFirst({
+                where: {
+                  OR: [
+                    { email: dbUser.email, loginUser: null },
+                    { userId: dbUser.id, name: "My Workouts" },
+                  ],
+                },
+                select: { id: true },
+              });
 
-            const selfProfile = existingClient ?? await prisma.client.create({
-              data: {
-                userId: dbUser.id,
-                name: "My Workouts",
-                email: dbUser.email,
-                notes: "Personal trainer workouts",
-              },
-              select: { id: true },
-            });
+              const selfProfile = existingClient ?? await prisma.client.create({
+                data: {
+                  userId: dbUser.id,
+                  name: "My Workouts",
+                  email: dbUser.email,
+                  notes: "Personal trainer workouts",
+                },
+                select: { id: true },
+              });
 
-            const updated = await prisma.user.update({
-              where: { id: dbUser.id },
-              data: {
-                clientProfileId: selfProfile.id,
-              },
-              select: {
-                role: true,
-                clientProfileId: true,
-              },
-            });
+              const updated = await prisma.user.update({
+                where: { id: dbUser.id },
+                data: {
+                  clientProfileId: selfProfile.id,
+                },
+                select: {
+                  role: true,
+                  clientProfileId: true,
+                },
+              });
 
-            role = updated.role === "TRAINER" ? "trainer" : updated.role === "CLIENT" ? "client" : "pending";
-            clientProfileId = updated.clientProfileId;
+              role = updated.role === "TRAINER" ? "TRAINER" : "CLIENT";
+              clientProfileId = updated.clientProfileId;
+            }
+
+            token.role = role as never;
+            token.clientProfileId = clientProfileId;
           }
-
-          token.role = role as never;
-          token.clientProfileId = clientProfileId;
+        } catch {
+          token.role = "CLIENT" as never;
+          token.isAdmin = false;
+          token.subscriptionStatus = "trial";
+          token.trialEndsAt = null;
+          token.subscribedUntil = null;
         }
       }
 
