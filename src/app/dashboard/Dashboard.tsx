@@ -21,6 +21,11 @@ import {
   Flame,
   Moon,
   Sun,
+  ChevronDown,
+  Search,
+  Users,
+  UserPlus,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
@@ -53,6 +58,10 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
+
+  // Mobile Client Switcher Drawer
+  const [showMobileClientDrawer, setShowMobileClientDrawer] = useState(false);
+  const [mobileClientSearch, setMobileClientSearch] = useState("");
 
   // Dark Theme
   const [isDark, setIsDark] = useState(false);
@@ -248,6 +257,18 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       totalCompleted: completedWorkouts.length,
     };
   }, [completedWorkouts]);
+
+  // Filter clients for mobile switcher drawer
+  const filteredMobileClients = useMemo(() => {
+    if (!mobileClientSearch.trim()) return clients;
+    const q = mobileClientSearch.toLowerCase();
+    return clients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.fitnessGoals && c.fitnessGoals.toLowerCase().includes(q))
+    );
+  }, [clients, mobileClientSearch]);
 
   const startWorkout = () => {
     setActiveWorkout({
@@ -491,6 +512,78 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         />
 
         <main className="main">
+          {/* Mobile Client Switcher Bar (Appears on Mobile in place of scrolling sidebar) */}
+          <div className="mobile-client-bar">
+            <button
+              type="button"
+              onClick={() => {
+                setMobileClientSearch("");
+                setShowMobileClientDrawer(true);
+              }}
+              className="btn-ghost"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                flex: 1,
+                minWidth: 0,
+                padding: "4px 6px",
+                justifyContent: "flex-start",
+                textAlign: "left",
+              }}
+              title="Click to switch client"
+            >
+              {selected?.image ? (
+                <img
+                  src={selected.image}
+                  alt={selected.name}
+                  style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid #cbd5e1" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "30px",
+                    height: "30px",
+                    borderRadius: "50%",
+                    background: selected?.name === "My Workouts" ? "#eff6ff" : "#f1f5f9",
+                    color: selected?.name === "My Workouts" ? "#2563eb" : "#64748b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  {selected?.name ? selected.name.charAt(0).toUpperCase() : <User size={14} />}
+                </div>
+              )}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {selected ? selected.name : "Select Client"}
+                  </span>
+                  <ChevronDown size={14} style={{ color: "#64748b", flexShrink: 0 }} />
+                </div>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>
+                  {clients.length} client{clients.length === 1 ? "" : "s"} · Tap to switch
+                </div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="btn-primary"
+              style={{ padding: "6px 10px", fontSize: "11px", borderRadius: "8px", height: "auto", flexShrink: 0, gap: "4px" }}
+              title="Add a new client"
+            >
+              <UserPlus size={13} />
+              <span>+ Client</span>
+            </button>
+          </div>
+
           {!selected ? (
             <div className="placeholder">
               <Dumbbell size={40} className="placeholder-icon" />
@@ -752,6 +845,143 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         client={selected}
         workouts={workouts}
       />
+
+      {/* Mobile Client Switcher Drawer */}
+      {showMobileClientDrawer && (
+        <div className="client-modal-backdrop" onClick={() => setShowMobileClientDrawer(false)}>
+          <div className="client-modal-card" style={{ maxWidth: "440px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="client-modal-header">
+              <div className="client-modal-header-info">
+                <h2 className="client-modal-title">Select Client</h2>
+                <p className="client-modal-subtitle">Switch active roster profile or add a client.</p>
+              </div>
+              <button className="client-modal-close" onClick={() => setShowMobileClientDrawer(false)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: "14px 16px 20px" }}>
+              {/* Search Bar */}
+              <div style={{ position: "relative", marginBottom: "12px" }}>
+                <Search size={15} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Search clients..."
+                  value={mobileClientSearch}
+                  onChange={(e) => setMobileClientSearch(e.target.value)}
+                  style={{ paddingLeft: "32px", fontSize: "13px", height: "38px" }}
+                />
+              </div>
+
+              {/* Quick Add Client Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMobileClientDrawer(false);
+                  setIsAddModalOpen(true);
+                }}
+                className="btn-primary"
+                style={{ width: "100%", justifyContent: "center", marginBottom: "12px", padding: "8px 12px", fontSize: "12px", gap: "6px" }}
+              >
+                <UserPlus size={14} />
+                <span>+ Add New Client</span>
+              </button>
+
+              {/* Client List */}
+              <div style={{ maxHeight: "320px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
+                {filteredMobileClients.map((client) => {
+                  const isSelected = selected?.id === client.id;
+                  const isSelfProfile = client.name === "My Workouts";
+                  const isAccepted = client.inviteStatus === "ACCEPTED";
+
+                  return (
+                    <div
+                      key={client.id}
+                      onClick={() => {
+                        setSelected(client);
+                        setShowMobileClientDrawer(false);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 12px",
+                        borderRadius: "10px",
+                        border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                        background: isSelected ? "#eff6ff" : "#f8fafc",
+                        cursor: "pointer",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                        {client.image ? (
+                          <img
+                            src={client.image}
+                            alt={client.name}
+                            style={{ width: "34px", height: "34px", borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "34px",
+                              height: "34px",
+                              borderRadius: "50%",
+                              background: isSelfProfile ? "#dbeafe" : "#e2e8f0",
+                              color: isSelfProfile ? "#1d4ed8" : "#475569",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "13px",
+                              fontWeight: 700,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />}
+                          </div>
+                        )}
+
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {client.name}
+                            </span>
+                            {isSelfProfile ? (
+                              <span style={{ fontSize: "10px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", padding: "1px 5px", borderRadius: "4px" }}>
+                                Self
+                              </span>
+                            ) : isAccepted ? (
+                              <span style={{ fontSize: "10px", fontWeight: 600, color: "#15803d", background: "#f0fdf4", padding: "1px 5px", borderRadius: "4px" }}>
+                                Active
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div style={{ fontSize: "11px", color: "#64748b", marginTop: "1px" }}>
+                            {client._count?.workoutSessions ?? 0} workouts {client.fitnessGoals ? `· ${client.fitnessGoals}` : ""}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <div style={{ color: "#2563eb", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                          <Check size={18} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {filteredMobileClients.length === 0 && (
+                  <div className="empty-state" style={{ padding: "20px" }}>
+                    No clients found matching &ldquo;{mobileClientSearch}&rdquo;
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

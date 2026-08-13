@@ -478,68 +478,30 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .history-set-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 8px; font-size: 0.8rem; color: var(--text-2); }
 
 /* Tablet & Mobile Media Queries */
+.mobile-client-bar {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .layout { flex-direction: column; }
   
-  /* Horizontal Compact Client Bar on Mobile */
+  /* Hide desktop sidebar on mobile */
   .sidebar {
-    width: 100% !important;
-    height: auto !important;
-    position: static !important;
-    border-right: none !important;
-    border-bottom: 1px solid var(--border) !important;
-    padding: 8px 12px !important;
+    display: none !important;
+  }
+
+  /* Sleek Mobile Client Selector Card */
+  .mobile-client-bar {
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 8px !important;
-    background: #ffffff !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    flex-shrink: 0;
-  }
-  .sidebar-header { display: none !important; }
-  .sidebar > div:nth-child(2) { padding: 0 !important; }
-  .sidebar-add-btn {
-    width: auto !important;
-    padding: 6px 10px !important;
-    font-size: 11px !important;
-    white-space: nowrap !important;
-    border-radius: 20px !important;
-    flex-shrink: 0;
-  }
-  .client-list {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 6px !important;
-    overflow-x: auto !important;
-    padding: 0 !important;
-    max-height: none !important;
-    flex: 1;
-  }
-  .client-item {
-    display: inline-flex !important;
-    align-items: center !important;
-    padding: 4px 10px 4px 4px !important;
-    border-radius: 20px !important;
-    border: 1px solid #e2e8f0 !important;
-    background: #f8fafc !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-    gap: 6px !important;
-  }
-  .client-item.active {
-    background: #eff6ff !important;
-    border-color: #3b82f6 !important;
-  }
-  .client-item-main { gap: 0 !important; }
-  .client-name { font-size: 12px !important; font-weight: 600 !important; }
-  .client-meta, .client-status-badge, .client-item-actions { display: none !important; }
-  .client-item img, .client-item div[style*="border-radius: 50%"] {
-    width: 26px !important;
-    height: 26px !important;
-    margin-right: 0 !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
 
   .main { padding: 14px 12px !important; }
