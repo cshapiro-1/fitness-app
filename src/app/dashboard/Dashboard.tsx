@@ -17,6 +17,10 @@ import {
   User,
   CreditCard,
   Camera,
+  Download,
+  Flame,
+  Moon,
+  Sun,
 } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
@@ -28,6 +32,7 @@ import { WorkoutHistory } from "./components/WorkoutHistory";
 import { AnalyticsView } from "./components/AnalyticsView";
 import { SubscriptionBanner, SubscriptionInfo } from "./components/SubscriptionBanner";
 import { TrainerProfileModal } from "./components/TrainerProfileModal";
+import { ReportExportModal } from "./components/ReportExportModal";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -45,8 +50,12 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
+
+  // Dark Theme
+  const [isDark, setIsDark] = useState(false);
 
   const [currentTrainerImage, setCurrentTrainerImage] = useState<string | null>(userImage);
   const [currentTrainerName, setCurrentTrainerName] = useState<string>(userName);
@@ -161,37 +170,44 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     throw new Error(errorBody?.error || "Failed to update client.");
   };
 
-  const handleInviteGenerated = (updatedClient: Client) => {
-    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? { ...c, ...updatedClient } : c)));
-    setSelected((prev) => (prev?.id === updatedClient.id ? { ...prev, ...updatedClient } : prev));
-    if (editingClient?.id === updatedClient.id) {
-      setEditingClient(updatedClient);
+  const deleteClient = async (clientId: string) => {
+    const target = clients.find((c) => c.id === clientId);
+    const targetName = target ? target.name : "this client";
+    if (!confirm(`Are you sure you want to remove ${targetName}? This will delete all their workout records.`)) return;
+
+    const res = await fetch(`/api/clients/${clientId}`, { method: "DELETE" });
+    if (res.ok) {
+      setClients((prev) => prev.filter((c) => c.id !== clientId));
+      if (selected?.id === clientId) {
+        const remaining = clients.filter((c) => c.id !== clientId);
+        setSelected(remaining.length ? remaining[0] : null);
+      }
+      fetchSubscription();
+    } else {
+      alert("Failed to delete client.");
     }
+  };
+
+  const handleInviteGenerated = (updatedClient: Client) => {
+    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? updatedClient : c)));
+    if (selected?.id === updatedClient.id) setSelected(updatedClient);
   };
 
   const handleQuickGenerateInvite = async (client: Client) => {
     setGeneratingQuickInvite(true);
     try {
-      const res = await fetch("/api/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: client.id }),
-      });
-      const data = await res.json();
-      if (res.ok && data.inviteUrl) {
-        const updated = {
-          ...client,
-          inviteToken: data.inviteToken || data.token,
-          inviteUrl: data.inviteUrl,
-          inviteStatus: "PENDING" as const,
-        };
-        handleInviteGenerated(updated);
-        copyLink(data.inviteUrl);
+      const res = await fetch(`/api/clients/${client.id}/invite`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = { ...client, inviteToken: data.inviteToken, inviteStatus: "PENDING" as const };
+        setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+        setSelected(updated);
+        copyLink(`${window.location.origin}/invite/${data.inviteToken}`);
       } else {
-        alert(data.error || "Failed to generate invite link.");
+        alert("Failed to generate invite link.");
       }
     } catch {
-      alert("Network error while generating invite link.");
+      alert("Error generating invite link.");
     } finally {
       setGeneratingQuickInvite(false);
     }
@@ -200,50 +216,51 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const copyLink = (url: string) => {
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
+    setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const getInviteUrl = (c: Client) => {
-    if (c.inviteUrl) return c.inviteUrl;
-    if (c.inviteToken) {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      return `${origin}/invite/${c.inviteToken}`;
+  const getInviteUrl = (client: Client) => {
+    if (!client.inviteToken) return null;
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/invite/${client.inviteToken}`;
     }
-    return null;
+    return `/invite/${client.inviteToken}`;
   };
 
-  const deleteClient = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this client profile? All associated workout logs will be permanently removed.")) {
-      return;
-    }
-    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
-    if (res.ok) {
-      const remaining = clients.filter((c) => c.id !== id);
-      setClients(remaining);
-      setSelected(remaining.length ? remaining[0] : null);
-      if (editingClient?.id === id) setEditingClient(null);
-    }
-  };
-
-  // Workouts Logic
   const completedWorkouts = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
-  const plannedWorkouts = useMemo(() => workouts.filter((w) => w.status === "PLANNED"), [workouts]);
+  const plannedWorkouts = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
   const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
+
+  // Compute Weekly Workout Streak for Selected Client
+  const weeklyStreakInfo = useMemo(() => {
+    const now = new Date();
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+
+    const thisWeekWorkouts = completedWorkouts.filter(
+      (w) => new Date(w.completedAt || w.createdAt) >= oneWeekAgo
+    );
+
+    return {
+      thisWeekCount: thisWeekWorkouts.length,
+      totalCompleted: completedWorkouts.length,
+    };
+  }, [completedWorkouts]);
 
   const startWorkout = () => {
     setActiveWorkout({
       startedAt: new Date().toISOString(),
       notes: "",
-      exercises: [],
+      exercises: [{ name: "Barbell Bench Press", sets: [{ weight: "", reps: "", notes: "" }] }],
     });
   };
 
-  const beginPlannedWorkout = (plan: WorkoutSession) => {
+  const beginPlannedWorkout = (workout: WorkoutSession) => {
     setActiveWorkout({
+      plannedWorkoutId: workout.id,
       startedAt: new Date().toISOString(),
-      notes: plan.notes || "",
-      plannedWorkoutId: plan.id,
-      exercises: plan.exercises.map((ex) => ({
+      notes: workout.notes || "",
+      exercises: workout.exercises.map((ex) => ({
         name: ex.name,
         sets: ex.sets.map((s) => ({
           weight: String(s.weight),
@@ -354,7 +371,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   };
 
   return (
-    <div className="app">
+    <div className={`app ${isDark ? "dark-theme" : ""}`}>
       <SubscriptionBanner
         subInfo={subInfo}
         onOpenProfile={() => setIsProfileModalOpen(true)}
@@ -422,20 +439,19 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
               gap: "6px",
               fontSize: "12px",
               fontWeight: 600,
-              background: "#eff6ff",
-              color: "#2563eb",
-              border: "1px solid #bfdbfe",
+              background: "#2563eb",
+              color: "#ffffff",
               padding: "6px 12px",
               borderRadius: "6px",
+              border: "none",
               cursor: "pointer",
             }}
-            title="Manage profile, picture, and subscription"
           >
             <CreditCard size={14} />
-            <span className="hide-mobile">Profile & Billing</span>
+            <span className="hide-mobile">Profile &amp; Billing</span>
           </button>
 
-          {/* Trainer Avatar & Profile Click */}
+          {/* Trainer Avatar & Name */}
           <div
             onClick={() => setIsProfileModalOpen(true)}
             style={{
@@ -447,7 +463,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
               borderRadius: "20px",
               background: "rgba(0,0,0,0.03)",
             }}
-            title="Edit trainer profile & photo"
+            title="Click to view Trainer Profile & Billing"
           >
             {currentTrainerImage ? (
               <img
@@ -581,6 +597,26 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                           <span>Edit Profile</span>
                         </button>
                       )}
+
+                      {/* Weekly Adherence Streak Badge */}
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#c2410c",
+                          background: "#fff7ed",
+                          border: "1px solid #ffedd5",
+                          padding: "3px 8px",
+                          borderRadius: "12px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                        title={`${weeklyStreakInfo.thisWeekCount} workouts completed in the last 7 days`}
+                      >
+                        <Flame size={13} style={{ color: "#ea580c" }} />
+                        <span>{weeklyStreakInfo.thisWeekCount} this week</span>
+                      </span>
                     </div>
 
                     {/* Client Meta Badges: Email, Phone, Goals */}
@@ -614,8 +650,20 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                   </div>
                 </div>
 
-                {/* Invite Link & Action Bar */}
+                {/* Actions: Export Report, Invite, Tabs */}
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  {/* Export Progress Report */}
+                  <button
+                    type="button"
+                    onClick={() => setIsReportModalOpen(true)}
+                    className="btn-secondary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", padding: "7px 12px" }}
+                    title="Export CSV and printable progress report"
+                  >
+                    <Download size={13} />
+                    <span>Export Report</span>
+                  </button>
+
                   {selected.name !== "My Workouts" && (
                     <div>
                       {selected.inviteStatus === "ACCEPTED" ? (
@@ -664,6 +712,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                   exercisePicker={exercisePicker}
                   setExercisePicker={setExercisePicker}
                   plannedWorkouts={plannedWorkouts}
+                  historyWorkouts={completedWorkouts}
                   savingPlan={savingPlan}
                   savingWorkout={savingWorkout}
                   onStartWorkout={startWorkout}
@@ -719,6 +768,16 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           fetchClients();
         }}
       />
+
+      {/* Progress Report Export Modal */}
+      <ReportExportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        client={selected}
+        workouts={workouts}
+      />
     </div>
   );
 }
+
+export default Dashboard;
