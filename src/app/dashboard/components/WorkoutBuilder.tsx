@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles } from "lucide-react";
+import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2 } from "lucide-react";
 import { DraftWorkout, DraftSet, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
@@ -297,14 +297,17 @@ export function WorkoutBuilder({
                 <option key={ex.name} value={ex.name} />
               ))}
             </datalist>
-            <button className="btn-primary" onClick={() => addExerciseWithName(exercisePicker)}>Add</button>
+            <button className="btn-primary" onClick={() => addExerciseWithName(exercisePicker)}>
+              <Plus size={14} />
+              <span>Add</span>
+            </button>
             <button
               className="btn-secondary"
               onClick={() => setShowLibraryModal(true)}
               title="Open full exercise database"
-              style={{ padding: "8px 12px" }}
             >
-              <Dumbbell size={15} />
+              <Dumbbell size={14} />
+              <span>Library</span>
             </button>
           </div>
 
@@ -381,59 +384,69 @@ export function WorkoutBuilder({
                     </div>
                   )}
 
-                  {/* Sets Rows */}
+                  {/* Set Header */}
+                  <div className="set-row set-row-header">
+                    <span className="set-header-cell">Set</span>
+                    <span className="set-header-cell">Weight (lbs)</span>
+                    <span className="set-header-cell">Reps</span>
+                    <span className="set-header-cell">Notes / Effort</span>
+                    <span />
+                  </div>
+
+                  {/* Sets */}
                   <div className="set-list">
-                    {exercise.sets.map((setEntry, setIndex) => {
-                      const numWeight = parseFloat(setEntry.weight) || 0;
-                      const numReps = parseInt(setEntry.reps) || 0;
-                      const est1RM = numReps > 1 ? Math.round(numWeight * (36 / (37 - Math.min(numReps, 36)))) : numWeight;
-                      const isNewPR = est1RM > 0 && allTimePR > 0 && est1RM > allTimePR;
+                    {exercise.sets.map((set, setIndex) => {
+                      const curWeight = parseFloat(set.weight) || 0;
+                      const curReps = parseInt(set.reps, 10) || 0;
+                      const est1RM = curReps > 1 ? Math.round(curWeight * (36 / (37 - Math.min(curReps, 36)))) : curWeight;
+                      const isNewPR = curWeight > 0 && (allTimePR === 0 ? curWeight > 0 : est1RM > allTimePR);
 
                       return (
-                        <div className="set-row" key={`${exerciseIndex}-${setIndex}`} style={{ position: "relative" }}>
-                          <div className="set-index" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                            <span>Set {setIndex + 1}</span>
+                        <div className="set-row" key={`set-${setIndex}`}>
+                          <span className="set-index">
+                            Set {setIndex + 1}
                             {isNewPR && (
                               <span
+                                title={`Estimated 1RM: ${est1RM} lbs (New PR!)`}
                                 style={{
-                                  background: "#fef3c7",
-                                  color: "#b45309",
-                                  fontSize: "9px",
-                                  fontWeight: 800,
-                                  padding: "1px 5px",
-                                  borderRadius: "4px",
                                   display: "inline-flex",
                                   alignItems: "center",
                                   gap: "2px",
+                                  marginLeft: "4px",
+                                  background: "#fef3c7",
+                                  color: "#b45309",
+                                  padding: "1px 4px",
+                                  borderRadius: "4px",
+                                  fontSize: "9px",
+                                  fontWeight: 800,
                                 }}
-                                title={`New 1RM PR! Est: ${est1RM} lbs`}
                               >
                                 <Award size={10} /> PR
                               </span>
                             )}
-                          </div>
+                          </span>
 
                           <input
                             className="input"
                             type="number"
-                            min="0"
-                            step="0.5"
-                            placeholder="Lbs"
-                            value={setEntry.weight}
+                            placeholder={prev?.sets[setIndex] ? prev.sets[setIndex].weight.toString() : "lbs"}
+                            value={set.weight}
                             onChange={(event) => updateSet(exerciseIndex, setIndex, "weight", event.target.value)}
                           />
+
                           <input
                             className="input"
                             type="number"
-                            min="1"
-                            placeholder="Reps"
-                            value={setEntry.reps}
+                            placeholder={prev?.sets[setIndex] ? prev.sets[setIndex].reps.toString() : "reps"}
+                            value={set.reps}
                             onChange={(event) => updateSet(exerciseIndex, setIndex, "reps", event.target.value)}
                           />
+
                           <input
                             className="input"
-                            placeholder="Notes (RPE, tempo)"
-                            value={setEntry.notes}
+                            type="text"
+                            placeholder="e.g. RPE 8, drop set"
+                            value={set.notes}
                             onChange={(event) => updateSet(exerciseIndex, setIndex, "notes", event.target.value)}
                           />
 
@@ -456,8 +469,8 @@ export function WorkoutBuilder({
                     })}
                   </div>
 
-                  <button className="btn-icon add-set-btn" onClick={() => addSet(exerciseIndex)}>
-                    <Plus size={14} />
+                  <button className="btn-secondary add-set-btn" onClick={() => addSet(exerciseIndex)} style={{ width: "fit-content", padding: "6px 12px", fontSize: "12px", marginTop: "8px" }}>
+                    <Plus size={13} />
                     <span>Add Set</span>
                   </button>
                 </div>
@@ -471,12 +484,14 @@ export function WorkoutBuilder({
           )}
 
           {/* Action Row */}
-          <div className="workout-action-row">
-            <button className="btn-icon" onClick={onSaveWorkoutPlan} disabled={savingPlan || savingWorkout}>
+          <div className="workout-action-row" style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
+            <button className="btn-secondary" onClick={onSaveWorkoutPlan} disabled={savingPlan || savingWorkout} style={{ padding: "10px 18px", fontSize: "13px" }}>
+              <BookmarkPlus size={15} />
               <span>{savingPlan ? "Saving Plan..." : "Save Workout Plan"}</span>
             </button>
-            <button className="btn-primary complete-btn" onClick={() => setIsCompleting(true)} disabled={savingWorkout || savingPlan}>
-              {savingWorkout ? "Saving Workout..." : "Complete Workout"}
+            <button className="btn-primary complete-btn" onClick={() => setIsCompleting(true)} disabled={savingWorkout || savingPlan} style={{ padding: "10px 20px", fontSize: "13px" }}>
+              <CheckCircle2 size={15} />
+              <span>{savingWorkout ? "Saving Workout..." : "Complete Workout"}</span>
             </button>
           </div>
 
@@ -496,9 +511,12 @@ export function WorkoutBuilder({
                     style={{ width: "100%", padding: "10px", fontSize: "14px" }}
                   />
                 </label>
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-                  <button className="btn-ghost-danger" onClick={() => setIsCompleting(false)}>Cancel</button>
-                  <button className="btn-primary" onClick={() => { setIsCompleting(false); onCompleteWorkout(); }}>Save &amp; Complete</button>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                  <button className="btn-secondary" onClick={() => setIsCompleting(false)}>Cancel</button>
+                  <button className="btn-success" onClick={() => { setIsCompleting(false); onCompleteWorkout(); }}>
+                    <CheckCircle2 size={14} />
+                    <span>Save &amp; Complete</span>
+                  </button>
                 </div>
               </div>
             </div>

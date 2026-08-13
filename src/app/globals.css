@@ -139,25 +139,248 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 }
 .input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
 
-/* Buttons */
-.btn-primary {
-  background: var(--primary); color: white; border: none; border-radius: 6px;
-  padding: 8px 18px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+/* ==========================================================================
+   BUTTON DESIGN SYSTEM (Unified, Modern, Consistent)
+   ========================================================================== */
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-danger,
+.btn-outline-danger,
+.btn-ghost,
+.btn-ghost-primary,
+.btn-ghost-danger,
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 8px 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
-.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
-.btn-primary:disabled { opacity: 0.5; cursor: default; }
 
-.btn-icon {
-  background: var(--primary); color: white; border: none; border-radius: 6px;
-  padding: 7px 10px; cursor: pointer; display: flex; align-items: center; flex-shrink: 0;
+.btn-primary:active,
+.btn-secondary:active,
+.btn-success:active,
+.btn-danger:active,
+.btn-outline-danger:active,
+.nav-btn:active {
+  transform: scale(0.98);
 }
-.btn-icon:hover { background: var(--primary-hover); }
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-success:disabled,
+.btn-danger:disabled,
+.nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Primary Solid */
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1e40af;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+/* Secondary / Outline */
+.btn-secondary {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Success Solid */
+.btn-success {
+  background: #16a34a;
+  color: #ffffff;
+  border: 1px solid #15803d;
+}
+.btn-success:hover:not(:disabled) {
+  background: #15803d;
+  border-color: #166534;
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.2);
+}
+
+/* Danger Solid */
+.btn-danger {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+}
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #991b1b;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+}
+
+/* Danger Outline */
+.btn-outline-danger {
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.btn-outline-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+
+/* Ghost Buttons */
+.btn-ghost {
+  background: transparent;
+  color: #475569;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-ghost-primary {
+  background: transparent;
+  color: #2563eb;
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.btn-ghost-primary:hover:not(:disabled) {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
 
 .btn-ghost-danger {
-  background: none; border: none; cursor: pointer; color: var(--text-3);
-  padding: 3px; border-radius: 4px; display: flex; transition: all 0.1s;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  box-shadow: none;
+  padding: 6px;
+  border-radius: 6px;
 }
-.btn-ghost-danger:hover { color: var(--danger); background: #fef2f2; }
+.btn-ghost-danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Icon button */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  transition: all 0.15s ease;
+}
+.btn-icon:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+/* Pill / Chip Buttons */
+.btn-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-chip:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+.btn-chip.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.2);
+}
+
+/* Header Navigation Buttons */
+.nav-btn {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 0.78rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+.nav-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.nav-btn-green {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+.nav-btn-green:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #14532d;
+}
+
+.nav-btn-blue {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+.nav-btn-blue:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.nav-btn-dark {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  color: #38bdf8;
+}
+.nav-btn-dark:hover {
+  background: #1e293b;
+  border-color: #334155;
+  color: #7dd3fc;
+}
 
 /* Workout list */
 .workout-list { display: flex; flex-direction: column; gap: 2px; }

@@ -387,23 +387,11 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           <span className="header-title">Fitness Tracker</span>
         </div>
 
-        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {/* Nutrition & Macros Planner */}
           <Link
             href="/nutrition"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "5px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "#f0fdf4",
-              color: "#16a34a",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #bbf7d0",
-              textDecoration: "none",
-            }}
+            className="nav-btn nav-btn-green"
           >
             <span>🥗</span>
             <span className="hide-mobile">Nutrition &amp; Macros</span>
@@ -412,19 +400,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           {/* Switch Role Button */}
           <Link
             href="/onboarding"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "#f1f5f9",
-              color: "#475569",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-              textDecoration: "none",
-            }}
+            className="nav-btn"
           >
             <span className="hide-mobile">Switch Role</span>
           </Link>
@@ -433,22 +409,10 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           {subInfo?.isAdmin && (
             <Link
               href="/admin"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-                fontWeight: 600,
-                background: "#0f172a",
-                color: "#38bdf8",
-                padding: "6px 12px",
-                borderRadius: "6px",
-                border: "1px solid #1e293b",
-                textDecoration: "none",
-              }}
+              className="nav-btn nav-btn-dark"
             >
-              <ShieldCheck size={15} />
-              <span>Admin Portal</span>
+              <ShieldCheck size={14} />
+              <span>Admin</span>
             </Link>
           )}
 
@@ -456,19 +420,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           <button
             type="button"
             onClick={() => setIsProfileModalOpen(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "#2563eb",
-              color: "#ffffff",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "none",
-              cursor: "pointer",
-            }}
+            className="btn-primary"
+            style={{ padding: "6px 12px", fontSize: "12px" }}
           >
             <CreditCard size={14} />
             <span className="hide-mobile">Profile &amp; Billing</span>

@@ -116,19 +116,7 @@ export function ClientDashboard({
           {/* Nutrition & Macros */}
           <Link
             href="/nutrition"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "#f0fdf4",
-              color: "#16a34a",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #bbf7d0",
-              textDecoration: "none",
-            }}
+            className="nav-btn nav-btn-green"
           >
             <span>🥗</span>
             <span className="hide-mobile">Nutrition</span>
@@ -136,19 +124,7 @@ export function ClientDashboard({
 
           <Link
             href="/onboarding"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              fontSize: "12px",
-              fontWeight: 600,
-              background: "#f1f5f9",
-              color: "#475569",
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-              textDecoration: "none",
-            }}
+            className="nav-btn"
           >
             <span className="hide-mobile">Switch Role</span>
           </Link>

@@ -481,10 +481,10 @@ export function ClientModal({
               <button
                 type="button"
                 onClick={() => onDelete(client.id)}
-                className="btn-ghost-danger"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                className="btn-outline-danger"
+                style={{ fontSize: "12px", padding: "6px 12px" }}
               >
-                <Trash2 size={14} />
+                <Trash2 size={13} />
                 <span>Delete Client</span>
               </button>
             ) : (

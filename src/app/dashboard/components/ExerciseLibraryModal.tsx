@@ -269,17 +269,7 @@ export function ExerciseLibraryModal({
                 key={group}
                 type="button"
                 onClick={() => setSelectedMuscle(group)}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: "20px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  border: "none",
-                  cursor: "pointer",
-                  background: selectedMuscle === group ? "#2563eb" : "#f1f5f9",
-                  color: selectedMuscle === group ? "#ffffff" : "#475569",
-                  whiteSpace: "nowrap",
-                }}
+                className={`btn-chip${selectedMuscle === group ? " active" : ""}`}
               >
                 {group}
               </button>

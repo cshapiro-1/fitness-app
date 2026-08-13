@@ -422,22 +422,10 @@ export default function NutritionPage() {
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Link
               href="/dashboard"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "12px",
-                fontWeight: 600,
-                background: "#eff6ff",
-                color: "#2563eb",
-                padding: "6px 12px",
-                borderRadius: "6px",
-                textDecoration: "none",
-                border: "1px solid #bfdbfe",
-              }}
+              className="nav-btn nav-btn-blue"
             >
               <ArrowLeft size={14} />
               <span>Back to Workouts</span>
@@ -445,7 +433,8 @@ export default function NutritionPage() {
 
             <button
               onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-              style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", padding: "4px" }}
+              className="btn-ghost"
+              style={{ padding: "6px" }}
               title="Sign Out"
             >
               <LogOut size={16} />
