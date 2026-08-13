@@ -70,6 +70,7 @@ model User {
   trainerId    String?
   notes        String?
   fitnessGoals String?
+  phone        String?
   id                 String    @id @default(cuid())
   email        String?    @unique
   emailVerified      DateTime?
@@ -94,12 +95,14 @@ model User {
 }
 
 model Client {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  email     String?  @unique
-  notes     String?
-  createdAt DateTime @default(now())
+  id           String       @id @default(cuid())
+  userId       String
+  name         String
+  email        String?      @unique
+  phone        String?
+  notes        String?
+  fitnessGoals String?
+  createdAt    DateTime     @default(now())
 
   inviteToken  String?      @unique
   inviteStatus InviteStatus @default(NOT_SENT)

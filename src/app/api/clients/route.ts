@@ -59,7 +59,9 @@ export async function GET(req: Request) {
       userId: c.userId,
       name: c.name || c.user?.name || "Client",
       email: c.email || c.user?.email || null,
+      phone: c.phone || c.user?.phone || null,
       notes: c.notes || c.user?.notes || null,
+      fitnessGoals: c.fitnessGoals || c.user?.fitnessGoals || null,
       inviteStatus: c.inviteStatus || "NOT_SENT",
       inviteToken: c.inviteToken || null,
       inviteUrl: c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null,
@@ -94,9 +96,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Trainer user not found" }, { status: 400 });
     }
 
-    const { name, notes, email } = await req.json();
+    const { name, email, phone, notes, fitnessGoals } = await req.json();
     if (!name?.trim()) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Client name is required" }, { status: 400 });
     }
 
     const token = crypto.randomBytes(32).toString("hex");
@@ -106,8 +108,10 @@ export async function POST(req: Request) {
       data: {
         userId: trainerId,
         name: name.trim(),
-        notes: notes?.trim() || null,
         email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        notes: notes?.trim() || null,
+        fitnessGoals: fitnessGoals?.trim() || null,
         inviteToken: token,
         inviteStatus: "PENDING",
         invitedAt: new Date(),
@@ -128,7 +132,9 @@ export async function POST(req: Request) {
       userId: client.userId,
       name: client.name,
       email: client.email,
+      phone: client.phone,
       notes: client.notes,
+      fitnessGoals: client.fitnessGoals,
       inviteStatus: client.inviteStatus,
       inviteToken: client.inviteToken,
       inviteUrl,

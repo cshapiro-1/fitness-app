@@ -15,7 +15,7 @@ export async function PATCH(
     }
 
     const { id: clientId } = await params;
-    const { name, notes, fitnessGoals } = await req.json();
+    const { name, email, phone, notes, fitnessGoals } = await req.json();
 
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -28,22 +28,29 @@ export async function PATCH(
     const updatedClient = await prisma.client.update({
       where: { id: clientId },
       data: {
-        name: name !== undefined ? name : client.name,
-        notes: notes !== undefined ? notes : client.notes,
+        name: name !== undefined ? name.trim() : client.name,
+        email: email !== undefined ? (email ? email.trim() : null) : client.email,
+        phone: phone !== undefined ? (phone ? phone.trim() : null) : client.phone,
+        notes: notes !== undefined ? (notes ? notes.trim() : null) : client.notes,
+        fitnessGoals: fitnessGoals !== undefined ? (fitnessGoals ? fitnessGoals.trim() : null) : client.fitnessGoals,
       },
     });
 
-    // If there is an associated login user, update their fitnessGoals/notes
-    if (fitnessGoals !== undefined) {
-      const loginUser = await prisma.user.findFirst({
-        where: { clientProfileId: clientId },
+    // If there is an associated login user, update their profile too
+    const loginUser = await prisma.user.findFirst({
+      where: { clientProfileId: clientId },
+    });
+    if (loginUser) {
+      await prisma.user.update({
+        where: { id: loginUser.id },
+        data: {
+          name: name !== undefined ? name.trim() : loginUser.name,
+          email: email !== undefined ? (email ? email.trim() : null) : loginUser.email,
+          phone: phone !== undefined ? (phone ? phone.trim() : null) : loginUser.phone,
+          notes: notes !== undefined ? (notes ? notes.trim() : null) : loginUser.notes,
+          fitnessGoals: fitnessGoals !== undefined ? (fitnessGoals ? fitnessGoals.trim() : null) : loginUser.fitnessGoals,
+        },
       });
-      if (loginUser) {
-        await prisma.user.update({
-          where: { id: loginUser.id },
-          data: { fitnessGoals, notes: notes !== undefined ? notes : loginUser.notes },
-        });
-      }
     }
 
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
@@ -53,11 +60,12 @@ export async function PATCH(
       userId: updatedClient.userId,
       name: updatedClient.name,
       email: updatedClient.email,
+      phone: updatedClient.phone,
       notes: updatedClient.notes,
+      fitnessGoals: updatedClient.fitnessGoals,
       inviteStatus: updatedClient.inviteStatus,
       inviteToken: updatedClient.inviteToken,
       inviteUrl: updatedClient.inviteToken ? (baseUrl ? `${baseUrl}/invite/${updatedClient.inviteToken}` : `/invite/${updatedClient.inviteToken}`) : null,
-      fitnessGoals: fitnessGoals || null,
     });
   } catch (error) {
     console.error("Update client error:", error);

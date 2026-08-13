@@ -1,13 +1,13 @@
-﻿"use client";
+"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck } from "lucide-react";
+import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck, Mail, Phone, Target, FileText } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
 import { computeAnalytics } from "./utils/analytics";
 import { ClientSidebar } from "./components/ClientSidebar";
-import { EditClientModal } from "./components/EditClientModal";
+import { ClientModal } from "./components/ClientModal";
 import { WorkoutBuilder } from "./components/WorkoutBuilder";
 import { WorkoutHistory } from "./components/WorkoutHistory";
 import { AnalyticsView } from "./components/AnalyticsView";
@@ -25,17 +25,10 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [subInfo, setSubInfo] = useState<ExtendedSubscriptionInfo | null>(null);
 
-  // Client Creation Form
-  const [newName, setNewName] = useState("");
-  const [newNotes, setNewNotes] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null);
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  // Client Editing Modal
+  // Client Modals State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editNotes, setEditNotes] = useState("");
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
 
@@ -82,55 +75,55 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     else setWorkouts([]);
   }, [selected, fetchWorkouts]);
 
-  const handleClientUpdated = useCallback((updatedClient: Client) => {
-    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? { ...c, ...updatedClient } : c)));
-    setSelected((prev) => (prev?.id === updatedClient.id ? { ...prev, ...updatedClient } : prev));
-    if (editingClient?.id === updatedClient.id) {
-      setEditingClient((prev) => (prev ? { ...prev, ...updatedClient } : prev));
-    }
-  }, [editingClient]);
-
-  const addClient = async () => {
-    if (!newName.trim()) {
-      setFormError("Client name is required.");
-      return;
-    }
-
-    setFormError(null);
-    setCreatedInviteUrl(null);
-
+  const handleAddClient = async (clientData: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    fitnessGoals: string | null;
+    notes: string | null;
+  }) => {
     const res = await fetch("/api/clients", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newName.trim(), notes: newNotes.trim() || null }),
+      body: JSON.stringify(clientData),
     });
 
     if (res.ok) {
-      const client = await res.json();
-      const inviteUrl = client.inviteUrl || (client.inviteToken ? `${window.location.origin}/invite/${client.inviteToken}` : null);
-      const clientWithInvite = { ...client, inviteUrl };
-
-      setClients((prev) => [clientWithInvite, ...prev]);
-      setSelected(clientWithInvite);
-      setNewName("");
-      setNewNotes("");
-
-      if (inviteUrl) {
-        setCreatedInviteUrl(inviteUrl);
-      }
+      const created = await res.json();
+      setClients((prev) => [created, ...prev]);
+      setSelected(created);
+      fetchSubscription();
       return;
     }
 
-    const body = await res.json().catch(() => null);
-    setFormError(body?.error || "Unable to add this client right now.");
-    fetchSubscription();
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.error || "Failed to create client.");
   };
 
-  const handleSaveEdit = (updatedClient?: Client) => {
-    if (updatedClient) {
-      handleClientUpdated(updatedClient);
+  const handleEditClient = async (clientData: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+    fitnessGoals: string | null;
+    notes: string | null;
+  }) => {
+    if (!editingClient) return;
+
+    const res = await fetch(`/api/clients/${editingClient.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(clientData),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setClients((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+      setSelected((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+      return;
     }
-    setEditingClient(null);
+
+    const errorBody = await res.json().catch(() => null);
+    throw new Error(errorBody?.error || "Failed to update client.");
   };
 
   const copyLink = (url: string) => {
@@ -262,14 +255,20 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       .filter((exercise) => exercise.name && exercise.sets.length > 0);
 
     if (!normalizedExercises.length) {
-      alert("Add at least one exercise with a valid number of reps before completing the workout.");
+      alert("Add at least one exercise with a valid number of reps before completing.");
       return;
     }
 
     setSavingWorkout(true);
     const now = new Date().toISOString();
-    const res = await fetch(activeWorkout.plannedWorkoutId ? `/api/workouts/${activeWorkout.plannedWorkoutId}` : "/api/workouts", {
-      method: activeWorkout.plannedWorkoutId ? "PATCH" : "POST",
+
+    const endpoint = activeWorkout.plannedWorkoutId
+      ? `/api/workouts/${activeWorkout.plannedWorkoutId}`
+      : "/api/workouts";
+    const method = activeWorkout.plannedWorkoutId ? "PATCH" : "POST";
+
+    const res = await fetch(endpoint, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         clientId: selected.id,
@@ -328,6 +327,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     <div className="app">
       <SubscriptionBanner subInfo={subInfo} onSubscribed={fetchSubscription} />
 
+      {/* App Header */}
       <header className="header">
         <div className="header-left">
           <Dumbbell size={22} />
@@ -367,22 +367,16 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         </div>
       </header>
 
+      {/* Layout: Sidebar + Main Content */}
       <div className="layout">
         <ClientSidebar
           clients={clients}
           selected={selected}
           loadingClients={loadingClients}
           onSelectClient={setSelected}
-          onAddClient={addClient}
+          onOpenAddClient={() => setIsAddModalOpen(true)}
+          onOpenEditClient={(client) => setEditingClient(client)}
           onDeleteClient={deleteClient}
-          newName={newName}
-          setNewName={setNewName}
-          newNotes={newNotes}
-          setNewNotes={setNewNotes}
-          formError={formError}
-          createdInviteUrl={createdInviteUrl}
-          copiedLink={copiedLink}
-          onCopyLink={copyLink}
         />
 
         <main className="main">
@@ -393,66 +387,97 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
             </div>
           ) : (
             <>
+              {/* Client Info Header */}
               <div className="main-header" style={{ flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ flex: "1 1 300px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <h2 className="client-heading">{selected.name}</h2>
                     {selected.name !== "My Workouts" && (
                       <button
-                        onClick={() => {
-                          setEditingClient(selected);
-                          setEditName(selected.name);
-                          setEditNotes(selected.notes || "");
-                        }}
-                        style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", color: "#475569" }}
+                        onClick={() => setEditingClient(selected)}
+                        className="btn-edit-client"
+                        title="Edit client profile and goals"
                       >
                         <Edit3 size={13} />
-                        <span>Edit</span>
+                        <span>Edit Profile</span>
                       </button>
                     )}
                   </div>
-                  {selected.notes && <p style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{selected.notes}</p>}
-                </div>
 
-                {/* Text Invite Link Bar */}
-                {selected.name !== "My Workouts" && (
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    {selected.inviteStatus === "ACCEPTED" ? (
-                      <span style={{ fontSize: "12px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
-                        ✓ Joined
+                  {/* Client Meta Badges: Email, Phone, Goals */}
+                  <div className="client-header-meta">
+                    {selected.email && (
+                      <span className="client-badge" title="Email address">
+                        <Mail size={12} />
+                        <span>{selected.email}</span>
                       </span>
-                    ) : (
-                      getInviteUrl(selected) && (
-                        <button
-                          onClick={() => copyLink(getInviteUrl(selected)!)}
-                          style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, background: "#2563eb", color: "#fff", padding: "8px 14px", borderRadius: "6px", border: "none", cursor: "pointer" }}
-                        >
-                          {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                          <span>{copiedLink ? "Link Copied!" : "Copy Invite Link to Text"}</span>
-                        </button>
-                      )
+                    )}
+                    {selected.phone && (
+                      <span className="client-badge" title="Phone number">
+                        <Phone size={12} />
+                        <span>{selected.phone}</span>
+                      </span>
+                    )}
+                    {selected.fitnessGoals && (
+                      <span className="client-badge" title="Fitness Goals" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}>
+                        <Target size={12} />
+                        <span>{selected.fitnessGoals}</span>
+                      </span>
                     )}
                   </div>
-                )}
 
-                <div className="tabs">
-                  {(["log", "history", "analytics"] as const).map((currentTab) => (
-                    <button key={currentTab} className={`tab${tab === currentTab ? " active" : ""}`} onClick={() => setTab(currentTab)}>
-                      {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
-                    </button>
-                  ))}
+                  {selected.notes && (
+                    <p className="client-header-notes">
+                      <FileText size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+                      {selected.notes}
+                    </p>
+                  )}
+                </div>
+
+                {/* Invite Link & Action Bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  {selected.name !== "My Workouts" && (
+                    <div>
+                      {selected.inviteStatus === "ACCEPTED" ? (
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                          ✓ Joined Portal
+                        </span>
+                      ) : (
+                        getInviteUrl(selected) && (
+                          <button
+                            onClick={() => copyLink(getInviteUrl(selected)!)}
+                            className="btn-primary"
+                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "8px 14px" }}
+                          >
+                            {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                            <span>{copiedLink ? "Link Copied!" : "Copy Invite Link"}</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
+
+                  {/* Tabs */}
+                  <div className="tabs">
+                    {(["log", "history", "analytics"] as const).map((currentTab) => (
+                      <button key={currentTab} className={`tab${tab === currentTab ? " active" : ""}`} onClick={() => setTab(currentTab)}>
+                        {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              {/* Tab Content */}
               {tab === "log" && (
                 <WorkoutBuilder
                   activeWorkout={activeWorkout}
                   setActiveWorkout={setActiveWorkout}
-                  plannedWorkouts={plannedWorkouts}
                   exercisePicker={exercisePicker}
                   setExercisePicker={setExercisePicker}
-                  savingWorkout={savingWorkout}
+                  plannedWorkouts={plannedWorkouts}
                   savingPlan={savingPlan}
+                  savingWorkout={savingWorkout}
                   onStartWorkout={startWorkout}
                   onBeginPlannedWorkout={beginPlannedWorkout}
                   onSaveWorkoutPlan={saveWorkoutPlan}
@@ -476,18 +501,23 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         </main>
       </div>
 
-      {editingClient && (
-        <EditClientModal
-          editingClient={editingClient}
-          editName={editName}
-          setEditName={setEditName}
-          editNotes={editNotes}
-          setEditNotes={setEditNotes}
-          onSave={handleSaveEdit}
-          onClose={() => setEditingClient(null)}
-          onClientUpdated={handleClientUpdated}
-        />
-      )}
+      {/* Add Client Modal */}
+      <ClientModal
+        isOpen={isAddModalOpen}
+        mode="add"
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddClient}
+      />
+
+      {/* Edit Client Modal */}
+      <ClientModal
+        isOpen={!!editingClient}
+        mode="edit"
+        client={editingClient}
+        onClose={() => setEditingClient(null)}
+        onSave={handleEditClient}
+        onDelete={deleteClient}
+      />
     </div>
   );
 }

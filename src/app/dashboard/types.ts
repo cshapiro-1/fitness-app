@@ -1,7 +1,11 @@
-﻿export interface Client {
+export interface Client {
   id: string;
+  userId?: string;
   name: string;
+  email?: string | null;
+  phone?: string | null;
   notes?: string | null;
+  fitnessGoals?: string | null;
   createdAt: string;
   inviteStatus?: "NOT_SENT" | "PENDING" | "ACCEPTED";
   inviteToken?: string | null;
