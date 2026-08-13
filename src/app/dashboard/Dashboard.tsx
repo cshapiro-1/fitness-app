@@ -386,6 +386,27 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* Nutrition & Macros Planner */}
+          <Link
+            href="/nutrition"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "5px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: "#f0fdf4",
+              color: "#16a34a",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: "1px solid #bbf7d0",
+              textDecoration: "none",
+            }}
+          >
+            <span>🥗</span>
+            <span className="hide-mobile">Nutrition &amp; Macros</span>
+          </Link>
+
           {/* Switch Role Button */}
           <Link
             href="/onboarding"

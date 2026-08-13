@@ -1,7 +1,7 @@
 export interface ExerciseDefinition {
   name: string;
-  muscleGroup: "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Full Body";
-  equipment: "Barbell" | "Dumbbell" | "Cable" | "Machine" | "Bodyweight" | "Kettlebell" | "Other";
+  muscleGroup: "Chest" | "Back" | "Legs" | "Shoulders" | "Arms" | "Core" | "Full Body" | "Cardio" | "Stretching" | "Bodyweight" | "Wellness";
+  equipment: "Barbell" | "Dumbbell" | "Cable" | "Machine" | "Bodyweight" | "Kettlebell" | "Cardio Machine" | "Other";
   secondaryMuscle?: string;
   isCompound?: boolean;
 }
@@ -19,9 +19,9 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Cable Crossover Fly", muscleGroup: "Chest", equipment: "Cable" },
   { name: "Low-to-High Cable Fly", muscleGroup: "Chest", equipment: "Cable" },
   { name: "High-to-Low Cable Fly", muscleGroup: "Chest", equipment: "Cable" },
-  { name: "Push-Up", muscleGroup: "Chest", equipment: "Bodyweight", isCompound: true },
+  { name: "Push-Up", muscleGroup: "Bodyweight", equipment: "Bodyweight", isCompound: true },
   { name: "Weighted Push-Up", muscleGroup: "Chest", equipment: "Bodyweight", isCompound: true },
-  { name: "Chest Dip", muscleGroup: "Chest", equipment: "Bodyweight", isCompound: true },
+  { name: "Chest Dip", muscleGroup: "Bodyweight", equipment: "Bodyweight", isCompound: true },
   { name: "Chest Press Machine", muscleGroup: "Chest", equipment: "Machine", isCompound: true },
   { name: "Pec Deck Machine Fly", muscleGroup: "Chest", equipment: "Machine" },
   { name: "Landmine Chest Press", muscleGroup: "Chest", equipment: "Barbell", isCompound: true },
@@ -34,8 +34,8 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Pendlay Row", muscleGroup: "Back", equipment: "Barbell", isCompound: true },
   { name: "Single-Arm Dumbbell Row", muscleGroup: "Back", equipment: "Dumbbell", isCompound: true },
   { name: "Chest-Supported Dumbbell Row", muscleGroup: "Back", equipment: "Dumbbell" },
-  { name: "Pull-Up", muscleGroup: "Back", equipment: "Bodyweight", isCompound: true },
-  { name: "Chin-Up", muscleGroup: "Back", equipment: "Bodyweight", isCompound: true },
+  { name: "Pull-Up", muscleGroup: "Bodyweight", equipment: "Bodyweight", isCompound: true },
+  { name: "Chin-Up", muscleGroup: "Bodyweight", equipment: "Bodyweight", isCompound: true },
   { name: "Lat Pulldown (Wide Grip)", muscleGroup: "Back", equipment: "Cable", isCompound: true },
   { name: "Lat Pulldown (Close Grip)", muscleGroup: "Back", equipment: "Cable", isCompound: true },
   { name: "Seated Cable Row", muscleGroup: "Back", equipment: "Cable", isCompound: true },
@@ -86,7 +86,7 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Landmine Shoulder Press", muscleGroup: "Shoulders", equipment: "Barbell" },
   { name: "Push Press", muscleGroup: "Shoulders", equipment: "Barbell", isCompound: true },
 
-  // ARMS (BICEPS & TRICEPS)
+  // ARMS
   { name: "Barbell Bicep Curl", muscleGroup: "Arms", equipment: "Barbell" },
   { name: "EZ-Bar Preacher Curl", muscleGroup: "Arms", equipment: "Barbell" },
   { name: "Dumbbell Alternating Bicep Curl", muscleGroup: "Arms", equipment: "Dumbbell" },
@@ -101,7 +101,7 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Overhead Dumbbell Tricep Extension", muscleGroup: "Arms", equipment: "Dumbbell" },
   { name: "Overhead Cable Tricep Extension", muscleGroup: "Arms", equipment: "Cable" },
   { name: "Close-Grip Barbell Bench Press", muscleGroup: "Arms", equipment: "Barbell", isCompound: true },
-  { name: "Tricep Bench Dip", muscleGroup: "Arms", equipment: "Bodyweight" },
+  { name: "Tricep Bench Dip", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
   { name: "Dumbbell Kickback", muscleGroup: "Arms", equipment: "Dumbbell" },
 
   // CORE / ABS
@@ -115,9 +115,41 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Decline Bench Sit-Up", muscleGroup: "Core", equipment: "Bodyweight" },
   { name: "Farmer's Walk (Carry)", muscleGroup: "Core", equipment: "Dumbbell", isCompound: true },
   { name: "Dead Bug", muscleGroup: "Core", equipment: "Bodyweight" },
-  { name: "Bird Dog", muscleGroup: "Core", equipment: "Bodyweight" },
   { name: "Side Plank", muscleGroup: "Core", equipment: "Bodyweight" },
   { name: "Pallof Press", muscleGroup: "Core", equipment: "Cable" },
+
+  // CARDIO & ENDURANCE
+  { name: "Treadmill Running (Miles/Mins)", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+  { name: "Outdoor Distance Run", muscleGroup: "Cardio", equipment: "Other" },
+  { name: "Stationary Bike / Spin Cycle", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+  { name: "Rowing Machine (Ergometer)", muscleGroup: "Cardio", equipment: "Cardio Machine", isCompound: true },
+  { name: "Stairmaster / Stair Climber", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+  { name: "Incline Treadmill Walk", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+  { name: "Jump Rope Intervals", muscleGroup: "Cardio", equipment: "Other" },
+  { name: "Assault AirBike Sprints", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+  { name: "Swimming Laps", muscleGroup: "Cardio", equipment: "Other" },
+  { name: "Elliptical Trainer", muscleGroup: "Cardio", equipment: "Cardio Machine" },
+
+  // STRETCHING & MOBILITY
+  { name: "Full Body Mobility & Dynamic Warmup", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Foam Rolling (Quads, Lats, IT Bands)", muscleGroup: "Stretching", equipment: "Other" },
+  { name: "Pigeon Pose (Hip Opener)", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Hip Flexor Kneeling Stretch", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Hamstring & Calf Stretch", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Shoulder Band Dislocates & Mobility", muscleGroup: "Stretching", equipment: "Other" },
+  { name: "Couch Stretch (Quad & Hip)", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Cat-Cow Spine Mobilization", muscleGroup: "Stretching", equipment: "Bodyweight" },
+  { name: "Thoracic Spine Foam Roller Extension", muscleGroup: "Stretching", equipment: "Other" },
+
+  // WELLNESS TARGETS & DAILY HABITS
+  { name: "Rest & Recovery Day (Active Rest)", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "Hit 10,000 Daily Steps", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "Hit 12,000 Daily Steps", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "Drink 1 Gallon Water (128 oz)", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "8+ Hours Deep Restful Sleep", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "Post-Workout Protein & Fuel Intake", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "10-Minute Breathwork / Meditation", muscleGroup: "Wellness", equipment: "Other" },
+  { name: "Cold Plunge / Sauna Recovery Session", muscleGroup: "Wellness", equipment: "Other" },
 
   // FULL BODY / OLYMPIC & FUNCTIONAL
   { name: "Power Clean", muscleGroup: "Full Body", equipment: "Barbell", isCompound: true },
@@ -125,16 +157,19 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Snatch", muscleGroup: "Full Body", equipment: "Barbell", isCompound: true },
   { name: "Kettlebell Swing", muscleGroup: "Full Body", equipment: "Kettlebell", isCompound: true },
   { name: "Turkish Get-Up", muscleGroup: "Full Body", equipment: "Kettlebell", isCompound: true },
-  { name: "Burpee", muscleGroup: "Full Body", equipment: "Bodyweight" },
-  { name: "Box Jump", muscleGroup: "Full Body", equipment: "Bodyweight" },
+  { name: "Burpee", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Box Jump", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
   { name: "Medicine Ball Slam", muscleGroup: "Full Body", equipment: "Other" },
-  { name: "Rowing Machine (Ergometer)", muscleGroup: "Full Body", equipment: "Machine" },
 ];
 
 export function searchExercises(query: string, muscleFilter?: string, equipmentFilter?: string): ExerciseDefinition[] {
   const q = query.toLowerCase().trim();
   return EXERCISE_LIBRARY.filter((ex) => {
-    const matchesQuery = !q || ex.name.toLowerCase().includes(q) || ex.muscleGroup.toLowerCase().includes(q) || ex.equipment.toLowerCase().includes(q);
+    const matchesQuery =
+      !q ||
+      ex.name.toLowerCase().includes(q) ||
+      ex.muscleGroup.toLowerCase().includes(q) ||
+      ex.equipment.toLowerCase().includes(q);
     const matchesMuscle = !muscleFilter || muscleFilter === "All" || ex.muscleGroup === muscleFilter;
     const matchesEquipment = !equipmentFilter || equipmentFilter === "All" || ex.equipment === equipmentFilter;
     return matchesQuery && matchesMuscle && matchesEquipment;

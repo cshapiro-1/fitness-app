@@ -6,46 +6,68 @@ export async function GET() {
   try {
     const results: string[] = [];
 
-    // Ensure columns exist on Client table
+    // 1. Client columns
     await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "phone" TEXT;`);
-    results.push("Added phone to Client");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "fitnessGoals" TEXT;`);
-    results.push("Added fitnessGoals to Client");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "image" TEXT;`);
-    results.push("Added image to Client");
+    results.push("Synchronized Client columns");
 
-    // Ensure columns exist on User table
+    // 2. User columns
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;`);
-    results.push("Added phone to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "fitnessGoals" TEXT;`);
-    results.push("Added fitnessGoals to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "notes" TEXT;`);
-    results.push("Added notes to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "trainerId" TEXT;`);
-    results.push("Added trainerId to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionProvider" TEXT DEFAULT 'stripe';`);
-    results.push("Added subscriptionProvider to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionId" TEXT;`);
-    results.push("Added subscriptionId to User");
-
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "originalTransactionId" TEXT;`);
-    results.push("Added originalTransactionId to User");
+    results.push("Synchronized User columns");
 
-    // Re-link any Client records whose userId doesn't match a valid User.id
-    const relinked = await prisma.$executeRawUnsafe(`
-      UPDATE "Client" c
-      SET "userId" = u.id
-      FROM "User" u
-      WHERE c."userId" NOT IN (SELECT id FROM "User") AND u.role = 'TRAINER';
+    // 3. Workout & Wellness columns
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "sessionType" TEXT DEFAULT 'WORKOUT';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutExercise" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'STRENGTH';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "distance" DOUBLE PRECISION;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "durationSeconds" INTEGER;`);
+    results.push("Synchronized Workout & Wellness columns");
+
+    // 4. Create NutritionPlan table if not exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "NutritionPlan" (
+        "id" TEXT PRIMARY KEY,
+        "clientId" TEXT UNIQUE NOT NULL REFERENCES "Client"("id") ON DELETE CASCADE,
+        "goalType" TEXT NOT NULL DEFAULT 'CUT',
+        "dailyCalories" INTEGER NOT NULL DEFAULT 2000,
+        "proteinGrams" INTEGER NOT NULL DEFAULT 150,
+        "carbsGrams" INTEGER NOT NULL DEFAULT 200,
+        "fatsGrams" INTEGER NOT NULL DEFAULT 65,
+        "waterOz" INTEGER DEFAULT 100,
+        "currentWeight" DOUBLE PRECISION,
+        "targetWeight" DOUBLE PRECISION,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
-    results.push(`Re-linked orphaned clients to trainer: ${relinked} rows`);
+    results.push("Ensured NutritionPlan table exists");
+
+    // 5. Create NutritionLog table if not exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "NutritionLog" (
+        "id" TEXT PRIMARY KEY,
+        "clientId" TEXT NOT NULL REFERENCES "Client"("id") ON DELETE CASCADE,
+        "date" TEXT NOT NULL,
+        "mealName" TEXT NOT NULL,
+        "foodName" TEXT NOT NULL,
+        "calories" INTEGER NOT NULL,
+        "protein" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "carbs" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "fats" DOUBLE PRECISION NOT NULL DEFAULT 0,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "NutritionLog_clientId_idx" ON "NutritionLog"("clientId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "NutritionLog_date_idx" ON "NutritionLog"("date");`);
+    results.push("Ensured NutritionLog table exists");
 
     return NextResponse.json({
       success: true,

@@ -67,26 +67,26 @@ model VerificationToken {
 }
 
 model User {
-  trainerId    String?
-  notes        String?
-  fitnessGoals String?
-  phone        String?
-  id                 String    @id @default(cuid())
-  email        String?    @unique
-  emailVerified      DateTime?
-  name               String?
-  image              String?
-  role               UserRole  @default(TRAINER)
-  clientProfileId    String?   @unique
-  isAdmin            Boolean   @default(false)
-  subscriptionStatus String?   @default("trial")
-  subscriptionProvider String? @default("stripe")
-  subscriptionId     String?
+  trainerId             String?
+  notes                 String?
+  fitnessGoals          String?
+  phone                 String?
+  id                    String    @id @default(cuid())
+  email                 String?   @unique
+  emailVerified         DateTime?
+  name                  String?
+  image                 String?
+  role                  UserRole  @default(TRAINER)
+  clientProfileId       String?   @unique
+  isAdmin               Boolean   @default(false)
+  subscriptionStatus    String?   @default("trial")
+  subscriptionProvider  String?   @default("stripe")
+  subscriptionId        String?
   originalTransactionId String?
-  trialEndsAt        DateTime?
-  subscribedUntil    DateTime?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime? @updatedAt
+  trialEndsAt           DateTime?
+  subscribedUntil       DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime? @updatedAt
 
   accounts      Account[]
   sessions      Session[]
@@ -115,6 +115,8 @@ model Client {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   workouts        Workout[]
   workoutSessions WorkoutSession[]
+  nutritionPlan   NutritionPlan?
+  nutritionLogs   NutritionLog[]
   loginUser       User?            @relation("ClientLogin")
 
   @@index([userId])
@@ -142,6 +144,7 @@ model WorkoutSession {
   id          String               @id @default(cuid())
   clientId    String
   status      WorkoutSessionStatus @default(COMPLETED)
+  sessionType String?              @default("WORKOUT") // WORKOUT, REST_DAY, CARDIO, WELLNESS
   startedAt   DateTime?
   completedAt DateTime?
   notes       String?
@@ -155,11 +158,12 @@ model WorkoutSession {
 }
 
 model WorkoutExercise {
-  id               String         @id @default(cuid())
+  id               String          @id @default(cuid())
   workoutSessionId String
   name             String
   order            Int
-  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  category         String?         @default("STRENGTH") // STRENGTH, BODYWEIGHT, CARDIO, STRETCHING, WELLNESS
+  workoutSession   WorkoutSession  @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
   sets             WorkoutSet[]
 
   @@index([workoutSessionId])
@@ -171,10 +175,49 @@ model WorkoutSet {
   order             Int
   weight            Float
   reps              Int
+  distance          Float?          // Miles/km for cardio
+  durationSeconds   Int?            // Seconds for cardio/stretching
   notes             String?
   workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
 
   @@index([workoutExerciseId])
+}
+
+model NutritionPlan {
+  id            String   @id @default(cuid())
+  clientId      String   @unique
+  goalType      String   @default("CUT") // CUT, BULK, MAINTAIN, RECOMP
+  dailyCalories Int      @default(2000)
+  proteinGrams  Int      @default(150)
+  carbsGrams    Int      @default(200)
+  fatsGrams     Int      @default(65)
+  waterOz       Int?     @default(100)
+  currentWeight Float?
+  targetWeight  Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+}
+
+model NutritionLog {
+  id        String   @id @default(cuid())
+  clientId  String
+  date      String   // YYYY-MM-DD
+  mealName  String   // Breakfast, Lunch, Dinner, Snack, Post-Workout
+  foodName  String
+  calories  Int
+  protein   Float    @default(0)
+  carbs     Float    @default(0)
+  fats      Float    @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
 }
 
 model Invitation {
