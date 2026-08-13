@@ -85,6 +85,7 @@ model User {
   originalTransactionId String?
   trialEndsAt           DateTime?
   subscribedUntil       DateTime?
+  emailNotifications    Boolean   @default(true)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime? @updatedAt
 
@@ -98,15 +99,16 @@ model User {
 }
 
 model Client {
-  id           String       @id @default(cuid())
-  userId       String
-  name         String
-  image        String?
-  email        String?      @unique
-  phone        String?
-  notes        String?
-  fitnessGoals String?
-  createdAt    DateTime     @default(now())
+  id                 String       @id @default(cuid())
+  userId             String
+  name               String
+  image              String?
+  email              String?      @unique
+  phone              String?
+  notes              String?
+  fitnessGoals       String?
+  emailNotifications Boolean      @default(true)
+  createdAt          DateTime     @default(now())
 
   inviteToken  String?      @unique
   inviteStatus InviteStatus @default(NOT_SENT)

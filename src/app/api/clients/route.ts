@@ -106,6 +106,7 @@ export async function GET(req: Request) {
         phone: isSelfProfile ? (c.phone || c.user?.phone || null) : (c.phone || c.loginUser?.phone || null),
         notes: isSelfProfile ? (c.notes || c.user?.notes || null) : (c.notes || null),
         fitnessGoals: isSelfProfile ? (c.fitnessGoals || c.user?.fitnessGoals || null) : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
+        emailNotifications: c.emailNotifications !== false,
         inviteStatus: isSelfProfile ? "ACCEPTED" : (c.inviteStatus || "NOT_SENT"),
         inviteToken: c.inviteToken || null,
         inviteUrl: c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null,

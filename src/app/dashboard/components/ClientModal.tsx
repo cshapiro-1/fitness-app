@@ -39,6 +39,7 @@ export interface ClientModalProps {
     phone: string | null;
     fitnessGoals: string | null;
     notes: string | null;
+    emailNotifications?: boolean;
   }) => Promise<void> | void;
   onDelete?: (id: string) => Promise<void> | void;
   onInviteGenerated?: (client: Client) => void;
@@ -59,6 +60,7 @@ export function ClientModal({
   const [phone, setPhone] = useState("");
   const [fitnessGoals, setFitnessGoals] = useState("");
   const [notes, setNotes] = useState("");
+  const [emailNotifications, setEmailNotifications] = useState(true);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,6 +78,7 @@ export function ClientModal({
         setPhone(client.phone || "");
         setFitnessGoals(client.fitnessGoals || "");
         setNotes(client.notes || "");
+        setEmailNotifications(client.emailNotifications !== false);
         const existingUrl =
           client.inviteUrl ||
           (client.inviteToken
@@ -89,6 +92,7 @@ export function ClientModal({
         setPhone("");
         setFitnessGoals("");
         setNotes("");
+        setEmailNotifications(true);
         setInviteUrl(null);
       }
     }
@@ -170,6 +174,7 @@ export function ClientModal({
         phone: phone.trim() || null,
         fitnessGoals: fitnessGoals.trim() || null,
         notes: notes.trim() || null,
+        emailNotifications,
       });
       onClose();
     } catch (err: any) {
@@ -388,6 +393,22 @@ export function ClientModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
+            </div>
+
+            {/* Email Notification Toggle */}
+            <div className="client-modal-field client-modal-field-full" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "10px 12px" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#166534" }}>
+                <input
+                  type="checkbox"
+                  checked={emailNotifications}
+                  onChange={(e) => setEmailNotifications(e.target.checked)}
+                  style={{ width: "16px", height: "16px", accentColor: "#16a34a" }}
+                />
+                <span>Email Workout Notifications</span>
+              </label>
+              <p style={{ margin: "4px 0 0 24px", fontSize: "11px", color: "#15803d" }}>
+                Automatically email this client with full routine details when workouts are assigned or completed.
+              </p>
             </div>
           </div>
 

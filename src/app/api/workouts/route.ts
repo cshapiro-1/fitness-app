@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendWorkoutNotification } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   try {
@@ -58,9 +59,12 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
+    let trainerName = session?.user?.name || "Your Coach";
+
     if (!userId && session?.user?.email) {
       const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
       userId = dbUser?.id;
+      if (dbUser?.name) trainerName = dbUser.name;
     }
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
@@ -84,6 +88,43 @@ export async function POST(req: NextRequest) {
       },
       include: { exercises: { include: { sets: true } } }
     });
+
+    // Trigger Email Notification for Client if they have an email & notifications enabled
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        include: { user: true },
+      });
+
+      if (client?.email && client.emailNotifications !== false) {
+        const notifTrainer = client.user?.name || trainerName || "Coach";
+        const notifType = status === "PLANNED" ? "ASSIGNED" : "COMPLETED";
+
+        await sendWorkoutNotification({
+          recipientEmail: client.email,
+          recipientName: client.name || "Athlete",
+          trainerName: notifTrainer,
+          type: notifType,
+          notes: notes || null,
+          exercises: exercises.map((ex: any) => ({
+            name: ex.name,
+            sets: (ex.sets || []).map((s: any) => ({
+              weight: s.weight,
+              reps: s.reps,
+              notes: s.notes,
+            })),
+          })),
+          dateStr: completedAt
+            ? new Date(completedAt).toLocaleDateString()
+            : new Date().toLocaleDateString(),
+          clientId,
+        });
+      }
+    } catch (emailErr) {
+      console.error("Failed to trigger email notification:", emailErr);
+      // Do not fail the workout creation request if email dispatcher errors
+    }
+
     return NextResponse.json(created);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

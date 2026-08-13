@@ -15,7 +15,7 @@ export async function PATCH(
     }
 
     const { id: clientId } = await params;
-    const { name, image, email, phone, notes, fitnessGoals } = await req.json();
+    const { name, image, email, phone, notes, fitnessGoals, emailNotifications } = await req.json();
 
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -34,6 +34,7 @@ export async function PATCH(
         phone: phone !== undefined ? (phone ? phone.trim() : null) : client.phone,
         notes: notes !== undefined ? (notes ? notes.trim() : null) : client.notes,
         fitnessGoals: fitnessGoals !== undefined ? (fitnessGoals ? fitnessGoals.trim() : null) : client.fitnessGoals,
+        emailNotifications: emailNotifications !== undefined ? emailNotifications : client.emailNotifications,
       },
     });
 
@@ -51,6 +52,7 @@ export async function PATCH(
           phone: phone !== undefined ? (phone ? phone.trim() : null) : loginUser.phone,
           notes: notes !== undefined ? (notes ? notes.trim() : null) : loginUser.notes,
           fitnessGoals: fitnessGoals !== undefined ? (fitnessGoals ? fitnessGoals.trim() : null) : loginUser.fitnessGoals,
+          emailNotifications: emailNotifications !== undefined ? emailNotifications : loginUser.emailNotifications,
         },
       });
     }
@@ -66,6 +68,7 @@ export async function PATCH(
       phone: updatedClient.phone,
       notes: updatedClient.notes,
       fitnessGoals: updatedClient.fitnessGoals,
+      emailNotifications: updatedClient.emailNotifications,
       inviteStatus: updatedClient.inviteStatus,
       inviteToken: updatedClient.inviteToken,
       inviteUrl: updatedClient.inviteToken ? (baseUrl ? `${baseUrl}/invite/${updatedClient.inviteToken}` : `/invite/${updatedClient.inviteToken}`) : null,

@@ -91,6 +91,7 @@ describe("ClientModal Component", () => {
         phone: null,
         fitnessGoals: null,
         notes: null,
+        emailNotifications: true,
       });
       expect(onCloseMock).toHaveBeenCalled();
     });

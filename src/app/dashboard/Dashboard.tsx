@@ -124,6 +124,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     phone: string | null;
     fitnessGoals: string | null;
     notes: string | null;
+    emailNotifications?: boolean;
   }) => {
     const res = await fetch("/api/clients", {
       method: "POST",
@@ -150,6 +151,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     phone: string | null;
     fitnessGoals: string | null;
     notes: string | null;
+    emailNotifications?: boolean;
   }) => {
     if (!editingClient) return;
 

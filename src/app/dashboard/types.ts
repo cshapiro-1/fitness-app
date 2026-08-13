@@ -11,6 +11,7 @@ export interface Client {
   inviteStatus?: "NOT_SENT" | "PENDING" | "ACCEPTED";
   inviteToken?: string | null;
   inviteUrl?: string | null;
+  emailNotifications?: boolean;
   _count?: { workoutSessions: number };
 }
 
