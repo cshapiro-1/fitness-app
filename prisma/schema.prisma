@@ -80,6 +80,9 @@ model User {
   clientProfileId    String?   @unique
   isAdmin            Boolean   @default(false)
   subscriptionStatus String?   @default("trial")
+  subscriptionProvider String? @default("stripe")
+  subscriptionId     String?
+  originalTransactionId String?
   trialEndsAt        DateTime?
   subscribedUntil    DateTime?
   createdAt          DateTime  @default(now())

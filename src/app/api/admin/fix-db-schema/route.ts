@@ -26,6 +26,15 @@ export async function GET() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "trainerId" TEXT;`);
     results.push("Added trainerId to User");
 
+    await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionProvider" TEXT DEFAULT 'stripe';`);
+    results.push("Added subscriptionProvider to User");
+
+    await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionId" TEXT;`);
+    results.push("Added subscriptionId to User");
+
+    await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "originalTransactionId" TEXT;`);
+    results.push("Added originalTransactionId to User");
+
     // Clean up any Client records that have the trainer's email mistakenly attached
     const cleaned = await prisma.$executeRawUnsafe(`
       UPDATE "Client" c
