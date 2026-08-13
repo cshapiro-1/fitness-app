@@ -71,6 +71,24 @@ export async function GET() {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "NutritionLog_date_idx" ON "NutritionLog"("date");`);
     results.push("Ensured NutritionLog table exists");
 
+    // 6. Create SupplementLog table if not exists
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "SupplementLog" (
+        "id" TEXT PRIMARY KEY,
+        "clientId" TEXT NOT NULL REFERENCES "Client"("id") ON DELETE CASCADE,
+        "date" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "dosage" TEXT,
+        "timing" TEXT,
+        "taken" BOOLEAN NOT NULL DEFAULT true,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "SupplementLog_clientId_idx" ON "SupplementLog"("clientId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "SupplementLog_date_idx" ON "SupplementLog"("date");`);
+    results.push("Ensured SupplementLog table exists");
+
     return NextResponse.json({
       success: true,
       message: "Database schema synchronized and reconciled successfully",

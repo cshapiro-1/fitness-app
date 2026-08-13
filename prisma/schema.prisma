@@ -119,6 +119,7 @@ model Client {
   workoutSessions WorkoutSession[]
   nutritionPlan   NutritionPlan?
   nutritionLogs   NutritionLog[]
+  supplementLogs  SupplementLog[]
   loginUser       User?            @relation("ClientLogin")
 
   @@index([userId])
@@ -214,6 +215,22 @@ model NutritionLog {
   protein   Float    @default(0)
   carbs     Float    @default(0)
   fats      Float    @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+}
+
+model SupplementLog {
+  id        String   @id @default(cuid())
+  clientId  String
+  date      String   // YYYY-MM-DD
+  name      String
+  dosage    String?  // e.g. 5g, 1 scoop, 2 capsules
+  timing    String?  // Morning, Pre-Workout, Post-Workout, Bedtime
+  taken     Boolean  @default(true)
   notes     String?
   createdAt DateTime @default(now())
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
