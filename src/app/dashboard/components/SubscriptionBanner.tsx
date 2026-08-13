@@ -31,6 +31,10 @@ export function SubscriptionBanner({ subInfo, onOpenProfile, onSubscribed }: Sub
         body: JSON.stringify({ plan: selectedPlan }),
       });
       const data = await res.json();
+      if (data.url && (data.url.startsWith("http://") || data.url.startsWith("https://"))) {
+        window.location.href = data.url;
+        return;
+      }
       if (data.success) {
         setShowPaywallModal(false);
         if (onSubscribed) onSubscribed();

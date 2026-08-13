@@ -145,8 +145,12 @@ export function TrainerProfileModal({
         body: JSON.stringify({ plan: selectedPlan }),
       });
       const data = await res.json();
+      if (data.url && (data.url.startsWith("http://") || data.url.startsWith("https://"))) {
+        window.location.href = data.url;
+        return;
+      }
       if (data.success) {
-        setBillingSuccessMsg(`Successfully renewed ${selectedPlan === "annual" ? "Annual ($200/yr)" : "Monthly ($20/mo)"} subscription!`);
+        setBillingSuccessMsg(`Successfully activated ${selectedPlan === "annual" ? "Annual ($200/yr)" : "Monthly ($20/mo)"} subscription!`);
         if (onProfileUpdated) onProfileUpdated();
         setTimeout(() => {
           window.location.reload();
