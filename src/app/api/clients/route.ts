@@ -12,22 +12,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let trainerId = (session.user as any).id;
-    if (!trainerId && session.user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-      trainerId = dbUser?.id;
+    let trainerId: string | null = null;
+    let trainerEmail = session.user.email?.toLowerCase().trim() || null;
+
+    if (trainerEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: trainerEmail } });
+      if (dbUser) {
+        trainerId = dbUser.id;
+      }
     }
 
     if (!trainerId) {
+      trainerId = (session.user as any).id || null;
+    }
+
+    if (!trainerId && !trainerEmail) {
       return NextResponse.json([]);
     }
 
-    // STRICT TENANT ISOLATION: Only fetch Client records belonging to this trainer
-    const clients = await prisma.client.findMany({
+    // STRICT TENANT ISOLATION: Fetch all clients created by or associated with this trainer
+    let clients = await prisma.client.findMany({
       where: {
         OR: [
-          { userId: trainerId },
-          { user: { trainerId: trainerId } },
+          ...(trainerId ? [{ userId: trainerId }] : []),
+          ...(trainerId ? [{ user: { id: trainerId } }] : []),
+          ...(trainerEmail ? [{ user: { email: trainerEmail } }] : []),
         ],
       },
       include: {
@@ -51,6 +60,38 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
+    // If new trainer with no client records, automatically ensure self-profile "My Workouts"
+    if (clients.length === 0 && trainerId) {
+      try {
+        const selfClient = await prisma.client.create({
+          data: {
+            userId: trainerId,
+            name: "My Workouts",
+            notes: "Personal workout tracking",
+            inviteStatus: "ACCEPTED",
+          },
+          include: {
+            user: true,
+            loginUser: true,
+            workouts: true,
+            workoutSessions: {
+              include: {
+                exercises: {
+                  include: {
+                    sets: true,
+                  },
+                },
+              },
+            },
+            _count: { select: { workoutSessions: true } },
+          },
+        });
+        clients = [selfClient];
+      } catch (e) {
+        console.error("Auto self client creation error:", e);
+      }
+    }
+
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
     // Format for Dashboard expectations
@@ -60,7 +101,6 @@ export async function GET(req: Request) {
         id: c.id,
         userId: c.userId,
         name: c.name || (isSelfProfile ? c.user?.name : "Client"),
-        // CRITICAL FIX: Do not fall back to c.user.email/phone (which is the trainer's account)
         email: isSelfProfile ? (c.email || c.user?.email || null) : (c.email || c.loginUser?.email || null),
         phone: isSelfProfile ? (c.phone || c.user?.phone || null) : (c.phone || c.loginUser?.phone || null),
         notes: isSelfProfile ? (c.notes || c.user?.notes || null) : (c.notes || null),
@@ -82,7 +122,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/clients - Create Client Profile (default NOT_SENT invite)
+// POST /api/clients - Create Client Profile
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -90,14 +130,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let trainerId = (session.user as any).id;
-    if (!trainerId && session.user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-      trainerId = dbUser?.id;
+    let trainerId: string | null = null;
+    let trainerEmail = session.user.email?.toLowerCase().trim() || null;
+
+    if (trainerEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: trainerEmail } });
+      if (dbUser) {
+        trainerId = dbUser.id;
+      }
     }
 
     if (!trainerId) {
-      return NextResponse.json({ error: "Trainer user not found" }, { status: 400 });
+      trainerId = (session.user as any).id || null;
+    }
+
+    if (!trainerId) {
+      return NextResponse.json({ error: "Trainer user profile not found" }, { status: 400 });
     }
 
     const { name, email, phone, notes, fitnessGoals } = await req.json();
@@ -106,7 +154,6 @@ export async function POST(req: Request) {
     }
 
     // Create Client record linked to this trainer (userId: trainerId)
-    // Default inviteStatus is NOT_SENT, inviteToken is null
     const client = await prisma.client.create({
       data: {
         userId: trainerId,
@@ -122,7 +169,15 @@ export async function POST(req: Request) {
         user: true,
         loginUser: true,
         workouts: true,
-        workoutSessions: true,
+        workoutSessions: {
+          include: {
+            exercises: {
+              include: {
+                sets: true,
+              },
+            },
+          },
+        },
         _count: { select: { workoutSessions: true } },
       },
     });

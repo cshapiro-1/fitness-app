@@ -35,18 +35,18 @@ export async function GET() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "originalTransactionId" TEXT;`);
     results.push("Added originalTransactionId to User");
 
-    // Clean up any Client records that have the trainer's email mistakenly attached
-    const cleaned = await prisma.$executeRawUnsafe(`
+    // Re-link any Client records whose userId doesn't match a valid User.id
+    const relinked = await prisma.$executeRawUnsafe(`
       UPDATE "Client" c
-      SET email = NULL
+      SET "userId" = u.id
       FROM "User" u
-      WHERE c."userId" = u.id AND c.email = u.email AND c.name != 'My Workouts';
+      WHERE c."userId" NOT IN (SELECT id FROM "User") AND u.role = 'TRAINER';
     `);
-    results.push(`Cleaned up mismatched trainer emails from clients (${cleaned} rows)`);
+    results.push(`Re-linked orphaned clients to trainer: ${relinked} rows`);
 
     return NextResponse.json({
       success: true,
-      message: "Database schema synchronized and cleaned successfully",
+      message: "Database schema synchronized and reconciled successfully",
       results,
     });
   } catch (error: any) {

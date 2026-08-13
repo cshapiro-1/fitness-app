@@ -54,15 +54,15 @@ export const authOptions: NextAuthOptions = {
         token.isAdmin = (user as any).isAdmin;
       }
       
-      const userId = token.id || token.sub; 
-      if (userId) {
+      const email = token.email || user?.email;
+      if (email) {
         try {
           const dbUser = await prisma.user.findUnique({
-            where: { id: userId as string },
-            select: { role: true, isAdmin: true },
+            where: { email: email.toLowerCase().trim() },
+            select: { id: true, role: true, isAdmin: true },
           });
           if (dbUser) {
-            token.id = userId;
+            token.id = dbUser.id;
             token.role = mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;
           }
@@ -74,6 +74,23 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        const email = session.user.email || token.email;
+        if (email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: email.toLowerCase().trim() },
+              select: { id: true, role: true, isAdmin: true },
+            });
+            if (dbUser) {
+              (session.user as any).id = dbUser.id;
+              (session.user as any).role = mapRole(dbUser.role);
+              (session.user as any).isAdmin = !!dbUser.isAdmin;
+              return session;
+            }
+          } catch (err) {
+            console.error("Session lookup error:", err);
+          }
+        }
         (session.user as any).id = token.id || token.sub;
         (session.user as any).role = token.role;
         (session.user as any).isAdmin = !!token.isAdmin;
