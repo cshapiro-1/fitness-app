@@ -7,12 +7,10 @@ const globalForPrisma = globalThis as unknown as {
   pgPool: Pool;
 };
 
-const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/fitness";
+const getConnectionString = () => process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/fitness";
 
-// CRITICAL FIX: The Pool MUST be cached globally alongside Prisma in Dev Mode, 
-// otherwise HMR destroys the connection and causes NextAuth to hang indefinitely.
 if (!globalForPrisma.pgPool) {
-  globalForPrisma.pgPool = new Pool({ connectionString });
+  globalForPrisma.pgPool = new Pool({ connectionString: getConnectionString() });
 }
 
 const adapter = new PrismaPg(globalForPrisma.pgPool);
@@ -21,7 +19,7 @@ export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    log: ["error"],
   });
 
 if (process.env.NODE_ENV !== "production") {

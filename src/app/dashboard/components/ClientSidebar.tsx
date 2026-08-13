@@ -24,7 +24,7 @@ export function ClientSidebar({
   onDeleteClient,
 }: ClientSidebarProps) {
   return (
-    <aside className="sidebar">
+    <aside className="sidebar hide-mobile-sidebar">
       {/* Sidebar Header */}
       <div className="sidebar-header">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
