@@ -1,0 +1,4701 @@
+﻿=== COMPREHENSIVE CODEBASE DUMP ===
+
+
+==================================================
+--- FILE: prisma/schema.prisma ---
+==================================================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  TRAINER
+  CLIENT
+  USER
+  admin
+  trainer
+  client
+  user
+}
+
+enum InviteStatus {
+  NOT_SENT
+  PENDING
+  ACCEPTED
+}
+
+enum WorkoutSessionStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  emailVerified      DateTime?
+  name               String?
+  image              String?
+  role               UserRole  @default(TRAINER)
+  clientProfileId    String?   @unique
+  isAdmin            Boolean   @default(false)
+  subscriptionStatus String?   @default("trial")
+  trialEndsAt        DateTime?
+  subscribedUntil    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime? @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  clients       Client[]
+  clientProfile Client?   @relation("ClientLogin", fields: [clientProfileId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([role])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  email     String?  @unique
+  notes     String?
+  createdAt DateTime @default(now())
+
+  inviteToken  String?      @unique
+  inviteStatus InviteStatus @default(NOT_SENT)
+  invitedAt    DateTime?
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workouts        Workout[]
+  workoutSessions WorkoutSession[]
+  loginUser       User?            @relation("ClientLogin")
+
+  @@index([userId])
+  @@index([inviteToken])
+  @@index([email])
+}
+
+model Workout {
+  id        String   @id @default(cuid())
+  clientId  String
+  exercise  String
+  weight    Float
+  sets      Int
+  reps      Int
+  date      String
+  notes     String?
+  createdAt DateTime @default(now())
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+}
+
+model WorkoutSession {
+  id          String               @id @default(cuid())
+  clientId    String
+  status      WorkoutSessionStatus @default(COMPLETED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime             @default(now())
+  client      Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  exercises   WorkoutExercise[]
+
+  @@index([clientId])
+  @@index([status])
+  @@index([completedAt])
+}
+
+model WorkoutExercise {
+  id               String         @id @default(cuid())
+  workoutSessionId String
+  name             String
+  order            Int
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  sets             WorkoutSet[]
+
+  @@index([workoutSessionId])
+}
+
+model WorkoutSet {
+  id                String          @id @default(cuid())
+  workoutExerciseId String
+  order             Int
+  weight            Float
+  reps              Int
+  notes             String?
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutExerciseId])
+}
+
+
+
+==================================================
+--- FILE: src/app/admin/AdminPortal.tsx ---
+==================================================
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
+  Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell
+} from "lucide-react";
+import Link from "next/link";
+
+interface AdminUser {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: "TRAINER" | "CLIENT";
+  isAdmin: boolean;
+  subscriptionStatus: string | null;
+  computedStatus: "trial" | "active" | "expired";
+  trialEndsAt: string | null;
+  subscribedUntil: string | null;
+  createdAt: string;
+  clientCount: number;
+}
+
+interface AdminStats {
+  totalUsers: number;
+  totalTrainers: number;
+  totalClients: number;
+  totalWorkouts: number;
+  activeSubscriptions: number;
+  trialingUsers: number;
+  expiredUsers: number;
+  estimatedMRR: number;
+  conversionRate: number;
+}
+
+export function AdminPortal({ userName }: { userName: string }) {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [actionUserId, setActionUserId] = useState<string | null>(null);
+
+  const fetchAdminData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data.stats);
+        setUsers(data.users);
+      } else {
+        alert("Failed to load admin statistics.");
+      }
+    } catch {
+      alert("Error connecting to admin API.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAdminData();
+  }, [fetchAdminData]);
+
+  const handleUpdateUser = async (userId: string, body: any) => {
+    setActionUserId(userId);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        // Force the browser to refresh and show the updated database state!
+        window.location.reload(); 
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert("Failed to update: " + (errorData.error || res.statusText));
+      }
+
+      if (res.ok) {
+        fetchAdminData();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to update user.");
+      }
+    } catch {
+      alert("Error updating user.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = u.name?.toLowerCase().includes(query) || false;
+      const emailMatch = u.email.toLowerCase().includes(query);
+      const matchesSearch = !query || nameMatch || emailMatch;
+
+      const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
+      const matchesStatus = statusFilter === "ALL" || u.computedStatus === statusFilter;
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, searchQuery, roleFilter, statusFilter]);
+
+  return (
+    <div className="app" style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      {/* Admin Header */}
+      <header className="header" style={{ background: "#0f172a", color: "#ffffff" }}>
+        <div className="header-left">
+          <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
+          <span className="header-title" style={{ color: "#ffffff" }}>Admin Management Portal</span>
+        </div>
+        <div className="header-right">
+          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", background: "#1e293b", color: "#f8fafc", padding: "6px 12px", borderRadius: "6px", textDecoration: "none" }}>
+            <ArrowLeft size={14} /> Back to Dashboard
+          </Link>
+        </div>
+      </header>
+
+      <div style={{ maxWidth: "1200px", margin: "24px auto", padding: "0 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Metric Cards Grid */}
+        {stats && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 600 }}>
+                <DollarSign size={16} /> Estimated MRR
+              </div>
+              <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "24px" }}>
+                ${stats.estimatedMRR} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/mo</span>
+              </span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>
+                <Users size={16} /> Platform Trainers
+              </div>
+              <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalTrainers}</span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0284c7", fontSize: "12px", fontWeight: 600 }}>
+                <CheckCircle2 size={16} /> Paid Subscribers
+              </div>
+              <span className="analytics-summary-value" style={{ color: "#0369a1", fontSize: "24px" }}>{stats.activeSubscriptions}</span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d97706", fontSize: "12px", fontWeight: 600 }}>
+                <Clock size={16} /> Trialing Trainers
+              </div>
+              <span className="analytics-summary-value" style={{ color: "#b45309", fontSize: "24px" }}>{stats.trialingUsers}</span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 600 }}>
+                <TrendingUp size={16} /> Conversion Rate
+              </div>
+              <span className="analytics-summary-value" style={{ color: "#6d28d9", fontSize: "24px" }}>{stats.conversionRate}%</span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#475569", fontSize: "12px", fontWeight: 600 }}>
+                <Dumbbell size={16} /> Total Workouts
+              </div>
+              <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalWorkouts}</span>
+            </div>
+          </div>
+        )}
+
+        {/* User Management Section */}
+        <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>
+              User Directory & Memberships ({filteredUsers.length})
+            </h3>
+            <button
+              onClick={fetchAdminData}
+              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+            >
+              <RefreshCw size={13} className={loading ? "spin" : ""} /> Refresh Data
+            </button>
+          </div>
+
+          {/* Search & Filter Controls */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+            <div style={{ position: "relative", flex: "1 1 240px" }}>
+              <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+              <input
+                className="input"
+                placeholder="Search user name or email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
+              />
+            </div>
+
+            <select
+              className="input"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              style={{ fontSize: "12px", padding: "6px 10px" }}
+            >
+              <option value="ALL">All Roles</option>
+              <option value="TRAINER">Trainers Only</option>
+              <option value="CLIENT">Clients Only</option>
+            </select>
+
+            <select
+              className="input"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ fontSize: "12px", padding: "6px 10px" }}
+            >
+              <option value="ALL">All Subscription Statuses</option>
+              <option value="active">Active Paid</option>
+              <option value="trial">Trialing</option>
+              <option value="expired">Expired</option>
+            </select>
+          </div>
+
+          {/* Users Table */}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+              <thead>
+                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", color: "#475569" }}>
+                  <th style={{ padding: "10px 12px" }}>User</th>
+                  <th style={{ padding: "10px 12px" }}>Role</th>
+                  <th style={{ padding: "10px 12px" }}>Clients</th>
+                  <th style={{ padding: "10px 12px" }}>Subscription Status</th>
+                  <th style={{ padding: "10px 12px" }}>Joined</th>
+                  <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      No matching users found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((u) => (
+                    <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                      <td style={{ padding: "12px" }}>
+                        <div style={{ fontWeight: 600, color: "#0f172a" }}>
+                          {u.name || "Unnamed User"}{" "}
+                          {u.isAdmin && (
+                            <span style={{ fontSize: "10px", background: "#fef3c7", color: "#d97706", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
+                              ADMIN
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>{u.email}</div>
+                      </td>
+
+                      <td style={{ padding: "12px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "6px", background: u.role === "TRAINER" ? "#eff6ff" : "#f1f5f9", color: u.role === "TRAINER" ? "#2563eb" : "#475569" }}>
+                          {u.role}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: "12px", fontWeight: 600 }}>{u.clientCount}</td>
+
+                      <td style={{ padding: "12px" }}>
+                        {u.computedStatus === "active" && (
+                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                            âœ“ Active Paid
+                          </span>
+                        )}
+                        {u.computedStatus === "trial" && (
+                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
+                            â± Trialing
+                          </span>
+                        )}
+                        {u.computedStatus === "expired" && (
+                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+                            ðŸ”’ Expired
+                          </span>
+                        )}
+                      </td>
+
+                      <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </td>
+
+                      <td style={{ padding: "12px", textAlign: "right" }}>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
+                          <button
+                            onClick={() => handleUpdateUser(u.id, { extendTrialDays: 14 })}
+                            disabled={actionUserId === u.id}
+                            style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
+                            title="Add +14 days to trial"
+                          >
+                            +14D Trial
+                          </button>
+
+                          <button
+                            onClick={() => handleUpdateUser(u.id, { grantSubscriptionDays: 365 })}
+                            disabled={actionUserId === u.id}
+                            style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600 }}
+                            title="Grant 1 Year Active Subscription"
+                          >
+                            Grant 1Yr Sub
+                          </button>
+
+                          <button
+                            onClick={() => handleUpdateUser(u.id, { isAdmin: !u.isAdmin })}
+                            disabled={actionUserId === u.id}
+                            style={{ fontSize: "11px", padding: "4px 8px", background: u.isAdmin ? "#fee2e2" : "#f1f5f9", color: u.isAdmin ? "#dc2626" : "#475569", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                          >
+                            {u.isAdmin ? "Revoke Admin" : "Make Admin"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/admin/page.tsx ---
+==================================================
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { AdminPortal } from "./AdminPortal";
+
+export default async function AdminPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    redirect("/auth/signin?callbackUrl=/admin");
+  }
+
+  // Verify Admin Permission directly in DB
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true, name: true, email: true },
+  });
+
+  if (!user?.isAdmin) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", fontFamily: "sans-serif", background: "#f8fafc" }}>
+        <div style={{ textAlign: "center", padding: "32px", background: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", maxWidth: "400px", boxShadow: "0 10px 25px rgba(0,0,0,0.05)" }}>
+          <h2 style={{ margin: "0 0 8px 0", color: "#dc2626", fontSize: "20px" }}>Access Denied</h2>
+          <p style={{ color: "#64748b", margin: "0 0 20px 0", fontSize: "14px" }}>
+            You do not have administrative privileges to access this portal.
+          </p>
+          <a
+            href="/dashboard"
+            style={{ display: "inline-block", background: "#2563eb", color: "#ffffff", padding: "10px 20px", borderRadius: "8px", textDecoration: "none", fontWeight: 600, fontSize: "13px" }}
+          >
+            Return to Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  return <AdminPortal userName={user.name || user.email} />;
+}
+
+
+==================================================
+--- FILE: src/app/api/admin/fix-db-enums/route.ts ---
+==================================================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "@prisma/client";
+
+export async function GET() {
+  try {
+    const updated = await prisma.user.updateMany({
+      data: { role: UserRole.TRAINER },
+    });
+    return NextResponse.json({
+      success: true,
+      message: "Successfully updated user roles to TRAINER",
+      updated
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/admin/make-me-admin/route.ts ---
+==================================================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    const targetEmail = "collin.shapiro1@gmail.com";
+
+    const revoked = await prisma.user.updateMany({
+      data: { isAdmin: false },
+    });
+
+    const user = await prisma.user.findFirst({
+      where: {
+        email: { contains: targetEmail, mode: "insensitive" },
+      },
+    });
+
+    if (!user) {
+      const allUsers = await prisma.user.findMany({ select: { email: true, name: true } });
+      return NextResponse.json(
+        {
+          error: `User ${targetEmail} not found`,
+          registeredUsers: allUsers,
+        },
+        { status: 404 }
+      );
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isAdmin: true },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully granted exclusive Admin privileges to ${user.email}!`,
+      revokedCount: revoked.count,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to assign admin" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/admin/stats/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isAdmin: true },
+    });
+
+    if (!currentUser?.isAdmin) {
+      return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
+    const now = new Date();
+
+    const [totalUsers, totalTrainers, totalClients, totalWorkouts, allUsers] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { role: "TRAINER" } }),
+      prisma.client.count(),
+      prisma.workoutSession.count(),
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          isAdmin: true,
+          subscriptionStatus: true,
+          trialEndsAt: true,
+          subscribedUntil: true,
+          createdAt: true,
+          _count: {
+            select: { clients: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    let activeSubscriptions = 0;
+    let trialingUsers = 0;
+    let expiredUsers = 0;
+
+    const formattedUsers = allUsers.map((u: any) => {
+      let computedStatus: "trial" | "active" | "expired" = "expired";
+
+      if (u.subscribedUntil && new Date(u.subscribedUntil) > now) {
+        computedStatus = "active";
+        activeSubscriptions++;
+      } else if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {
+        computedStatus = "trial";
+        trialingUsers++;
+      } else {
+        expiredUsers++;
+      }
+
+      return {
+        ...u,
+        computedStatus,
+        clientCount: u._count.clients,
+      };
+    });
+
+    const estimatedMRR = activeSubscriptions * 10;
+    const conversionRate = totalTrainers > 0 ? Math.round((activeSubscriptions / totalTrainers) * 100) : 0;
+
+    return NextResponse.json({
+      stats: {
+        totalUsers,
+        totalTrainers,
+        totalClients,
+        totalWorkouts,
+        activeSubscriptions,
+        trialingUsers,
+        expiredUsers,
+        estimatedMRR,
+        conversionRate,
+      },
+      users: formattedUsers,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to fetch admin statistics" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/admin/users/[id]/route.ts ---
+==================================================
+[Error reading file]
+
+
+==================================================
+--- FILE: src/app/api/clients/[id]/invite/route.ts ---
+==================================================
+[Error reading file]
+
+
+==================================================
+--- FILE: src/app/api/clients/[id]/route.ts ---
+==================================================
+[Error reading file]
+
+
+==================================================
+--- FILE: src/app/api/clients/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { checkTrainerSubscription } from "@/lib/subscription";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const clients = await prisma.client.findMany({
+      where: { userId: session.user.id },
+      include: {
+        _count: {
+          select: { workoutSessions: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(clients);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to fetch clients" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify trainer has an active trial or paid subscription
+    const sub = await checkTrainerSubscription(session.user.id);
+    if (!sub.hasAccess) {
+      return NextResponse.json(
+        { error: sub.reason || "Subscription required to add new clients." },
+        { status: 402 }
+      );
+    }
+
+    const body = await req.json();
+    const { name, notes } = body;
+
+    if (!name?.trim()) {
+      return NextResponse.json({ error: "Client name is required" }, { status: 400 });
+    }
+
+    const client = await prisma.client.create({
+      data: {
+        userId: session.user.id,
+        name: name.trim(),
+        notes: notes?.trim() || null,
+      },
+    });
+
+    return NextResponse.json(client);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to create client" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/fix-enum-now/route.ts ---
+==================================================
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "@prisma/client";
+
+export async function GET() {
+  try {
+    const updated = await prisma.user.updateMany({
+      data: { role: UserRole.TRAINER },
+    });
+    return NextResponse.json({
+      success: true,
+      message: "Successfully synchronized user roles",
+      updated
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/seed/route.ts ---
+==================================================
+import { UserRole } from "@prisma/client";
+import { normalizeUserRole } from '@/lib/utils/role-helpers';
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Forbidden in production" }, { status: 403 });
+  }
+
+  try {
+    let client = await prisma.client.findFirst({
+      where: {
+        OR: [
+          { name: { contains: "test", mode: "insensitive" } },
+          { name: { not: "My Workouts" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!client) {
+      let trainer = await prisma.user.findFirst({ where: { role: UserRole.TRAINER } });
+      if (!trainer) {
+        trainer = await prisma.user.create({
+          data: {
+            email: "demo.trainer@fitnessapp.com",
+            name: "Demo Trainer",
+            role: UserRole.TRAINER,
+          },
+        });
+      }
+
+      client = await prisma.client.create({
+        data: {
+          userId: trainer.id,
+          name: "Test Client",
+          notes: "Generated test profile with 6 months of history",
+        },
+      });
+    }
+
+    const totalWeeks = 26;
+    const now = new Date();
+    const workoutsToCreate = [];
+
+    for (let week = 0; week < totalWeeks; week++) {
+      const progress = week / (totalWeeks - 1);
+      const weeksAgo = totalWeeks - 1 - week;
+
+      const date1 = new Date(now.getTime());
+      date1.setDate(date1.getDate() - (weeksAgo * 7 + 4));
+
+      const date2 = new Date(now.getTime());
+      date2.setDate(date2.getDate() - (weeksAgo * 7 + 1));
+
+      const benchWeight = Math.round(115 + progress * 60);
+      const ohpWeight = Math.round(75 + progress * 40);
+      const rowWeight = Math.round(95 + progress * 50);
+      const tricepsWeight = Math.round(40 + progress * 25);
+
+      const squatWeight = Math.round(135 + progress * 90);
+      const deadliftWeight = Math.round(155 + progress * 110);
+      const latWeight = Math.round(100 + progress * 50);
+      const curlWeight = Math.round(20 + progress * 15);
+
+      const notesA = [
+        "Smooth upper body session. Felt strong on bench.",
+        "Good momentum today.",
+        "Pushed hard on final set.",
+        "Bar moved fast today!",
+        "Controlled tempo on all reps.",
+      ];
+      const notesB = [
+        "Great leg day! Hit target depth easily.",
+        "Deadlifts felt solid today.",
+        "Increased weight on squat, felt good.",
+        "Great overall energy.",
+        "Pushed for a strong finish.",
+      ];
+
+      workoutsToCreate.push(
+        { clientId: client.id, exercise: "Bench Press", weight: benchWeight, sets: 4, reps: 8, date: date1.toISOString(), notes: notesA[week % notesA.length] },
+        { clientId: client.id, exercise: "Overhead Press", weight: ohpWeight, sets: 3, reps: 8, date: date1.toISOString(), notes: null },
+        { clientId: client.id, exercise: "Bent Over Row", weight: rowWeight, sets: 3, reps: 10, date: date1.toISOString(), notes: null },
+        { clientId: client.id, exercise: "Triceps Pushdown", weight: tricepsWeight, sets: 3, reps: 12, date: date1.toISOString(), notes: null }
+      );
+
+      workoutsToCreate.push(
+        { clientId: client.id, exercise: "Back Squat", weight: squatWeight, sets: 4, reps: 6, date: date2.toISOString(), notes: notesB[week % notesB.length] },
+        { clientId: client.id, exercise: "Deadlift", weight: deadliftWeight, sets: 3, reps: 5, date: date2.toISOString(), notes: null },
+        { clientId: client.id, exercise: "Lat Pulldown", weight: latWeight, sets: 3, reps: 10, date: date2.toISOString(), notes: null },
+        { clientId: client.id, exercise: "Dumbbell Curl", weight: curlWeight, sets: 3, reps: 12, date: date2.toISOString(), notes: null }
+      );
+    }
+
+    try {
+      await prisma.workout.createMany({ data: workoutsToCreate });
+    } catch {
+      for (const w of workoutsToCreate) {
+        await prisma.workout.create({ data: w });
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully seeded 6 months (52 sessions) of workout data for client "${client.name}"!`,
+      clientName: client.name,
+      clientId: client.id,
+      totalLogsCreated: workoutsToCreate.length,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to seed data" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/stripe/checkout/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+ï»¿import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { plan } = body; // "monthly" | "annual"
+
+    // Calculate subscription period
+    const now = new Date();
+    const subscribedUntil = new Date(now);
+    if (plan === "annual") {
+      subscribedUntil.setFullYear(subscribedUntil.getFullYear() + 1);
+    } else {
+      subscribedUntil.setMonth(subscribedUntil.getMonth() + 1);
+    }
+
+    // Grant active subscription
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        subscriptionStatus: "active",
+        subscribedUntil,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully activated ${plan} subscription!`,
+      url: "/dashboard?subscribed=true",
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Checkout failed" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/stripe/webhook/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+ï»¿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { logger } from "@/lib/logger";
+
+export async function POST(req: NextRequest) {
+  try {
+    const rawBody = await req.text();
+    
+    let event: any;
+    try {
+      event = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    logger.info(`Stripe Webhook Received: ${event.type}`);
+
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data?.object;
+        const userId = session?.client_reference_id || session?.metadata?.userId;
+        if (userId) {
+          const subscribedUntil = new Date();
+          subscribedUntil.setDate(subscribedUntil.getDate() + 30);
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              subscriptionStatus: "active",
+              subscribedUntil,
+            },
+          });
+          logger.info(`Subscription activated for user: ${userId}`);
+        }
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const subscription = event.data?.object;
+        const userId = subscription?.metadata?.userId;
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              subscriptionStatus: "expired",
+            },
+          });
+          logger.info(`Subscription canceled for user: ${userId}`);
+        }
+        break;
+      }
+      case "invoice.payment_failed": {
+        const invoice = event.data?.object;
+        const userId = invoice?.subscription_details?.metadata?.userId;
+        if (userId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: {
+              subscriptionStatus: "past_due",
+            },
+          });
+          logger.warn(`Invoice payment failed for user: ${userId}`);
+        }
+        break;
+      }
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error: any) {
+    logger.error("Stripe Webhook Error", error);
+    return NextResponse.json({ error: error.message || "Webhook handler failed" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/subscription/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { checkTrainerSubscription } from "@/lib/subscription";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const subInfo = await checkTrainerSubscription(session.user.id);
+    return NextResponse.json(subInfo);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to fetch subscription status" }, { status: 500 });
+  }
+}
+
+
+==================================================
+--- FILE: src/app/api/trainers/route.ts ---
+==================================================
+import { UserRole } from "@prisma/client";
+import { normalizeUserRole } from '@/lib/utils/role-helpers';
+export const dynamic = "force-dynamic";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(req: Request) {
+  if (!process.env.DATABASE_URL) {
+    const body = await req.json().catch(() => null);
+    const email = body?.email?.trim().toLowerCase();
+    const name = body?.name?.trim();
+
+    if (!email || !name) {
+      return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok: true, message: "Trainer signup queued. Configure the database to activate the account permanently." });
+  }
+  const body = await req.json().catch(() => null);
+  const email = body?.email?.trim().toLowerCase();
+  const name = body?.name?.trim();
+
+  if (!email || !name) {
+    return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    if (existingUser.role === "TRAINER") {
+      return NextResponse.json({ error: "This email already has a trainer account" }, { status: 409 });
+    }
+
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        role: UserRole.TRAINER,
+        isAdmin: false,
+        subscriptionStatus: "trial",
+        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    return NextResponse.json({ ok: true, message: "Trainer access activated" });
+  }
+
+  const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await prisma.user.create({
+    data: {
+      email,
+      name,
+      role: UserRole.TRAINER,
+      subscriptionStatus: "trial",
+      trialEndsAt,
+    },
+  });
+
+  return NextResponse.json({ ok: true, message: "Trainer signup complete. Your first month is free." });
+}
+
+
+
+==================================================
+--- FILE: src/app/api/user/role/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "@prisma/client";
+
+async function handleRoleUpdate(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let rawRole = "TRAINER";
+    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+      const body = await req.json().catch(() => ({}));
+      rawRole = body.role || body.userRole || body.selectedRole || "TRAINER";
+    } else {
+      const { searchParams } = new URL(req.url);
+      rawRole = searchParams.get("role") || "TRAINER";
+    }
+
+    const clean = String(rawRole).trim().toUpperCase();
+    const targetRole: UserRole = clean === "CLIENT" ? UserRole.CLIENT : UserRole.TRAINER;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        role: targetRole,
+      },
+    });
+
+    return NextResponse.json({ success: true, user: updatedUser });
+  } catch (error: any) {
+    console.error("Role update error:", error);
+    return NextResponse.json({ error: error?.message || "Failed to update role" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, email: true, role: true, isAdmin: true },
+    });
+    return NextResponse.json({ user });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Failed to fetch role" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) { return handleRoleUpdate(req); }
+export async function PUT(req: NextRequest) { return handleRoleUpdate(req); }
+export async function PATCH(req: NextRequest) { return handleRoleUpdate(req); }
+
+
+
+==================================================
+--- FILE: src/app/api/users/role/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { UserRole } from "@prisma/client";
+
+async function handleRoleUpdate(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    let rawRole = "TRAINER";
+    if (req.method === "POST" || req.method === "PUT" || req.method === "PATCH") {
+      const body = await req.json().catch(() => ({}));
+      rawRole = body.role || body.userRole || body.selectedRole || "TRAINER";
+    } else {
+      const { searchParams } = new URL(req.url);
+      rawRole = searchParams.get("role") || "TRAINER";
+    }
+
+    const clean = String(rawRole).trim().toUpperCase();
+    const targetRole: UserRole = clean === "CLIENT" ? UserRole.CLIENT : UserRole.TRAINER;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        role: targetRole,
+      },
+    });
+
+    return NextResponse.json({ success: true, user: updatedUser });
+  } catch (error: any) {
+    console.error("Role update error:", error);
+    return NextResponse.json({ error: error?.message || "Failed to update role" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, email: true, role: true, isAdmin: true },
+    });
+    return NextResponse.json({ user });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || "Failed to fetch role" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) { return handleRoleUpdate(req); }
+export async function PUT(req: NextRequest) { return handleRoleUpdate(req); }
+export async function PATCH(req: NextRequest) { return handleRoleUpdate(req); }
+
+
+
+==================================================
+--- FILE: src/app/api/workouts/[id]/route.ts ---
+==================================================
+[Error reading file]
+
+
+==================================================
+--- FILE: src/app/api/workouts/route.ts ---
+==================================================
+export const dynamic = "force-dynamic";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const clientId = searchParams.get("clientId");
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: "clientId query parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        OR: [
+          { userId: session.user.id },
+          { email: session.user.email || "" },
+        ],
+      },
+    });
+
+    if (!client) {
+      return NextResponse.json(
+        { error: "Client not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Group database rows by date/session key so a day's workout forms a single session
+    const sessionMap = new Map<string, any>();
+
+    for (const w of workouts) {
+      // Group by exact date timestamp or date string (YYYY-MM-DD)
+      const sessionKey = w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : "unknown-date");
+
+      if (!sessionMap.has(sessionKey)) {
+        sessionMap.set(sessionKey, {
+          id: `session-${w.id}`,
+          clientId: w.clientId,
+          status: "COMPLETED",
+          createdAt: w.createdAt ? new Date(w.createdAt).toISOString() : w.date,
+          completedAt: w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : new Date().toISOString()),
+          notes: w.notes || "",
+          exercises: [],
+        });
+      }
+
+      const session = sessionMap.get(sessionKey)!;
+
+      // Keep notes if set on any exercise row
+      if (!session.notes && w.notes) {
+        session.notes = w.notes;
+      }
+
+      session.exercises.push({
+        id: `${w.id}-ex`,
+        order: session.exercises.length,
+        name: w.exercise,
+        sets: Array.from({ length: w.sets || 1 }, (_, i) => ({
+          id: `${w.id}-set-${i}`,
+          order: i,
+          weight: w.weight || 0,
+          reps: w.reps || 0,
+          notes: "",
+        })),
+      });
+    }
+
+    const mappedWorkouts = Array.from(sessionMap.values()).sort((a, b) => {
+      const timeA = new Date(a.completedAt).getTime();
+      const timeB = new Date(b.completedAt).getTime();
+      return timeB - timeA;
+    });
+
+    return NextResponse.json(mappedWorkouts);
+  } catch (error: any) {
+    console.error("GET /api/workouts Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch workouts" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await req.json();
+    const { clientId } = body;
+
+    if (!clientId) {
+      return NextResponse.json(
+        { error: "clientId is required" },
+        { status: 400 }
+      );
+    }
+
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: session.user.id },
+    });
+
+    if (!client) {
+      return NextResponse.json(
+        { error: "Client not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    // Handle payload from WorkoutBuilder containing an exercises array
+    if (Array.isArray(body.exercises) && body.exercises.length > 0) {
+      const dateStr = body.completedAt || body.startedAt || new Date().toISOString();
+      const createdWorkouts = [];
+
+      for (const ex of body.exercises) {
+        const setsCount = Array.isArray(ex.sets) && ex.sets.length > 0 ? ex.sets.length : 1;
+        const topSet = Array.isArray(ex.sets) && ex.sets.length > 0 ? ex.sets[0] : { weight: 0, reps: 0 };
+
+        const w = await prisma.workout.create({
+          data: {
+            clientId,
+            exercise: (ex.name || "Exercise").trim(),
+            weight: parseFloat(topSet.weight) || 0,
+            sets: parseInt(setsCount, 10) || 1,
+            reps: parseInt(topSet.reps, 10) || 0,
+            date: dateStr,
+            notes: body.notes?.trim() || ex.notes?.trim() || null,
+          },
+        });
+        createdWorkouts.push(w);
+      }
+
+      const sessionResult = {
+        id: `session-${createdWorkouts[0]?.id || Date.now()}`,
+        clientId,
+        status: body.status || "COMPLETED",
+        startedAt: body.startedAt || new Date().toISOString(),
+        completedAt: dateStr,
+        notes: body.notes || "",
+        createdAt: new Date().toISOString(),
+        exercises: body.exercises.map((ex: any, i: number) => ({
+          id: `ex-${i}`,
+          order: i,
+          name: ex.name,
+          sets: (ex.sets || []).map((s: any, j: number) => ({
+            id: `set-${i}-${j}`,
+            order: j,
+            weight: Number(s.weight) || 0,
+            reps: Number(s.reps) || 0,
+            notes: s.notes || "",
+          })),
+        })),
+      };
+
+      return NextResponse.json(sessionResult);
+    }
+
+    // Fallback for single flat exercise payload
+    const { exercise, weight, sets, reps, date, notes } = body;
+
+    if (!exercise || weight == null || !sets || !reps || !date) {
+      return NextResponse.json(
+        { error: "Missing required workout fields" },
+        { status: 400 }
+      );
+    }
+
+    const workout = await prisma.workout.create({
+      data: {
+        clientId,
+        exercise: exercise.trim(),
+        weight: parseFloat(weight),
+        sets: parseInt(sets, 10),
+        reps: parseInt(reps, 10),
+        date,
+        notes: notes?.trim() || null,
+      },
+    });
+
+    return NextResponse.json(workout);
+  } catch (error: any) {
+    console.error("POST /api/workouts Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create workout" },
+      { status: 500 }
+    );
+  }
+}
+
+
+==================================================
+--- FILE: src/app/auth/signin/page.tsx ---
+==================================================
+"use client";
+
+import { signIn } from "next-auth/react";
+import { useState } from "react";
+
+export default function SignInPage() {
+  const [loading, setLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    await signIn("google", { callbackUrl: "/dashboard" });
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#f9fafb",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "#ffffff",
+          padding: "2.5rem 2rem",
+          borderRadius: "16px",
+          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01)",
+          border: "1px solid #f3f4f6",
+          textAlign: "center",
+        }}
+      >
+        {/* Header Icon & Title */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <span style={{ fontSize: "3rem", display: "inline-block", marginBottom: "0.5rem" }} role="img" aria-label="muscle">
+            ðŸ’ª
+          </span>
+          <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#111827", margin: "0 0 0.5rem 0" }}>
+            Fitness Tracker
+          </h1>
+          <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
+            Trainer dashboard for coaches and clients
+          </p>
+        </div>
+
+        {/* Instructions */}
+        <div style={{ marginBottom: "1.5rem" }}>
+          <p style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+            Sign in or create an account
+          </p>
+        </div>
+
+        {/* Google Sign In Button */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <button
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              borderRadius: "12px",
+              border: "1px solid #d1d5db",
+              backgroundColor: "#ffffff",
+              padding: "12px 16px",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "#374151",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+              transition: "all 0.2s ease",
+            }}
+          >
+            {/* Google SVG Logo with fixed width/height */}
+            <svg width="20" height="20" viewBox="0 0 24 24" style={{ width: "20px", height: "20px", flexShrink: 0 }}>
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                fill="#EA4335"
+              />
+            </svg>
+            <span>{loading ? "Connecting to Google..." : "Continue with Google"}</span>
+          </button>
+        </div>
+
+        <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
+          Coaches & clients sign in through the same Google portal.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/AnalyticsView.tsx ---
+==================================================
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { TrendingUp, Award, Calendar, Search, Dumbbell, Zap, Flame, Layers } from "lucide-react";
+import { DashboardAnalytics, ExerciseTrendPoint, ExerciseAnalytics } from "../utils/analytics";
+
+interface AnalyticsViewProps {
+  analytics: DashboardAnalytics;
+}
+
+type MetricType = "topWeight" | "estimatedOneRepMax" | "totalVolume";
+
+// Interactive SVG Line Chart for a single exercise
+function ExerciseLineChart({ points, metric }: { points: ExerciseTrendPoint[]; metric: MetricType }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  if (!points || points.length === 0) return null;
+
+  const svgWidth = 600;
+  const svgHeight = 220;
+  const padding = { top: 25, right: 35, bottom: 45, left: 55 };
+
+  const values = points.map((p) => p[metric]);
+  const minVal = Math.min(...values);
+  const maxVal = Math.max(...values);
+  const range = maxVal - minVal || 10;
+  
+  const yMin = Math.max(0, Math.floor(minVal - range * 0.1));
+  const yMax = Math.ceil(maxVal + range * 0.1);
+
+  const coords = points.map((p, index) => {
+    const x = points.length === 1 
+      ? (svgWidth + padding.left) / 2 
+      : padding.left + (index / (points.length - 1)) * (svgWidth - padding.left - padding.right);
+    const y = svgHeight - padding.bottom - ((p[metric] - yMin) / (yMax - yMin || 1)) * (svgHeight - padding.top - padding.bottom);
+    return { x, y, point: p };
+  });
+
+  const pathD = coords.reduce((acc, c, i) => (i === 0 ? `M ${c.x},${c.y}` : `${acc} L ${c.x},${c.y}`), "");
+  const areaD = coords.length > 1 
+    ? `${pathD} L ${coords[coords.length - 1].x},${svgHeight - padding.bottom} L ${coords[0].x},${svgHeight - padding.bottom} Z`
+    : "";
+
+  const yTicks = [0, 1, 2, 3].map((i) => Math.round(yMin + (i / 3) * (yMax - yMin)));
+
+  const metricLabel = metric === "topWeight" ? "Top Weight (lbs)" : metric === "estimatedOneRepMax" ? "Est. 1RM (lbs)" : "Volume (lbs)";
+
+  return (
+    <div style={{ position: "relative", width: "100%", overflowX: "auto" }}>
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} style={{ width: "100%", height: "auto", minWidth: "320px" }}>
+        {/* Background Grid Lines */}
+        {yTicks.map((tick, i) => {
+          const y = svgHeight - padding.bottom - ((tick - yMin) / (yMax - yMin || 1)) * (svgHeight - padding.top - padding.bottom);
+          return (
+            <g key={i}>
+              <line x1={padding.left} y1={y} x2={svgWidth - padding.right} y2={y} stroke="#e2e8f0" strokeDasharray="3 3" />
+              <text x={padding.left - 8} y={y + 4} textAnchor="end" fontSize="10" fill="#64748b">{tick}</text>
+            </g>
+          );
+        })}
+
+        {/* Shaded Area Under Line */}
+        {areaD && <path d={areaD} fill="url(#blue-gradient)" opacity="0.15" />}
+
+        {/* Gradient Definition */}
+        <defs>
+          <linearGradient id="blue-gradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2563eb" />
+            <stop offset="100%" stopColor="#2563eb" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Main Line */}
+        {pathD && <path d={pathD} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
+
+        {/* Data Points */}
+        {coords.map((c, idx) => (
+          <g key={idx}>
+            <circle
+              cx={c.x}
+              cy={c.y}
+              r={hoveredIdx === idx ? "6" : "4"}
+              fill={hoveredIdx === idx ? "#1d4ed8" : "#2563eb"}
+              stroke="#ffffff"
+              strokeWidth="2"
+              style={{ cursor: "pointer", transition: "all 0.15s ease" }}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+            />
+            {/* X Axis Date Label */}
+            <text x={c.x} y={svgHeight - 12} textAnchor="middle" fontSize="10" fill="#64748b">
+              {new Date(c.point.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      {/* Tooltip Overlay */}
+      {hoveredIdx !== null && (
+        <div
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            background: "#0f172a",
+            color: "#ffffff",
+            padding: "8px 12px",
+            borderRadius: "6px",
+            fontSize: "11px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+            pointerEvents: "none",
+            zIndex: 10,
+          }}
+        >
+          <div style={{ fontWeight: 600, color: "#93c5fd" }}>
+            {new Date(points[hoveredIdx].completedAt).toLocaleDateString()}
+          </div>
+          <div>Weight: <b>{points[hoveredIdx].topWeight} lbs</b> × {points[hoveredIdx].topReps} reps</div>
+          <div>Est. 1RM: <b>{points[hoveredIdx].estimatedOneRepMax} lbs</b></div>
+          <div>Session Volume: <b>{points[hoveredIdx].totalVolume.toLocaleString()} lbs</b></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function AnalyticsView({ analytics }: AnalyticsViewProps) {
+  const [selectedExerciseName, setSelectedExerciseName] = useState<string>(
+    analytics.exercises[0]?.name || ""
+  );
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("All");
+  const [chartMetric, setChartMetric] = useState<MetricType>("topWeight");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const activeExercise: ExerciseAnalytics | undefined = useMemo(() => {
+    return analytics.exercises.find((ex) => ex.name === selectedExerciseName) || analytics.exercises[0];
+  }, [analytics.exercises, selectedExerciseName]);
+
+  const muscleGroupOptions = useMemo(() => {
+    const groups = ["All", ...analytics.muscleGroups.map((mg) => mg.name)];
+    return Array.from(new Set(groups));
+  }, [analytics.muscleGroups]);
+
+  const filteredExercises = useMemo(() => {
+    return analytics.exercises.filter((ex) => {
+      const matchesGroup = selectedMuscleGroup === "All" || ex.muscleGroup === selectedMuscleGroup;
+      const matchesSearch = ex.name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesGroup && matchesSearch;
+    });
+  }, [analytics.exercises, selectedMuscleGroup, searchQuery]);
+
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <TrendingUp size={22} style={{ color: "#2563eb" }} />
+          <h3 className="section-title" style={{ margin: 0, fontSize: "18px" }}>Performance Analytics</h3>
+        </div>
+
+        {/* Muscle Group Filter Pills */}
+        <div style={{ display: "flex", flexWrap: "wrap", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
+          {muscleGroupOptions.map((group) => (
+            <button
+              key={group}
+              onClick={() => setSelectedMuscleGroup(group)}
+              style={{
+                padding: "5px 12px",
+                fontSize: "12px",
+                fontWeight: 500,
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                background: selectedMuscleGroup === group ? "#ffffff" : "transparent",
+                color: selectedMuscleGroup === group ? "#0f172a" : "#64748b",
+                boxShadow: selectedMuscleGroup === group ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              }}
+            >
+              {group}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!analytics.workouts.length ? (
+        <div className="empty-state">Log workouts to unlock progress graphs and muscle group analytics.</div>
+      ) : (
+        <>
+          {/* Top Overall Summary Grid */}
+          <div className="analytics-summary-grid">
+            <div className="analytics-summary-card">
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b", fontSize: "12px" }}>
+                <Calendar size={14} /> Workouts
+              </div>
+              <span className="analytics-summary-value">{analytics.overall.totalWorkouts}</span>
+            </div>
+
+            <div className="analytics-summary-card">
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b", fontSize: "12px" }}>
+                <Dumbbell size={14} /> Total Sets
+              </div>
+              <span className="analytics-summary-value">{analytics.overall.totalSets}</span>
+            </div>
+
+            <div className="analytics-summary-card">
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b", fontSize: "12px" }}>
+                <Zap size={14} /> Total Volume
+              </div>
+              <span className="analytics-summary-value" style={{ fontSize: "20px" }}>
+                {analytics.overall.totalVolume.toLocaleString()} <span style={{ fontSize: "12px", color: "#64748b" }}>lbs</span>
+              </span>
+            </div>
+
+            <div className="analytics-summary-card">
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#64748b", fontSize: "12px" }}>
+                <Flame size={14} /> Weekly Frequency
+              </div>
+              <span className="analytics-summary-value">{analytics.overall.weeklyAvgWorkouts} <span style={{ fontSize: "12px", color: "#64748b" }}>/wk</span></span>
+            </div>
+          </div>
+
+          {/* Featured Exercise Line Chart Section */}
+          <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "12px", padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+              <div style={{ flex: "1 1 220px" }}>
+                <label style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                  Select Exercise for Progress Graph
+                </label>
+                <select
+                  className="input"
+                  value={activeExercise?.name || ""}
+                  onChange={(e) => setSelectedExerciseName(e.target.value)}
+                  style={{ width: "100%", fontWeight: 600, fontSize: "14px", padding: "8px 12px" }}
+                >
+                  {filteredExercises.map((ex) => (
+                    <option key={ex.name} value={ex.name}>
+                      {ex.name} ({ex.muscleGroup}) — Max {ex.maxWeight} lbs
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Metric Switcher */}
+              <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
+                {(
+                  [
+                    { label: "Top Weight", value: "topWeight" },
+                    { label: "Est. 1RM", value: "estimatedOneRepMax" },
+                    { label: "Session Volume", value: "totalVolume" },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setChartMetric(m.value)}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: chartMetric === m.value ? "#2563eb" : "transparent",
+                      color: chartMetric === m.value ? "#ffffff" : "#475569",
+                    }}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {activeExercise ? (
+              <>
+                {/* Exercise Line Chart */}
+                <ExerciseLineChart points={activeExercise.trend} metric={chartMetric} />
+
+                {/* Quick Stats Banner under Chart */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginTop: "16px", background: "#f8fafc", padding: "12px", borderRadius: "8px" }}>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Max Weight</span>
+                    <strong style={{ fontSize: "15px", color: "#0f172a" }}>{activeExercise.maxWeight} lbs</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Est. 1RM</span>
+                    <strong style={{ fontSize: "15px", color: "#2563eb" }}>{activeExercise.maxEstimated1RM} lbs</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Total Volume</span>
+                    <strong style={{ fontSize: "15px", color: "#0f172a" }}>{activeExercise.totalVolume.toLocaleString()} lbs</strong>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>Growth</span>
+                    <strong style={{ fontSize: "15px", color: activeExercise.weightChangePercent >= 0 ? "#16a34a" : "#dc2626" }}>
+                      {activeExercise.weightChangePercent > 0 ? `+${activeExercise.weightChangePercent}%` : `${activeExercise.weightChangePercent}%`}
+                    </strong>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">Select an exercise above to view its graph.</div>
+            )}
+          </div>
+
+          {/* Muscle Group Breakdown Cards */}
+          <div style={{ marginTop: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <Layers size={18} style={{ color: "#2563eb" }} />
+              <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>Exercises by Muscle Group ({filteredExercises.length})</h4>
+            </div>
+
+            <div className="analytics-grid">
+              {filteredExercises.map((exercise) => {
+                const isSelected = activeExercise?.name === exercise.name;
+                return (
+                  <div
+                    key={exercise.name}
+                    className="analytics-card"
+                    style={{
+                      border: isSelected ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setSelectedExerciseName(exercise.name)}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                      <div>
+                        <div className="analytics-exercise" style={{ fontSize: "15px", fontWeight: 600 }}>{exercise.name}</div>
+                        <span style={{ fontSize: "11px", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px", color: "#475569", fontWeight: 500 }}>
+                          {exercise.muscleGroup}
+                        </span>
+                      </div>
+                      {exercise.weightChangePercent !== 0 && (
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            background: exercise.weightChangePercent > 0 ? "#dcfce7" : "#fee2e2",
+                            color: exercise.weightChangePercent > 0 ? "#15803d" : "#b91c1c",
+                          }}
+                        >
+                          {exercise.weightChangePercent > 0 ? `+${exercise.weightChangePercent}%` : `${exercise.weightChangePercent}%`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="analytics-stats" style={{ margin: "10px 0" }}>
+                      <div className="stat">
+                        <span className="stat-value">{exercise.maxWeight}</span>
+                        <span className="stat-label">Max lbs</span>
+                      </div>
+                      <div className="stat">
+                        <span className="stat-value" style={{ color: "#2563eb" }}>{exercise.maxEstimated1RM}</span>
+                        <span className="stat-label">Est 1RM</span>
+                      </div>
+                      <div className="stat">
+                        <span className="stat-value">{exercise.sessions}</span>
+                        <span className="stat-label">Sessions</span>
+                      </div>
+                    </div>
+
+                    <div className="analytics-metric-row" style={{ fontSize: "12px", borderTop: "1px solid #f1f5f9", paddingTop: "8px" }}>
+                      <span className="analytics-metric-label">Total Volume:</span>
+                      <span className="analytics-metric-value">{exercise.totalVolume.toLocaleString()} lbs</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/ClientSidebar.tsx ---
+==================================================
+"use client";
+
+import React from "react";
+import { Users, Plus, Check, Copy, ChevronRight, Trash2 } from "lucide-react";
+import { Client } from "../types";
+
+interface ClientSidebarProps {
+  clients: Client[];
+  selected: Client | null;
+  loadingClients: boolean;
+  onSelectClient: (client: Client) => void;
+  onAddClient: () => void;
+  onDeleteClient: (id: string) => void;
+  newName: string;
+  setNewName: (val: string) => void;
+  newNotes: string;
+  setNewNotes: (val: string) => void;
+  formError: string | null;
+  createdInviteUrl: string | null;
+  copiedLink: boolean;
+  onCopyLink: (url: string) => void;
+}
+
+export function ClientSidebar({
+  clients,
+  selected,
+  loadingClients,
+  onSelectClient,
+  onAddClient,
+  onDeleteClient,
+  newName,
+  setNewName,
+  newNotes,
+  setNewNotes,
+  formError,
+  createdInviteUrl,
+  copiedLink,
+  onCopyLink,
+}: ClientSidebarProps) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <Users size={14} />
+        <span>Clients</span>
+        <span className="client-count">{clients.length}</span>
+      </div>
+
+      <div className="onboarding-card">
+        <div className="onboarding-card-header">
+          <div>
+            <div className="onboarding-card-title">Quick add client</div>
+            <div className="onboarding-card-subtitle">Add a client profile to assign workouts.</div>
+          </div>
+          <span className="chip">New</span>
+        </div>
+
+        <div className="onboarding-form">
+          <label className="field">
+            <span>Client Name *</span>
+            <input
+              className="input"
+              placeholder="e.g. John Doe"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && onAddClient()}
+            />
+          </label>
+
+          <label className="field field-full">
+            <span>Notes (Optional)</span>
+            <textarea
+              className="input"
+              placeholder="Goals, preferences, or context"
+              rows={2}
+              value={newNotes}
+              onChange={(event) => setNewNotes(event.target.value)}
+            />
+          </label>
+
+          {formError && <div className="onboarding-alert onboarding-alert-error">{formError}</div>}
+
+          {createdInviteUrl && (
+            <div className="onboarding-alert onboarding-alert-success" style={{ display: "block" }}>
+              <div style={{ fontWeight: 600, marginBottom: "4px" }}>✓ Client Created & Invite Link Ready!</div>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  readOnly
+                  value={createdInviteUrl}
+                  style={{ flex: 1, fontSize: "11px", padding: "4px 8px", borderRadius: "4px", border: "1px solid #ccc" }}
+                />
+                <button
+                  onClick={() => onCopyLink(createdInviteUrl)}
+                  style={{ padding: "4px 8px", fontSize: "11px", backgroundColor: "#16a34a", color: "#fff", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                >
+                  {copiedLink ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button className="btn-primary onboarding-submit" onClick={onAddClient} title="Add client">
+            <Plus size={16} />
+            <span>Add client</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="client-list">
+        {loadingClients && <div className="empty-state">Loading...</div>}
+        {!loadingClients && !clients.length && <div className="empty-state">No clients yet — add your first client above.</div>}
+        {clients.map((client) => {
+          const isSelfProfile = client.name === "My Workouts";
+          return (
+            <div key={client.id} className={`client-item${selected?.id === client.id ? " active" : ""}`} onClick={() => onSelectClient(client)}>
+              <div className="client-item-main">
+                <span className="client-name">{client.name}{isSelfProfile ? " — Self" : ""}</span>
+                <span className="client-meta">
+                  {client._count?.workoutSessions ?? 0} workouts
+                  {!isSelfProfile && (client.inviteStatus === "ACCEPTED" ? " — Joined" : " — Invite Pending")}
+                </span>
+              </div>
+              <div className="client-item-actions">
+                <ChevronRight size={14} className="client-arrow" />
+                {!isSelfProfile && (
+                  <button className="btn-ghost-danger" onClick={(event) => { event.stopPropagation(); onDeleteClient(client.id); }} title="Delete">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/EditClientModal.tsx ---
+==================================================
+"use client";
+
+import React from "react";
+import { X } from "lucide-react";
+import { Client } from "../types";
+
+interface EditClientModalProps {
+  editingClient: Client;
+  editName: string;
+  setEditName: (val: string) => void;
+  editNotes: string;
+  setEditNotes: (val: string) => void;
+  onSave: () => void;
+  onClose: () => void;
+}
+
+export function EditClientModal({
+  editingClient,
+  editName,
+  setEditName,
+  editNotes,
+  setEditNotes,
+  onSave,
+  onClose,
+}: EditClientModalProps) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
+      <div style={{ background: "#fff", padding: "24px", borderRadius: "12px", width: "360px", boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>Edit Client</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <label style={{ display: "block", fontSize: "12px", fontWeight: 500, marginBottom: "4px" }}>Client Name *</label>
+        <input
+          className="input"
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          style={{ width: "100%", marginBottom: "12px" }}
+        />
+
+        <label style={{ display: "block", fontSize: "12px", fontWeight: 500, marginBottom: "4px" }}>Notes</label>
+        <textarea
+          className="input"
+          rows={3}
+          value={editNotes}
+          onChange={(e) => setEditNotes(e.target.value)}
+          style={{ width: "100%", marginBottom: "16px" }}
+        />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+          <button className="btn-ghost-danger" onClick={onClose}>Cancel</button>
+          <button className="btn-primary" onClick={onSave}>Save Changes</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/RestTimer.tsx ---
+==================================================
+"use client";
+
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Clock3 } from "lucide-react";
+import { REST_PRESETS } from "../constants";
+import { formatClock, formatRestLabel } from "../utils/formatters";
+import { playTimerDing } from "../utils/audio";
+
+export function RestTimer() {
+  const [restSecondsRemaining, setRestSecondsRemaining] = useState(0);
+  const [restTimerActive, setRestTimerActive] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+
+  const ensureAudioContext = useCallback(async () => {
+    try {
+      if (typeof window === "undefined") return null;
+      if (!audioContextRef.current) {
+        const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return null;
+        audioContextRef.current = new Ctx();
+      }
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume();
+      }
+      return audioContextRef.current;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!restTimerActive) return;
+    const timer = window.setInterval(() => {
+      setRestSecondsRemaining((current) => {
+        if (current <= 1) {
+          window.clearInterval(timer);
+          setRestTimerActive(false);
+          playTimerDing(audioContextRef.current);
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [restTimerActive]);
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => undefined);
+        audioContextRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="rest-timer-card">
+      <div className="section-title rest-title">
+        <Clock3 size={16} />
+        Rest Timer
+      </div>
+      <div className="rest-controls">
+        {REST_PRESETS.map((seconds) => (
+          <button
+            key={seconds}
+            className="tab"
+            onClick={() => {
+              ensureAudioContext().catch(() => null);
+              setRestSecondsRemaining(seconds);
+              setRestTimerActive(true);
+            }}
+          >
+            {formatRestLabel(seconds)}
+          </button>
+        ))}
+      </div>
+      <div className="rest-status">{restTimerActive ? `Rest: ${formatClock(restSecondsRemaining)}` : "Ready"}</div>
+      <div className="rest-actions">
+        <button className="btn-primary" onClick={() => {
+          ensureAudioContext().catch(() => null);
+          setRestTimerActive((current) => !current);
+        }}>
+          {restTimerActive ? "Pause" : "Resume"}
+        </button>
+        <button className="btn-ghost-danger" onClick={() => { setRestTimerActive(false); setRestSecondsRemaining(0); }}>
+          Reset Timer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/SubscriptionBanner.tsx ---
+==================================================
+"use client";
+
+import React, { useState } from "react";
+import { Clock, ShieldCheck, Zap, CheckCircle2, Lock } from "lucide-react";
+
+export interface SubscriptionInfo {
+  hasAccess: boolean;
+  status: "trial" | "active" | "expired";
+  daysRemaining: number;
+}
+
+interface SubscriptionBannerProps {
+  subInfo: SubscriptionInfo | null;
+  onSubscribed?: () => void;
+}
+
+export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBannerProps) {
+  const [showPaywallModal, setShowPaywallModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("annual");
+  const [loadingCheckout, setLoadingCheckout] = useState(false);
+
+  if (!subInfo) return null;
+
+  const handleSubscribe = async () => {
+    setLoadingCheckout(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan: selectedPlan }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowPaywallModal(false);
+        if (onSubscribed) onSubscribed();
+        window.location.reload();
+      } else if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Unable to initiate checkout.");
+      }
+    } catch {
+      alert("Checkout error. Please try again.");
+    } finally {
+      setLoadingCheckout(false);
+    }
+  };
+
+  return (
+    <>
+      {/* Top Status Banner */}
+      {subInfo.status === "trial" && (
+        <div style={{ background: "linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)", color: "#ffffff", padding: "8px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 500 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Clock size={15} />
+            <span><b>30-Day Free Trial:</b> You have <b>{subInfo.daysRemaining} days remaining</b> with unlimited clients & workouts.</span>
+          </div>
+          <button
+            onClick={() => setShowPaywallModal(true)}
+            style={{ background: "#ffffff", color: "#2563eb", border: "none", padding: "4px 12px", borderRadius: "6px", fontWeight: 600, fontSize: "11px", cursor: "pointer" }}
+          >
+            Upgrade Now ($10/mo)
+          </button>
+        </div>
+      )}
+
+      {subInfo.status === "expired" && (
+        <div style={{ background: "#fee2e2", borderBottom: "1px solid #fca5a5", color: "#b91c1c", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Lock size={15} />
+            <span>Your 30-Day Free Trial has ended. Upgrade your subscription to continue managing clients.</span>
+          </div>
+          <button
+            onClick={() => setShowPaywallModal(true)}
+            style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "6px 14px", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: "pointer" }}
+          >
+            Unlock Account
+          </button>
+        </div>
+      )}
+
+      {subInfo.status === "active" && (
+        <div style={{ background: "#f0fdf4", borderBottom: "1px solid #bbf7d0", color: "#15803d", padding: "6px 16px", display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 500 }}>
+          <ShieldCheck size={14} />
+          <span><b>Pro Trainer Plan Active:</b> Unlimited Clients & Analytics ({subInfo.daysRemaining} days remaining)</span>
+        </div>
+      )}
+
+      {/* Subscription Paywall Modal */}
+      {(showPaywallModal || !subInfo.hasAccess) && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
+          <div style={{ background: "#ffffff", padding: "28px", borderRadius: "16px", width: "420px", maxWidth: "90%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <Zap size={32} style={{ color: "#2563eb", marginBottom: "8px" }} />
+              <h2 style={{ margin: "0 0 6px 0", fontSize: "20px", fontWeight: 700, color: "#0f172a" }}>Trainer Pro Subscription</h2>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>Unlock full platform access for your fitness coaching business.</p>
+            </div>
+
+            {/* Plan Switcher */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "20px" }}>
+              <div
+                onClick={() => setSelectedPlan("monthly")}
+                style={{
+                  border: selectedPlan === "monthly" ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                  background: selectedPlan === "monthly" ? "#eff6ff" : "#ffffff",
+                  padding: "14px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: "12px", color: "#64748b" }}>Monthly</div>
+                <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", margin: "4px 0" }}>$10 <span style={{ fontSize: "12px", fontWeight: 400 }}>/mo</span></div>
+                <div style={{ fontSize: "10px", color: "#64748b" }}>Billed monthly</div>
+              </div>
+
+              <div
+                onClick={() => setSelectedPlan("annual")}
+                style={{
+                  border: selectedPlan === "annual" ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                  background: selectedPlan === "annual" ? "#eff6ff" : "#ffffff",
+                  padding: "14px",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  position: "relative",
+                }}
+              >
+                <span style={{ position: "absolute", top: "-8px", right: "10px", background: "#16a34a", color: "#ffffff", fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px" }}>SAVE $20</span>
+                <div style={{ fontSize: "12px", color: "#64748b" }}>Annual</div>
+                <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", margin: "4px 0" }}>$100 <span style={{ fontSize: "12px", fontWeight: 400 }}>/yr</span></div>
+                <div style={{ fontSize: "10px", color: "#16a34a", fontWeight: 600 }}>$8.33 / mo equivalent</div>
+              </div>
+            </div>
+
+            <ul style={{ paddingLeft: 0, listStyle: "none", margin: "0 0 20px 0", fontSize: "12px", color: "#334155", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Unlimited Client Profiles</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Unlimited Workout Plans & Logging</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Full Analytics, 1RM Estimation & Muscle Breakdown</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Client Invite Text Links</li>
+            </ul>
+
+            <button
+              onClick={handleSubscribe}
+              disabled={loadingCheckout}
+              style={{
+                width: "100%",
+                padding: "12px",
+                fontSize: "14px",
+                fontWeight: 600,
+                background: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                boxShadow: "0 4px 6px -1px rgba(37,99,235,0.2)",
+              }}
+            >
+              {loadingCheckout ? "Redirecting to Checkout..." : `Subscribe ${selectedPlan === "annual" ? "$100/yr" : "$10/mo"}`}
+            </button>
+
+            {subInfo.hasAccess && (
+              <button
+                onClick={() => setShowPaywallModal(false)}
+                style={{ width: "100%", background: "none", border: "none", marginTop: "10px", fontSize: "12px", color: "#64748b", cursor: "pointer" }}
+              >
+                Close for now
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/WorkoutBuilder.tsx ---
+==================================================
+"use client";
+
+import React, { useMemo } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { DraftWorkout, DraftSet, WorkoutSession } from "../types";
+import { EXERCISE_OPTIONS } from "../constants";
+import { RestTimer } from "./RestTimer";
+
+interface WorkoutBuilderProps {
+  activeWorkout: DraftWorkout | null;
+  setActiveWorkout: React.Dispatch<React.SetStateAction<DraftWorkout | null>>;
+  plannedWorkouts: WorkoutSession[];
+  exercisePicker: string;
+  setExercisePicker: (val: string) => void;
+  savingWorkout: boolean;
+  savingPlan: boolean;
+  onStartWorkout: () => void;
+  onBeginPlannedWorkout: (workout: WorkoutSession) => void;
+  onSaveWorkoutPlan: () => void;
+  onCompleteWorkout: () => void;
+}
+
+export function WorkoutBuilder({
+  activeWorkout,
+  setActiveWorkout,
+  plannedWorkouts,
+  exercisePicker,
+  setExercisePicker,
+  savingWorkout,
+  savingPlan,
+  onStartWorkout,
+  onBeginPlannedWorkout,
+  onSaveWorkoutPlan,
+  onCompleteWorkout,
+}: WorkoutBuilderProps) {
+  const totalDraftSets = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return activeWorkout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
+  }, [activeWorkout]);
+
+  const addExerciseToWorkout = () => {
+    if (!activeWorkout || !exercisePicker.trim()) return;
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: [...current.exercises, { name: exercisePicker.trim(), sets: [{ weight: "", reps: "", notes: "" }] }],
+      };
+    });
+    setExercisePicker("");
+  };
+
+  const removeExercise = (exerciseIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return { ...current, exercises: current.exercises.filter((_, index) => index !== exerciseIndex) };
+    });
+  };
+
+  const updateExerciseName = (exerciseIndex: number, value: string) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) =>
+          index === exerciseIndex ? { ...exercise, name: value } : exercise,
+        ),
+      };
+    });
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) =>
+          index === exerciseIndex
+            ? { ...exercise, sets: [...exercise.sets, { weight: "", reps: "", notes: "" }] }
+            : exercise,
+        ),
+      };
+    });
+  };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          const nextSets = exercise.sets.filter((_, currentSetIndex) => currentSetIndex !== setIndex);
+          return { ...exercise, sets: nextSets.length ? nextSets : [{ weight: "", reps: "", notes: "" }] };
+        }),
+      };
+    });
+  };
+
+  const updateSet = (exerciseIndex: number, setIndex: number, field: keyof DraftSet, value: string) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          return {
+            ...exercise,
+            sets: exercise.sets.map((setEntry, currentSetIndex) =>
+              currentSetIndex === setIndex ? { ...setEntry, [field]: value } : setEntry,
+            ),
+          };
+        }),
+      };
+    });
+  };
+
+  return (
+    <div className="card workout-builder-card">
+      <h3 className="section-title">Workout Builder</h3>
+
+      {!activeWorkout && (
+        <div className="builder-empty">
+          <p>Build a new workout or begin a saved workout plan.</p>
+          <button className="btn-primary" onClick={onStartWorkout}>Start New Workout</button>
+          {!!plannedWorkouts.length && (
+            <div className="planned-list">
+              <h4 className="planned-list-title">Planned Workouts</h4>
+              {plannedWorkouts.map((plannedWorkout) => (
+                <div key={plannedWorkout.id} className="planned-row">
+                  <div>
+                    <div className="planned-row-title">{plannedWorkout.status === "IN_PROGRESS" ? "In Progress" : "Planned"} — {plannedWorkout.exercises.length} exercises</div>
+                    <div className="planned-row-meta">{new Date(plannedWorkout.createdAt).toLocaleString()}</div>
+                  </div>
+                  <button className="btn-primary" onClick={() => onBeginPlannedWorkout(plannedWorkout)}>
+                    {plannedWorkout.status === "IN_PROGRESS" ? "Resume Workout" : "Begin Workout"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeWorkout && (
+        <>
+          <div className="builder-top-row">
+            <div className="workout-meta">
+              <span>Started: {new Date(activeWorkout.startedAt).toLocaleTimeString()}</span>
+              <span>Exercises: {activeWorkout.exercises.length}</span>
+              <span>Sets: {totalDraftSets}</span>
+            </div>
+            <button className="btn-ghost-danger" onClick={() => setActiveWorkout(null)}>Discard Workout</button>
+          </div>
+
+          <label className="field workout-notes-field">
+            <span>Workout Notes</span>
+            <input
+              className="input"
+              placeholder="How did this session feel?"
+              value={activeWorkout.notes}
+              onChange={(event) => setActiveWorkout((current) => current ? { ...current, notes: event.target.value } : current)}
+            />
+          </label>
+
+          <div className="exercise-picker">
+            <input
+              className="input"
+              list="exercise-options"
+              placeholder="Choose or type an exercise"
+              value={exercisePicker}
+              onChange={(event) => setExercisePicker(event.target.value)}
+            />
+            <datalist id="exercise-options">
+              {EXERCISE_OPTIONS.map((exerciseName) => (
+                <option key={exerciseName} value={exerciseName} />
+              ))}
+            </datalist>
+            <button className="btn-primary" onClick={addExerciseToWorkout}>Add Exercise</button>
+          </div>
+
+          <div className="exercise-list">
+            {!activeWorkout.exercises.length && <div className="empty-state">Add your first exercise to begin.</div>}
+            {activeWorkout.exercises.map((exercise, exerciseIndex) => (
+              <div className="exercise-card" key={`${exercise.name}-${exerciseIndex}`}>
+                <div className="exercise-card-header">
+                  <input
+                    className="input"
+                    list="exercise-options"
+                    value={exercise.name}
+                    onChange={(event) => updateExerciseName(exerciseIndex, event.target.value)}
+                  />
+                  <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                <div className="set-list">
+                  {exercise.sets.map((setEntry, setIndex) => (
+                    <div className="set-row" key={`${exerciseIndex}-${setIndex}`}>
+                      <div className="set-index">Set {setIndex + 1}</div>
+                      <input
+                        className="input"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        placeholder="Weight"
+                        value={setEntry.weight}
+                        onChange={(event) => updateSet(exerciseIndex, setIndex, "weight", event.target.value)}
+                      />
+                      <input
+                        className="input"
+                        type="number"
+                        min="1"
+                        placeholder="Reps"
+                        value={setEntry.reps}
+                        onChange={(event) => updateSet(exerciseIndex, setIndex, "reps", event.target.value)}
+                      />
+                      <input
+                        className="input"
+                        placeholder="Notes"
+                        value={setEntry.notes}
+                        onChange={(event) => updateSet(exerciseIndex, setIndex, "notes", event.target.value)}
+                      />
+                      <button className="btn-ghost-danger" onClick={() => removeSet(exerciseIndex, setIndex)} title="Remove set">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <button className="btn-icon add-set-btn" onClick={() => addSet(exerciseIndex)}>
+                  <Plus size={14} />
+                  <span>Add Set</span>
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <RestTimer />
+
+          <div className="workout-action-row">
+            <button className="btn-icon" onClick={onSaveWorkoutPlan} disabled={savingPlan || savingWorkout}>
+              <span>{savingPlan ? "Saving Plan..." : "Save Workout Plan"}</span>
+            </button>
+            <button className="btn-primary complete-btn" onClick={onCompleteWorkout} disabled={savingWorkout || savingPlan}>
+              {savingWorkout ? "Saving Workout..." : "Complete Workout"}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/components/WorkoutHistory.tsx ---
+==================================================
+"use client";
+
+import React, { useState, useMemo } from "react";
+import { Trash2, Calendar, Filter, RotateCcw, Copy, Check } from "lucide-react";
+import { WorkoutSession } from "../types";
+import { getMuscleGroup } from "../utils/analytics";
+
+interface WorkoutHistoryProps {
+  completedWorkouts: WorkoutSession[];
+  loadingWorkouts: boolean;
+  onDeleteWorkout: (id: string) => void;
+}
+
+const MUSCLE_GROUPS = ["ALL", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Other"];
+
+export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWorkout }: WorkoutHistoryProps) {
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("ALL");
+  const [selectedExercise, setSelectedExercise] = useState<string>("ALL");
+  const [notesSearch, setNotesSearch] = useState<string>("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Extract all unique exercises from the client's history
+  const allExercises = useMemo(() => {
+    const exerciseSet = new Set<string>();
+    completedWorkouts.forEach((w) => {
+      w.exercises.forEach((ex) => exerciseSet.add(ex.name));
+    });
+    return Array.from(exerciseSet).sort((a, b) => a.localeCompare(b));
+  }, [completedWorkouts]);
+
+  // Filter exercises dropdown based on selected muscle group hierarchy
+  const availableExercises = useMemo(() => {
+    if (selectedMuscleGroup === "ALL") return allExercises;
+    return allExercises.filter((exName) => getMuscleGroup(exName) === selectedMuscleGroup);
+  }, [allExercises, selectedMuscleGroup]);
+
+  // Reset selected exercise if it doesn't belong to the newly selected muscle group
+  const handleMuscleGroupChange = (group: string) => {
+    setSelectedMuscleGroup(group);
+    if (group !== "ALL" && selectedExercise !== "ALL") {
+      const isExInGroup = allExercises.find((e) => e === selectedExercise && getMuscleGroup(e) === group);
+      if (!isExInGroup) setSelectedExercise("ALL");
+    }
+  };
+
+  // Quick Date Presets
+  const applyDatePreset = (days: number | null) => {
+    if (days === null) {
+      setStartDate("");
+      setEndDate("");
+      return;
+    }
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - days);
+
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  };
+
+  // Copy entire day's workout to clipboard
+  const copyWorkoutToClipboard = (workout: WorkoutSession) => {
+    const dateStr = workout.completedAt
+      ? new Date(workout.completedAt).toLocaleDateString(undefined, { dateStyle: "full" })
+      : "Workout";
+
+    let text = `💪 Workout - ${dateStr}\n`;
+    if (workout.notes) {
+      text += `Notes: ${workout.notes}\n`;
+    }
+    text += `\n`;
+
+    workout.exercises.forEach((ex) => {
+      const mg = getMuscleGroup(ex.name);
+      text += `• ${ex.name} (${mg}):\n`;
+      ex.sets.forEach((setEntry, i) => {
+        text += `   Set ${i + 1}: ${setEntry.weight} lbs × ${setEntry.reps} reps${setEntry.notes ? ` (${setEntry.notes})` : ""}\n`;
+      });
+      text += `\n`;
+    });
+
+    navigator.clipboard.writeText(text.trim());
+    setCopiedId(workout.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Filter workouts by date range, muscle group/exercise hierarchy, and notes search; SORTED BY DATE DESCENDING
+  const filteredWorkouts = useMemo(() => {
+    const query = notesSearch.trim().toLowerCase();
+
+    return completedWorkouts
+      .map((workout) => {
+        const workoutDate = new Date(workout.completedAt || workout.startedAt || workout.createdAt);
+
+        // Date Range Check
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (workoutDate < start) return null;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (workoutDate > end) return null;
+        }
+
+        // Notes Search Check (checks session notes AND exercise/set notes)
+        if (query) {
+          const sessionNotesMatch = workout.notes?.toLowerCase().includes(query);
+          const exerciseNotesMatch = workout.exercises.some(
+            (ex) =>
+              ex.sets.some((s) => s.notes?.toLowerCase().includes(query))
+          );
+          if (!sessionNotesMatch && !exerciseNotesMatch) return null;
+        }
+
+        // Exercise & Muscle Group Hierarchy Check
+        const matchingExercises = workout.exercises.filter((exercise) => {
+          const mg = getMuscleGroup(exercise.name);
+          if (selectedMuscleGroup !== "ALL" && mg !== selectedMuscleGroup) {
+            return false;
+          }
+          if (selectedExercise !== "ALL" && exercise.name !== selectedExercise) {
+            return false;
+          }
+          return true;
+        });
+
+        if (matchingExercises.length === 0) return null;
+
+        return {
+          ...workout,
+          exercises: matchingExercises,
+        };
+      })
+      .filter((w): w is WorkoutSession => w !== null)
+      .sort((a, b) => {
+        const timeA = new Date(a.completedAt || a.startedAt || a.createdAt).getTime();
+        const timeB = new Date(b.completedAt || b.startedAt || b.createdAt).getTime();
+        return timeB - timeA; // Ensure strictly descending order
+      });
+  }, [completedWorkouts, startDate, endDate, selectedMuscleGroup, selectedExercise, notesSearch]);
+
+  const totalFilteredSets = useMemo(() => {
+    return filteredWorkouts.reduce((sum, w) => sum + w.exercises.reduce((exSum, ex) => exSum + ex.sets.length, 0), 0);
+  }, [filteredWorkouts]);
+
+  const hasActiveFilters = startDate || endDate || selectedMuscleGroup !== "ALL" || selectedExercise !== "ALL" || notesSearch.trim() !== "";
+
+  const clearFilters = () => {
+    setStartDate("");
+    setEndDate("");
+    setSelectedMuscleGroup("ALL");
+    setSelectedExercise("ALL");
+    setNotesSearch("");
+  };
+
+  return (
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+        <h3 className="section-title" style={{ margin: 0 }}>Workout History</h3>
+
+        {/* Quick Date Presets */}
+        <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
+          {[
+            { label: "All Time", days: null },
+            { label: "30 Days", days: 30 },
+            { label: "90 Days", days: 90 },
+            { label: "6 Months", days: 180 },
+          ].map((preset) => (
+            <button
+              key={preset.label}
+              onClick={() => applyDatePreset(preset.days)}
+              style={{
+                padding: "4px 10px",
+                fontSize: "11px",
+                fontWeight: 500,
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                background: (!startDate && !endDate && preset.days === null) ? "#ffffff" : "transparent",
+                color: "#0f172a",
+                boxShadow: (!startDate && !endDate && preset.days === null) ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filter Control Bar */}
+      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#475569" }}>
+          <Filter size={14} style={{ color: "#2563eb" }} /> Filter Workouts
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px" }}>
+          {/* Start Date */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 500, color: "#64748b", display: "block", marginBottom: "3px" }}>Start Date</label>
+            <input
+              type="date"
+              className="input"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
+            />
+          </div>
+
+          {/* End Date */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 500, color: "#64748b", display: "block", marginBottom: "3px" }}>End Date</label>
+            <input
+              type="date"
+              className="input"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
+            />
+          </div>
+
+          {/* Muscle Group Hierarchy Filter */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 500, color: "#64748b", display: "block", marginBottom: "3px" }}>Muscle Group</label>
+            <select
+              className="input"
+              value={selectedMuscleGroup}
+              onChange={(e) => handleMuscleGroupChange(e.target.value)}
+              style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
+            >
+              {MUSCLE_GROUPS.map((mg) => (
+                <option key={mg} value={mg}>
+                  {mg === "ALL" ? "All Muscle Groups" : mg}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Exercise Hierarchy Filter */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 500, color: "#64748b", display: "block", marginBottom: "3px" }}>Specific Exercise</label>
+            <select
+              className="input"
+              value={selectedExercise}
+              onChange={(e) => setSelectedExercise(e.target.value)}
+              style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
+            >
+              <option value="ALL">All Exercises</option>
+              {availableExercises.map((exName) => (
+                <option key={exName} value={exName}>
+                  {exName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Notes Search Filter */}
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 500, color: "#64748b", display: "block", marginBottom: "3px" }}>Search Notes</label>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. felt strong, smooth..."
+              value={notesSearch}
+              onChange={(e) => setNotesSearch(e.target.value)}
+              style={{ width: "100%", fontSize: "12px", padding: "6px 8px" }}
+            />
+          </div>
+        </div>
+
+        {hasActiveFilters && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "4px", borderTop: "1px dashed #cbd5e1" }}>
+            <span style={{ fontSize: "11px", color: "#64748b" }}>
+              Showing <b>{filteredWorkouts.length}</b> session{filteredWorkouts.length !== 1 ? "s" : ""} ({totalFilteredSets} sets)
+            </span>
+            <button
+              onClick={clearFilters}
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", background: "none", border: "none", color: "#2563eb", cursor: "pointer", fontWeight: 500 }}
+            >
+              <RotateCcw size={12} /> Clear Filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {loadingWorkouts && <div className="empty-state">Loading history...</div>}
+
+      {!loadingWorkouts && !filteredWorkouts.length && (
+        <div className="empty-state">
+          {hasActiveFilters ? "No workouts found matching the selected dates, exercises, or notes." : "No workouts logged yet"}
+        </div>
+      )}
+
+      <div className="history-list">
+        {filteredWorkouts.map((workout) => (
+          <div key={workout.id} className="history-card">
+            <div className="history-card-header">
+              <div>
+                <div className="history-date">
+                  <Calendar size={13} style={{ display: "inline", marginRight: "5px", color: "#2563eb" }} />
+                  {workout.completedAt ? new Date(workout.completedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-"}
+                </div>
+                <div className="history-meta">{workout.exercises.length} exercise{workout.exercises.length !== 1 ? "s" : ""} included</div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* Copy Entire Day's Workout Button */}
+                <button
+                  onClick={() => copyWorkoutToClipboard(workout)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    background: copiedId === workout.id ? "#dcfce7" : "#f1f5f9",
+                    color: copiedId === workout.id ? "#16a34a" : "#475569",
+                    border: "1px solid",
+                    borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="Copy full workout to clipboard"
+                >
+                  {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedId === workout.id ? "Copied!" : "Copy Session"}</span>
+                </button>
+
+                <button className="btn-ghost-danger" onClick={() => onDeleteWorkout(workout.id)} title="Delete workout">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+
+            {workout.notes && <div className="history-notes">{workout.notes}</div>}
+
+            {workout.exercises.map((exercise) => {
+              const mg = getMuscleGroup(exercise.name);
+              return (
+                <div key={exercise.id} className="history-exercise">
+                  <div className="history-exercise-name" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>{exercise.name}</span>
+                    <span style={{ fontSize: "10px", fontWeight: 500, background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "4px" }}>
+                      {mg}
+                    </span>
+                  </div>
+                  <div className="history-set-list">
+                    {exercise.sets.map((setEntry) => (
+                      <div key={setEntry.id} className="history-set-row">
+                        <span>Set {setEntry.order + 1}</span>
+                        <span><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</span>
+                        <span>{setEntry.notes || "-"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/utils/analytics.ts ---
+==================================================
+import { WorkoutSession } from "../types";
+
+export type ExerciseTrendPoint = {
+  completedAt: string;
+  workoutId: string;
+  topWeight: number;
+  topReps: number;
+  estimatedOneRepMax: number;
+  totalVolume: number;
+  setCount: number;
+};
+
+export type ExerciseAnalytics = {
+  name: string;
+  muscleGroup: string;
+  maxWeight: number;
+  maxReps: number;
+  avgTopWeight: number;
+  maxEstimated1RM: number;
+  totalVolume: number;
+  sessions: number;
+  totalSets: number;
+  trend: ExerciseTrendPoint[];
+  weightChangePercent: number;
+};
+
+export type MuscleGroupSummary = {
+  name: string;
+  totalVolume: number;
+  totalSets: number;
+  exerciseCount: number;
+  exercises: ExerciseAnalytics[];
+};
+
+export type WorkoutAnalytics = {
+  id: string;
+  completedAt: string;
+  exerciseCount: number;
+  setCount: number;
+  peakWeight: number;
+  peakReps: number;
+  totalVolume: number;
+};
+
+export type DashboardAnalytics = {
+  workouts: WorkoutAnalytics[];
+  exercises: ExerciseAnalytics[];
+  muscleGroups: MuscleGroupSummary[];
+  overall: {
+    totalWorkouts: number;
+    totalExercises: number;
+    totalSets: number;
+    totalVolume: number;
+    weeklyAvgWorkouts: number;
+    heaviestSet: { exercise: string; weight: number; reps: number; completedAt: string } | null;
+    highestRepSet: { exercise: string; weight: number; reps: number; completedAt: string } | null;
+    best1RM: { exercise: string; estimated1RM: number; weight: number; reps: number; completedAt: string } | null;
+    mostTrainedExercise: { exercise: string; sessions: number } | null;
+  };
+};
+
+export function getMuscleGroup(exerciseName: string): string {
+  const name = exerciseName.toLowerCase();
+  if (name.includes("bench") || name.includes("push up") || name.includes("chest") || name.includes("fly") || name.includes("landmine press")) return "Chest";
+  if (name.includes("overhead press") || name.includes("dumbbell press") || name.includes("arnold press") || name.includes("lateral raise") || name.includes("front raise") || name.includes("delt") || name.includes("face pull") || name.includes("upright row") || name.includes("shoulder")) return "Shoulders";
+  if (name.includes("pull up") || name.includes("chin up") || name.includes("pulldown") || name.includes("row") || name.includes("shrug") || name.includes("lat ")) return "Back";
+  if (name.includes("squat") || name.includes("deadlift") || name.includes("lunge") || name.includes("leg ") || name.includes("nordic") || name.includes("hip ") || name.includes("glute") || name.includes("calf") || name.includes("good morning") || name.includes("rack pull") || name.includes("step up") || name.includes("sled")) return "Legs";
+  if (name.includes("curl") || name.includes("triceps") || name.includes("skull crusher")) return "Arms";
+  if (name.includes("plank") || name.includes("leg raise") || name.includes("crunch") || name.includes("twist") || name.includes("ab wheel") || name.includes("farmer carry")) return "Core";
+  return "Other";
+}
+
+function calculate1RM(weight: number, reps: number): number {
+  if (reps <= 1) return weight;
+  return Math.round(weight * (1 + reps / 30));
+}
+
+export function computeAnalytics(workouts: WorkoutSession[]): DashboardAnalytics {
+  const exerciseBuckets = new Map<
+    string,
+    {
+      sets: Array<{ weight: number; reps: number; workoutId: string; completedAt: string }>;
+      sessions: Set<string>;
+    }
+  >();
+
+  let totalOverallVolume = 0;
+
+  const workoutsSummary = workouts.map((workout) => {
+    const completedAt = workout.completedAt ?? workout.startedAt ?? workout.createdAt;
+    let workoutVolume = 0;
+    let workoutSetsCount = 0;
+
+    const summary = {
+      id: workout.id,
+      completedAt,
+      exerciseCount: workout.exercises.length,
+      setCount: 0,
+      peakWeight: 0,
+      peakReps: 0,
+      totalVolume: 0,
+    };
+
+    workout.exercises.forEach((exercise) => {
+      const topWeight = exercise.sets.reduce((max, setEntry) => Math.max(max, setEntry.weight), 0);
+      const topReps = exercise.sets.reduce((max, setEntry) => Math.max(max, setEntry.reps), 0);
+      summary.peakWeight = Math.max(summary.peakWeight, topWeight);
+      summary.peakReps = Math.max(summary.peakReps, topReps);
+
+      if (!exerciseBuckets.has(exercise.name)) {
+        exerciseBuckets.set(exercise.name, { sets: [], sessions: new Set<string>() });
+      }
+
+      const bucket = exerciseBuckets.get(exercise.name)!;
+      bucket.sessions.add(workout.id);
+
+      exercise.sets.forEach((setEntry) => {
+        workoutSetsCount += 1;
+        const setVolume = setEntry.weight * setEntry.reps;
+        workoutVolume += setVolume;
+        totalOverallVolume += setVolume;
+
+        bucket.sets.push({
+          weight: setEntry.weight,
+          reps: setEntry.reps,
+          workoutId: workout.id,
+          completedAt,
+        });
+      });
+    });
+
+    summary.setCount = workoutSetsCount;
+    summary.totalVolume = workoutVolume;
+    return summary;
+  });
+
+  const exercises = Array.from(exerciseBuckets.entries())
+    .map(([name, data]) => {
+      const muscleGroup = getMuscleGroup(name);
+      const sortedSets = [...data.sets].sort(
+        (left, right) => new Date(left.completedAt).getTime() - new Date(right.completedAt).getTime()
+      );
+
+      const workoutGrouped = new Map<string, { completedAt: string; sets: Array<{ weight: number; reps: number }> }>();
+      sortedSets.forEach((setEntry) => {
+        if (!workoutGrouped.has(setEntry.workoutId)) {
+          workoutGrouped.set(setEntry.workoutId, { completedAt: setEntry.completedAt, sets: [] });
+        }
+        workoutGrouped.get(setEntry.workoutId)!.sets.push({ weight: setEntry.weight, reps: setEntry.reps });
+      });
+
+      let exerciseTotalVolume = 0;
+      let maxEstimated1RM = 0;
+
+      const trend: ExerciseTrendPoint[] = Array.from(workoutGrouped.entries())
+        .map(([workoutId, sessionData]) => {
+          let topWeight = 0;
+          let topReps = 0;
+          let sessionVolume = 0;
+          let sessionMax1RM = 0;
+
+          sessionData.sets.forEach((s) => {
+            const vol = s.weight * s.reps;
+            sessionVolume += vol;
+            exerciseTotalVolume += vol;
+
+            const e1RM = calculate1RM(s.weight, s.reps);
+            if (e1RM > sessionMax1RM) sessionMax1RM = e1RM;
+
+            if (s.weight > topWeight || (s.weight === topWeight && s.reps > topReps)) {
+              topWeight = s.weight;
+              topReps = s.reps;
+            }
+          });
+
+          if (sessionMax1RM > maxEstimated1RM) maxEstimated1RM = sessionMax1RM;
+
+          return {
+            completedAt: sessionData.completedAt,
+            workoutId,
+            topWeight,
+            topReps,
+            estimatedOneRepMax: sessionMax1RM,
+            totalVolume: sessionVolume,
+            setCount: sessionData.sets.length,
+          };
+        })
+        .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime());
+
+      const maxWeight = sortedSets.reduce((best, setEntry) => Math.max(best, setEntry.weight), 0);
+      const maxReps = sortedSets.reduce((best, setEntry) => Math.max(best, setEntry.reps), 0);
+      const avgTopWeight = trend.length
+        ? Math.round((trend.reduce((sum, point) => sum + point.topWeight, 0) / trend.length) * 10) / 10
+        : 0;
+
+      let weightChangePercent = 0;
+      if (trend.length >= 2) {
+        const firstWeight = trend[0].topWeight;
+        const lastWeight = trend[trend.length - 1].topWeight;
+        if (firstWeight > 0) {
+          weightChangePercent = Math.round(((lastWeight - firstWeight) / firstWeight) * 100);
+        }
+      }
+
+      return {
+        name,
+        muscleGroup,
+        maxWeight,
+        maxReps,
+        avgTopWeight,
+        maxEstimated1RM,
+        totalVolume: exerciseTotalVolume,
+        sessions: data.sessions.size,
+        totalSets: sortedSets.length,
+        trend,
+        weightChangePercent,
+      };
+    })
+    .sort((a, b) => b.maxWeight - a.maxWeight || b.sessions - a.sessions || a.name.localeCompare(b.name));
+
+  // Group exercises by Muscle Group
+  const muscleGroupMap = new Map<string, ExerciseAnalytics[]>();
+  exercises.forEach((ex) => {
+    if (!muscleGroupMap.has(ex.muscleGroup)) {
+      muscleGroupMap.set(ex.muscleGroup, []);
+    }
+    muscleGroupMap.get(ex.muscleGroup)!.push(ex);
+  });
+
+  const muscleGroups: MuscleGroupSummary[] = Array.from(muscleGroupMap.entries()).map(([name, exList]) => ({
+    name,
+    totalVolume: exList.reduce((sum, e) => sum + e.totalVolume, 0),
+    totalSets: exList.reduce((sum, e) => sum + e.totalSets, 0),
+    exerciseCount: exList.length,
+    exercises: exList,
+  }));
+
+  let heaviestSet: DashboardAnalytics["overall"]["heaviestSet"] = null;
+  let highestRepSet: DashboardAnalytics["overall"]["highestRepSet"] = null;
+  let best1RM: DashboardAnalytics["overall"]["best1RM"] = null;
+
+  exercises.forEach((ex) => {
+    ex.trend.forEach((pt) => {
+      if (
+        !heaviestSet ||
+        pt.topWeight > heaviestSet.weight ||
+        (pt.topWeight === heaviestSet.weight && pt.topReps > heaviestSet.reps)
+      ) {
+        heaviestSet = { exercise: ex.name, weight: pt.topWeight, reps: pt.topReps, completedAt: pt.completedAt };
+      }
+
+      if (
+        !highestRepSet ||
+        pt.topReps > highestRepSet.reps ||
+        (pt.topReps === highestRepSet.reps && pt.topWeight > highestRepSet.weight)
+      ) {
+        highestRepSet = { exercise: ex.name, weight: pt.topWeight, reps: pt.topReps, completedAt: pt.completedAt };
+      }
+
+      if (!best1RM || pt.estimatedOneRepMax > best1RM.estimated1RM) {
+        best1RM = {
+          exercise: ex.name,
+          estimated1RM: pt.estimatedOneRepMax,
+          weight: pt.topWeight,
+          reps: pt.topReps,
+          completedAt: pt.completedAt,
+        };
+      }
+    });
+  });
+
+  let weeklyAvgWorkouts = 0;
+  if (workoutsSummary.length > 0) {
+    const dates = workoutsSummary.map((w) => new Date(w.completedAt).getTime());
+    const minDate = Math.min(...dates);
+    const maxDate = Math.max(...dates);
+    const diffWeeks = Math.max(1, Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24 * 7)));
+    weeklyAvgWorkouts = Math.round((workoutsSummary.length / diffWeeks) * 10) / 10;
+  }
+
+  return {
+    workouts: workoutsSummary.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()),
+    exercises,
+    muscleGroups,
+    overall: {
+      totalWorkouts: workouts.length,
+      totalExercises: exercises.length,
+      totalSets: workoutsSummary.reduce((sum, workout) => sum + workout.setCount, 0),
+      totalVolume: totalOverallVolume,
+      weeklyAvgWorkouts,
+      heaviestSet,
+      highestRepSet,
+      best1RM,
+      mostTrainedExercise: exercises[0] ? { exercise: exercises[0].name, sessions: exercises[0].sessions } : null,
+    },
+  };
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/utils/audio.ts ---
+==================================================
+export function playTimerDing(context: AudioContext | null) {
+  if (!context) return;
+  try {
+    const playTone = (offsetSeconds: number, frequency: number) => {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      const startAt = context.currentTime + offsetSeconds;
+      oscillator.type = "triangle";
+      oscillator.frequency.setValueAtTime(frequency, startAt);
+      gainNode.gain.setValueAtTime(0.001, startAt);
+      gainNode.gain.exponentialRampToValueAtTime(0.22, startAt + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startAt + 0.22);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(startAt);
+      oscillator.stop(startAt + 0.24);
+    };
+    playTone(0, 880);
+    playTone(0.26, 988);
+  } catch {}
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/utils/formatters.ts ---
+==================================================
+export const formatRestLabel = (seconds: number) => {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  if (!remainder) return `${mins}m`;
+  return `${mins}m${remainder}s`;
+};
+
+export const formatClock = (seconds: number) => {
+  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
+  return `${mins}:${secs}`;
+};
+
+
+==================================================
+--- FILE: src/app/dashboard/ClientDashboard.tsx ---
+==================================================
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { signOut } from "next-auth/react";
+import { LogOut, TrendingUp, Dumbbell } from "lucide-react";
+
+export function ClientDashboard({ userName, userImage }: { userName: string; userImage: string | null }) {
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"assigned" | "history" | "analytics">("assigned");
+
+  const fetchWorkouts = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/workouts/client");
+    if (res.ok) {
+      setWorkouts(await res.json());
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, [fetchWorkouts]);
+
+  const completed = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
+  const planned = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
+
+  return (
+    <div className="app">
+      <header className="header">
+        <div className="header-left">
+          <Dumbbell size={22} />
+          <span className="header-title">My Workouts</span>
+        </div>
+        <div className="header-right">
+          {userImage && <img src={userImage} className="avatar" alt="" />}
+          <span className="header-name">{userName}</span>
+          <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
+            <LogOut size={16} />
+          </button>
+        </div>
+      </header>
+
+      <main className="main" style={{ maxWidth: "900px", margin: "24px auto", padding: "0 16px" }}>
+        <div className="tabs" style={{ marginBottom: "20px" }}>
+          <button className={`tab${tab === "assigned" ? " active" : ""}`} onClick={() => setTab("assigned")}>Assigned Workouts ({planned.length})</button>
+          <button className={`tab${tab === "history" ? " active" : ""}`} onClick={() => setTab("history")}>History ({completed.length})</button>
+          <button className={`tab${tab === "analytics" ? " active" : ""}`} onClick={() => setTab("analytics")}>Analytics</button>
+        </div>
+
+        {tab === "assigned" && (
+          <div className="card">
+            <h3 className="section-title">Assigned Workouts from Trainer</h3>
+            {loading && <div className="empty-state">Loading...</div>}
+            {!loading && !planned.length && <div className="empty-state">No assigned workouts right now. Check back when your trainer assigns a routine!</div>}
+            {planned.map((workout) => (
+              <div key={workout.id} className="history-card" style={{ marginBottom: "16px" }}>
+                <div className="history-card-header">
+                  <div>
+                    <div className="history-date">Planned Routine · {workout.exercises.length} Exercises</div>
+                    <div className="history-meta">{new Date(workout.createdAt).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                {workout.exercises.map((ex: any) => (
+                  <div key={ex.id} className="history-exercise">
+                    <div className="history-exercise-name">{ex.name} ({ex.sets.length} sets)</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "history" && (
+          <div className="card">
+            <h3 className="section-title">Workout History</h3>
+            {!completed.length && <div className="empty-state">No completed workouts yet.</div>}
+            {completed.map((workout) => (
+              <div key={workout.id} className="history-card" style={{ marginBottom: "16px" }}>
+                <div className="history-card-header">
+                  <div className="history-date">{new Date(workout.completedAt || workout.createdAt).toLocaleString()}</div>
+                </div>
+                {workout.exercises.map((ex: any) => (
+                  <div key={ex.id} className="history-exercise">
+                    <div className="history-exercise-name">{ex.name}</div>
+                    {ex.sets.map((st: any) => (
+                      <div key={st.id} className="history-set-row">
+                        <span>Set {st.order + 1}: {st.weight} lbs x {st.reps} reps</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab === "analytics" && (
+          <div className="card">
+            <h3 className="section-title"><TrendingUp size={16} /> Progress & PRs</h3>
+            <p style={{ fontSize: "14px", color: "#666" }}>Completed workouts: {completed.length}</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+
+
+==================================================
+--- FILE: src/app/dashboard/constants.ts ---
+==================================================
+export const REST_PRESETS = Array.from({ length: 20 }, (_, index) => (index + 1) * 15);
+
+export const EXERCISE_OPTIONS = [
+  "Bench Press", "Incline Bench Press", "Decline Bench Press", "Dumbbell Bench Press", "Push Up", "Weighted Push Up",
+  "Overhead Press", "Seated Dumbbell Press", "Arnold Press", "Lateral Raise", "Front Raise", "Rear Delt Fly",
+  "Pull Up", "Chin Up", "Lat Pulldown", "Bent Over Row", "Seated Cable Row", "Single Arm Dumbbell Row",
+  "Deadlift", "Romanian Deadlift", "Trap Bar Deadlift", "Rack Pull", "Good Morning", "Barbell Shrug",
+  "Back Squat", "Front Squat", "Goblet Squat", "Leg Press", "Hack Squat", "Bulgarian Split Squat",
+  "Lunge", "Walking Lunge", "Step Up", "Leg Extension", "Leg Curl", "Nordic Curl",
+  "Hip Thrust", "Glute Bridge", "Cable Kickback", "Calf Raise", "Seated Calf Raise", "Donkey Calf Raise",
+  "Barbell Curl", "Dumbbell Curl", "Hammer Curl", "Preacher Curl", "Triceps Pushdown", "Skull Crusher",
+  "Close Grip Bench Press", "Overhead Triceps Extension", "Cable Fly", "Chest Fly", "Face Pull", "Upright Row",
+  "Plank", "Hanging Leg Raise", "Cable Crunch", "Russian Twist", "Ab Wheel", "Farmer Carry",
+  "Hip Abduction", "Hip Adduction", "Machine Row", "Machine Chest Press", "Machine Shoulder Press", "T Bar Row",
+  "Smith Squat", "Smith RDL", "Landmine Press", "Landmine Row", "Sled Push", "Sled Pull",
+];
+
+
+==================================================
+--- FILE: src/app/dashboard/Dashboard.tsx ---
+==================================================
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { signOut } from "next-auth/react";
+import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Client, WorkoutSession, DraftWorkout } from "./types";
+import { computeAnalytics } from "./utils/analytics";
+import { ClientSidebar } from "./components/ClientSidebar";
+import { EditClientModal } from "./components/EditClientModal";
+import { WorkoutBuilder } from "./components/WorkoutBuilder";
+import { WorkoutHistory } from "./components/WorkoutHistory";
+import { AnalyticsView } from "./components/AnalyticsView";
+import { SubscriptionBanner, SubscriptionInfo } from "./components/SubscriptionBanner";
+
+export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
+  isAdmin?: boolean;
+}
+
+export function Dashboard({ userName, userImage }: { userName: string; userImage: string | null }) {
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selected, setSelected] = useState<Client | null>(null);
+  const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
+  const [subInfo, setSubInfo] = useState<ExtendedSubscriptionInfo | null>(null);
+
+  // Client Creation Form
+  const [newName, setNewName] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
+  const [createdInviteUrl, setCreatedInviteUrl] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Client Editing Modal
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
+
+  const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
+  const [exercisePicker, setExercisePicker] = useState("");
+  const [savingWorkout, setSavingWorkout] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const res = await fetch("/api/subscription");
+      if (res.ok) {
+        setSubInfo(await res.json());
+      }
+    } catch {}
+  }, []);
+
+  const fetchClients = useCallback(async () => {
+    setLoadingClients(true);
+    const res = await fetch("/api/clients");
+    if (res.ok) {
+      const data = await res.json();
+      setClients(data);
+      if (data.length && !selected) setSelected(data[0]);
+    }
+    setLoadingClients(false);
+  }, [selected]);
+
+  const fetchWorkouts = useCallback(async (clientId: string) => {
+    setLoadingWorkouts(true);
+    const res = await fetch(`/api/workouts?clientId=${clientId}`);
+    if (res.ok) setWorkouts(await res.json());
+    else setWorkouts([]);
+    setLoadingWorkouts(false);
+  }, []);
+
+  useEffect(() => {
+    fetchSubscription();
+    fetchClients();
+  }, [fetchSubscription, fetchClients]);
+
+  useEffect(() => {
+    if (selected) fetchWorkouts(selected.id);
+    else setWorkouts([]);
+  }, [selected, fetchWorkouts]);
+
+  const addClient = async () => {
+    if (!newName.trim()) {
+      setFormError("Client name is required.");
+      return;
+    }
+
+    setFormError(null);
+    setCreatedInviteUrl(null);
+
+    const res = await fetch("/api/clients", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName.trim(), notes: newNotes.trim() || null }),
+    });
+
+    if (res.ok) {
+      const client = await res.json();
+      setClients((prev) => [client, ...prev]);
+      setSelected(client);
+      setNewName("");
+      setNewNotes("");
+
+      if (client.inviteUrl) {
+        setCreatedInviteUrl(client.inviteUrl);
+      }
+      return;
+    }
+
+    const body = await res.json().catch(() => null);
+    setFormError(body?.error || "Unable to add this client right now.");
+    fetchSubscription();
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingClient || !editName.trim()) return;
+
+    const res = await fetch(`/api/clients/${editingClient.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim(), notes: editNotes.trim() || null }),
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      setClients((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+      setSelected((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+      setEditingClient(null);
+    } else {
+      alert("Failed to update client.");
+    }
+  };
+
+  const copyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const deleteClient = async (id: string) => {
+    if (!confirm("Delete this client and all workout history?")) return;
+    await fetch(`/api/clients/${id}`, { method: "DELETE" });
+    setClients((prev) => prev.filter((client) => client.id !== id));
+    if (selected?.id === id) {
+      const next = clients.find((client) => client.id !== id) ?? null;
+      setSelected(next);
+    }
+  };
+
+  const startWorkout = () => {
+    setActiveWorkout({ startedAt: new Date().toISOString(), notes: "", exercises: [], plannedWorkoutId: null });
+    setExercisePicker("");
+    setTab("log");
+  };
+
+  const beginPlannedWorkout = async (workout: WorkoutSession) => {
+    if (workout.status === "PLANNED") {
+      const res = await fetch(`/api/workouts/${workout.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "IN_PROGRESS",
+          startedAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        alert(body?.error || "Unable to begin workout");
+        return;
+      }
+    }
+
+    setActiveWorkout({
+      startedAt: workout.startedAt || new Date().toISOString(),
+      notes: workout.notes || "",
+      plannedWorkoutId: workout.id,
+      exercises: workout.exercises.map((exercise) => ({
+        name: exercise.name,
+        sets: exercise.sets.map((setEntry) => ({
+          weight: String(setEntry.weight),
+          reps: String(setEntry.reps),
+          notes: setEntry.notes || "",
+        })),
+      })),
+    });
+
+    setTab("log");
+    fetchWorkouts(workout.clientId);
+  };
+
+  const saveWorkoutPlan = async () => {
+    if (!selected || !activeWorkout) return;
+
+    const normalizedExercises = activeWorkout.exercises
+      .map((exercise, exerciseIndex) => ({
+        name: exercise.name.trim(),
+        order: exerciseIndex,
+        sets: exercise.sets
+          .map((setEntry, setIndex) => ({
+            order: setIndex,
+            weight: setEntry.weight !== "" ? Number(setEntry.weight) : 0,
+            reps: setEntry.reps !== "" ? Number(setEntry.reps) : 0,
+            notes: setEntry.notes.trim() || "",
+          }))
+          .filter((setEntry) => !isNaN(setEntry.weight) && setEntry.weight >= 0 && !isNaN(setEntry.reps) && setEntry.reps > 0),
+      }))
+      .filter((exercise) => exercise.name && exercise.sets.length > 0);
+
+    if (!normalizedExercises.length) {
+      alert("Add at least one exercise with a valid number of reps before saving.");
+      return;
+    }
+
+    setSavingPlan(true);
+    const now = new Date().toISOString();
+    const res = await fetch("/api/workouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: selected.id,
+        status: "PLANNED",
+        startedAt: activeWorkout.startedAt || now,
+        completedAt: null,
+        notes: activeWorkout.notes.trim() || "",
+        exercises: normalizedExercises,
+      }),
+    });
+
+    if (res.ok) {
+      const plannedWorkout = await res.json();
+      setWorkouts((prev) => [plannedWorkout, ...prev]);
+      setActiveWorkout(null);
+      setExercisePicker("");
+      fetchClients();
+    } else {
+      const body = await res.json().catch(() => null);
+      alert(body?.error || "Could not save workout plan");
+    }
+
+    setSavingPlan(false);
+  };
+
+  const completeWorkout = async () => {
+    if (!selected || !activeWorkout) return;
+
+    const normalizedExercises = activeWorkout.exercises
+      .map((exercise, exerciseIndex) => ({
+        name: exercise.name.trim(),
+        order: exerciseIndex,
+        sets: exercise.sets
+          .map((setEntry, setIndex) => ({
+            order: setIndex,
+            weight: setEntry.weight !== "" ? Number(setEntry.weight) : 0,
+            reps: setEntry.reps !== "" ? Number(setEntry.reps) : 0,
+            notes: setEntry.notes.trim() || "",
+          }))
+          .filter((setEntry) => !isNaN(setEntry.weight) && setEntry.weight >= 0 && !isNaN(setEntry.reps) && setEntry.reps > 0),
+      }))
+      .filter((exercise) => exercise.name && exercise.sets.length > 0);
+
+    if (!normalizedExercises.length) {
+      alert("Add at least one exercise with a valid number of reps before completing the workout.");
+      return;
+    }
+
+    setSavingWorkout(true);
+    const now = new Date().toISOString();
+    const res = await fetch(activeWorkout.plannedWorkoutId ? `/api/workouts/${activeWorkout.plannedWorkoutId}` : "/api/workouts", {
+      method: activeWorkout.plannedWorkoutId ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: selected.id,
+        status: "COMPLETED",
+        startedAt: activeWorkout.startedAt || now,
+        completedAt: now,
+        notes: activeWorkout.notes.trim() || "",
+        exercises: normalizedExercises,
+      }),
+    });
+
+    if (res.ok) {
+      const createdWorkout = await res.json();
+      setWorkouts((prev) => {
+        const withoutCurrent = activeWorkout.plannedWorkoutId
+          ? prev.filter((workout) => workout.id !== activeWorkout.plannedWorkoutId)
+          : prev;
+        return [createdWorkout, ...withoutCurrent];
+      });
+      setActiveWorkout(null);
+      setExercisePicker("");
+      setTab("history");
+      fetchClients();
+    } else {
+      const body = await res.json().catch(() => null);
+      alert(body?.error || "Could not complete workout");
+    }
+
+    setSavingWorkout(false);
+  };
+
+  const deleteWorkout = async (id: string) => {
+    await fetch(`/api/workouts/${id}`, { method: "DELETE" });
+    setWorkouts((prev) => prev.filter((workout) => workout.id !== id));
+    fetchClients();
+  };
+
+  const completedWorkouts = useMemo(() => workouts.filter((workout) => workout.status === "COMPLETED"), [workouts]);
+  const plannedWorkouts = useMemo(
+    () => workouts.filter((workout) => workout.status === "PLANNED" || workout.status === "IN_PROGRESS"),
+    [workouts],
+  );
+
+  const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
+
+  const getInviteUrl = (client: Client) => {
+    if (client.inviteUrl) return client.inviteUrl;
+    if (client.inviteToken) {
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+      return `${baseUrl}/invite/${client.inviteToken}`;
+    }
+    return null;
+  };
+
+  return (
+    <div className="app">
+      <SubscriptionBanner subInfo={subInfo} onSubscribed={fetchSubscription} />
+
+      <header className="header">
+        <div className="header-left">
+          <Dumbbell size={22} />
+          <span className="header-title">Fitness Tracker</span>
+        </div>
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {subInfo?.isAdmin && (
+            <Link
+              href="/admin"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                fontSize: "12px",
+                fontWeight: 600,
+                background: "#0f172a",
+                color: "#38bdf8",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "1px solid #1e293b",
+                textDecoration: "none",
+              }}
+            >
+              <ShieldCheck size={15} />
+              <span>Admin Portal</span>
+            </Link>
+          )}
+
+          {userImage && <img src={userImage} className="avatar" alt="" />}
+          <span className="header-name">{userName}</span>
+          <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
+            <LogOut size={16} />
+          </button>
+        </div>
+      </header>
+
+      <div className="layout">
+        <ClientSidebar
+          clients={clients}
+          selected={selected}
+          loadingClients={loadingClients}
+          onSelectClient={setSelected}
+          onAddClient={addClient}
+          onDeleteClient={deleteClient}
+          newName={newName}
+          setNewName={setNewName}
+          newNotes={newNotes}
+          setNewNotes={setNewNotes}
+          formError={formError}
+          createdInviteUrl={createdInviteUrl}
+          copiedLink={copiedLink}
+          onCopyLink={copyLink}
+        />
+
+        <main className="main">
+          {!selected ? (
+            <div className="placeholder">
+              <Dumbbell size={40} className="placeholder-icon" />
+              <p>Select a client or add a new one</p>
+            </div>
+          ) : (
+            <>
+              <div className="main-header" style={{ flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <h2 className="client-heading">{selected.name}</h2>
+                    {selected.name !== "My Workouts" && (
+                      <button
+                        onClick={() => {
+                          setEditingClient(selected);
+                          setEditName(selected.name);
+                          setEditNotes(selected.notes || "");
+                        }}
+                        style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", color: "#475569" }}
+                      >
+                        <Edit3 size={13} />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                  </div>
+                  {selected.notes && <p style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>{selected.notes}</p>}
+                </div>
+
+                {/* Text Invite Link Bar */}
+                {selected.name !== "My Workouts" && (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {selected.inviteStatus === "ACCEPTED" ? (
+                      <span style={{ fontSize: "12px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                        ✓ Joined
+                      </span>
+                    ) : (
+                      getInviteUrl(selected) && (
+                        <button
+                          onClick={() => copyLink(getInviteUrl(selected)!)}
+                          style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, background: "#2563eb", color: "#fff", padding: "8px 14px", borderRadius: "6px", border: "none", cursor: "pointer" }}
+                        >
+                          {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copiedLink ? "Link Copied!" : "Copy Invite Link to Text"}</span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
+
+                <div className="tabs">
+                  {(["log", "history", "analytics"] as const).map((currentTab) => (
+                    <button key={currentTab} className={`tab${tab === currentTab ? " active" : ""}`} onClick={() => setTab(currentTab)}>
+                      {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {tab === "log" && (
+                <WorkoutBuilder
+                  activeWorkout={activeWorkout}
+                  setActiveWorkout={setActiveWorkout}
+                  plannedWorkouts={plannedWorkouts}
+                  exercisePicker={exercisePicker}
+                  setExercisePicker={setExercisePicker}
+                  savingWorkout={savingWorkout}
+                  savingPlan={savingPlan}
+                  onStartWorkout={startWorkout}
+                  onBeginPlannedWorkout={beginPlannedWorkout}
+                  onSaveWorkoutPlan={saveWorkoutPlan}
+                  onCompleteWorkout={completeWorkout}
+                />
+              )}
+
+              {tab === "history" && (
+                <WorkoutHistory
+                  completedWorkouts={completedWorkouts}
+                  loadingWorkouts={loadingWorkouts}
+                  onDeleteWorkout={deleteWorkout}
+                />
+              )}
+
+              {tab === "analytics" && (
+                <AnalyticsView analytics={analytics} />
+              )}
+            </>
+          )}
+        </main>
+      </div>
+
+      {editingClient && (
+        <EditClientModal
+          editingClient={editingClient}
+          editName={editName}
+          setEditName={setEditName}
+          editNotes={editNotes}
+          setEditNotes={setEditNotes}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingClient(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+
+==================================================
+--- FILE: src/app/dashboard/page.tsx ---
+==================================================
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { Dashboard } from "./Dashboard";
+import { ClientDashboard } from "./ClientDashboard";
+
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user) {
+    redirect("/auth/signin");
+  }
+
+  const userName = session.user.name ?? (session.user.role === "CLIENT" ? "Client" : "Trainer");
+  const userImage = session.user.image ?? null;
+
+  if (session.user.role === "CLIENT") {
+    return <ClientDashboard userName={userName} userImage={userImage} />;
+  }
+
+  return <Dashboard userName={userName} userImage={userImage} />;
+}
+
+
+
+==================================================
+--- FILE: src/app/dashboard/types.ts ---
+==================================================
+export interface Client {
+  id: string;
+  name: string;
+  notes?: string | null;
+  createdAt: string;
+  inviteStatus?: "NOT_SENT" | "PENDING" | "ACCEPTED";
+  inviteToken?: string | null;
+  inviteUrl?: string | null;
+  _count?: { workoutSessions: number };
+}
+
+export interface WorkoutSet {
+  id: string;
+  order: number;
+  weight: number;
+  reps: number;
+  notes?: string | null;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  order: number;
+  name: string;
+  sets: WorkoutSet[];
+}
+
+export interface WorkoutSession {
+  id: string;
+  clientId: string;
+  status: "PLANNED" | "IN_PROGRESS" | "COMPLETED";
+  startedAt?: string | null;
+  completedAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  exercises: WorkoutExercise[];
+}
+
+export type DraftSet = { weight: string; reps: string; notes: string };
+export type DraftExercise = { name: string; sets: DraftSet[] };
+export type DraftWorkout = {
+  startedAt: string;
+  notes: string;
+  exercises: DraftExercise[];
+  plannedWorkoutId?: string | null;
+};
+
+
+==================================================
+--- FILE: src/app/invite/[token]/page.tsx ---
+==================================================
+[Error reading file]
+
+
+==================================================
+--- FILE: src/app/layout.tsx ---
+==================================================
+import type { Metadata } from "next";
+import { Providers } from "./providers";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Fitness Tracker",
+  description: "Trainer dashboard for tracking client workouts",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+
+
+
+==================================================
+--- FILE: src/app/page.tsx ---
+==================================================
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+  if (session) redirect("/dashboard");
+  redirect("/auth/signin");
+}
+
+
+
+==================================================
+--- FILE: src/app/providers.tsx ---
+==================================================
+"use client";
+import { SessionProvider } from "next-auth/react";
+export function Providers({ children }: { children: React.ReactNode }) {
+  return <SessionProvider>{children}</SessionProvider>;
+}
+
+
+
+==================================================
+--- FILE: src/components/ClientInviteAction.tsx ---
+==================================================
+"use client";
+
+import React, { useState } from "react";
+import { Copy, Check } from "lucide-react";
+
+interface ClientInviteActionProps {
+  inviteUrl: string;
+}
+
+export function ClientInviteAction({ inviteUrl }: ClientInviteActionProps) {
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={copyLink}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "12px",
+        fontWeight: 600,
+        background: "#2563eb",
+        color: "#ffffff",
+        padding: "6px 12px",
+        borderRadius: "6px",
+        border: "none",
+        cursor: "pointer",
+      }}
+    >
+      {copied ? <Check size={14} /> : <Copy size={14} />}
+      <span>{copied ? "Copied!" : "Copy Invite Link"}</span>
+    </button>
+  );
+}
+
+export default ClientInviteAction;
+
+
+==================================================
+--- FILE: src/lib/utils/role-helpers.ts ---
+==================================================
+import { UserRole } from "@prisma/client";
+
+/**
+ * Safely normalizes input role strings to valid UserRole enums (TRAINER / CLIENT).
+ * Converts lowercase "trainer" -> UserRole.TRAINER to prevent P2007 driver adapter errors.
+ */
+export function normalizeUserRole(inputRole?: string | null): UserRole {
+  if (!inputRole) return UserRole.CLIENT;
+  const normalized = inputRole.trim().toUpperCase();
+  if (normalized === "TRAINER") return UserRole.TRAINER;
+  if (normalized === "CLIENT" || normalized === "USER") return UserRole.CLIENT;
+  return (UserRole as Record<string, UserRole>)[normalized] || UserRole.CLIENT;
+}
+
+
+==================================================
+--- FILE: src/lib/activity.ts ---
+==================================================
+export async function logActivity(_input: {
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  clientId?: string | null;
+  details?: Record<string, unknown>;
+}) {
+  return null;
+}
+
+
+
+==================================================
+--- FILE: src/lib/auth.ts ---
+==================================================
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma as any),
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null;
+        const emailClean = credentials.email.toLowerCase().trim();
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: emailClean },
+          });
+          if (!user) {
+            console.log("âŒ LOGIN FAILED: Email not found in database:", emailClean);
+            return null;
+          }
+          console.log("âœ… LOGIN SUCCESS: Found user:", user.email);
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            isAdmin: user.isAdmin
+          };
+        } catch (error) {
+          console.error("âŒ Authorize Error:", error);
+          return null;
+        }
+      },
+    }),
+  ],
+  session: { strategy: "jwt" },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as any).role;
+        token.isAdmin = (user as any).isAdmin;
+      }
+      
+      // Fallback to token.sub which is where NextAuth puts the ID for Google logins
+      const userId = token.id || token.sub; 
+      
+      if (userId) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: userId as string },
+            select: { role: true, isAdmin: true },
+          });
+          if (dbUser) {
+            token.id = userId;
+            token.role = dbUser.role;
+            token.isAdmin = !!dbUser.isAdmin;
+          }
+        } catch (error) {
+          console.error("âŒ JWT Fetch Error:", error);
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.id || token.sub;
+        (session.user as any).role = token.role;
+        (session.user as any).isAdmin = !!token.isAdmin;
+      }
+      return session;
+    },
+  },
+  pages: { signIn: "/auth/signin" },
+  secret: process.env.NEXTAUTH_SECRET || "fallback-secret-for-dev",
+};
+
+
+
+==================================================
+--- FILE: src/lib/logger.ts ---
+==================================================
+type LogLevel = "info" | "warn" | "error" | "debug";
+
+class Logger {
+  private formatMessage(level: LogLevel, message: string, meta?: any) {
+    const timestamp = new Date().toISOString();
+    return JSON.stringify({
+      timestamp,
+      level,
+      message,
+      ...(meta ? { meta } : {}),
+      env: process.env.NODE_ENV || "development",
+    });
+  }
+
+  info(message: string, meta?: any) {
+    console.log(this.formatMessage("info", message, meta));
+  }
+
+  warn(message: string, meta?: any) {
+    console.warn(this.formatMessage("warn", message, meta));
+  }
+
+  error(message: string, error?: any) {
+    console.error(this.formatMessage("error", message, error?.stack || error));
+  }
+
+  debug(message: string, meta?: any) {
+    if (process.env.NODE_ENV !== "production") {
+      console.debug(this.formatMessage("debug", message, meta));
+    }
+  }
+}
+
+export const logger = new Logger();
+
+
+==================================================
+--- FILE: src/lib/prisma.ts ---
+==================================================
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient;
+};
+
+const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/fitness";
+
+let prisma;
+
+if (process.env.NODE_ENV === "production") {
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+} else {
+  if (!globalForPrisma.prisma) {
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
+  }
+  prisma = globalForPrisma.prisma;
+}
+
+export { prisma };
+
+
+
+==================================================
+--- FILE: src/lib/roles.ts ---
+==================================================
+import { UserRole } from "@prisma/client";
+
+export type AppUserRole = UserRole | "TRAINER" | "CLIENT";
+
+export function parseRole(role?: string | null): UserRole {
+  if (!role) return UserRole.TRAINER;
+  const upper = String(role).trim().toUpperCase();
+  if (upper === "CLIENT") return UserRole.CLIENT;
+  return UserRole.TRAINER;
+}
+
+export const normalizeRole = parseRole;
+
+
+
+==================================================
+--- FILE: src/lib/subscription.ts ---
+==================================================
+import { prisma } from "@/lib/prisma";
+
+export interface SubscriptionCheckResult {
+  hasAccess: boolean;
+  status: "trial" | "active" | "expired";
+  daysRemaining: number;
+  trialEndsAt: Date | null;
+  subscribedUntil: Date | null;
+  isAdmin: boolean;
+  reason?: string;
+}
+
+export async function checkTrainerSubscription(userId: string): Promise<SubscriptionCheckResult> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      trialEndsAt: true,
+      subscriptionStatus: true,
+      subscribedUntil: true,
+      createdAt: true,
+      isAdmin: true,
+    },
+  });
+
+  if (!user) {
+    return {
+      hasAccess: false,
+      status: "expired",
+      daysRemaining: 0,
+      trialEndsAt: null,
+      subscribedUntil: null,
+      isAdmin: false,
+      reason: "User not found",
+    };
+  }
+
+  const now = new Date();
+  let trialEnd = user.trialEndsAt;
+  if (!trialEnd && user.createdAt) {
+    trialEnd = new Date(user.createdAt);
+    trialEnd.setDate(trialEnd.getDate() + 30);
+  }
+
+  const isAdmin = !!user.isAdmin;
+
+  if (user.subscribedUntil && new Date(user.subscribedUntil) > now) {
+    const daysRemaining = Math.max(0, Math.ceil((new Date(user.subscribedUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    return {
+      hasAccess: true,
+      status: "active",
+      daysRemaining,
+      trialEndsAt: trialEnd,
+      subscribedUntil: user.subscribedUntil,
+      isAdmin,
+    };
+  }
+
+  if (trialEnd && trialEnd > now) {
+    const daysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    return {
+      hasAccess: true,
+      status: "trial",
+      daysRemaining,
+      trialEndsAt: trialEnd,
+      subscribedUntil: user.subscribedUntil,
+      isAdmin,
+    };
+  }
+
+  return {
+    hasAccess: false,
+    status: "expired",
+    daysRemaining: 0,
+    trialEndsAt: trialEnd,
+    subscribedUntil: user.subscribedUntil,
+    isAdmin,
+    reason: "Your 30-day free trial has expired. Upgrade to continue adding clients and logging workouts.",
+  };
+}
+
+
+==================================================
+--- FILE: src/types/next-auth.d.ts ---
+==================================================
+import "next-auth";
+
+type AppUserRole = "TRAINER" | "CLIENT";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: AppUserRole;
+      clientProfileId?: string | null;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+    };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    userId?: string;
+    role?: AppUserRole;
+    clientProfileId?: string | null;
+  }
+}
+
+
+
+==================================================
+--- FILE: next-env.d.ts ---
+==================================================
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+
+
+==================================================
+--- FILE: next.config.ts ---
+==================================================
+import type { NextConfig } from "next";
+const nextConfig: NextConfig = {};
+export default nextConfig;
+
+
+
+==================================================
+--- FILE: package.json ---
+==================================================
+{
+  "name": "fitness-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@next-auth/prisma-adapter": "^1.0.7",
+    "@prisma/adapter-neon": "^7.8.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "lucide-react": "^1.23.0",
+    "next": "16.2.10",
+    "next-auth": "^4.24.14",
+    "pg": "^8.23.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@prisma/config": "^7.9.1",
+    "@types/node": "^20",
+    "@types/pg": "^8.21.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.9.1",
+    "typescript": "^5"
+  }
+}
+
+
+
+==================================================
+--- FILE: prisma.config.ts ---
+==================================================
+import "dotenv/config";
+import { defineConfig, env } from "@prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: {
+    url: env("DATABASE_URL"),
+  },
+});
+
