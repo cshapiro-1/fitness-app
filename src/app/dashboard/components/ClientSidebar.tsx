@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, UserPlus, ChevronRight, Trash2, Edit3 } from "lucide-react";
+import { Users, UserPlus, ChevronRight, Trash2, Edit3, User } from "lucide-react";
 import { Client } from "../types";
 
 interface ClientSidebarProps {
@@ -71,6 +71,41 @@ export function ClientSidebar({
               className={`client-item${selected?.id === client.id ? " active" : ""}`}
               onClick={() => onSelectClient(client)}
             >
+              {/* Client Avatar Thumbnail */}
+              <div style={{ position: "relative", flexShrink: 0, marginRight: "10px" }}>
+                {client.image ? (
+                  <img
+                    src={client.image}
+                    alt={client.name}
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "50%",
+                      background: isSelfProfile ? "#eff6ff" : "#f1f5f9",
+                      color: isSelfProfile ? "#2563eb" : "#64748b",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                    }}
+                  >
+                    {client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />}
+                  </div>
+                )}
+              </div>
+
               <div className="client-item-main">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <span className="client-name">
@@ -87,7 +122,7 @@ export function ClientSidebar({
                           : "client-status-none"
                       }`}
                     >
-                      {isAccepted ? "Active" : isPending ? "Invite Sent" : "No Invite"}
+                      {isAccepted ? "Active" : isPending ? "Invite Sent" : "Free"}
                     </span>
                   )}
                 </div>

@@ -15,7 +15,7 @@ export async function PATCH(
     }
 
     const { id: clientId } = await params;
-    const { name, email, phone, notes, fitnessGoals } = await req.json();
+    const { name, image, email, phone, notes, fitnessGoals } = await req.json();
 
     const client = await prisma.client.findUnique({
       where: { id: clientId },
@@ -29,6 +29,7 @@ export async function PATCH(
       where: { id: clientId },
       data: {
         name: name !== undefined ? name.trim() : client.name,
+        image: image !== undefined ? (image ? image.trim() : null) : client.image,
         email: email !== undefined ? (email ? email.trim() : null) : client.email,
         phone: phone !== undefined ? (phone ? phone.trim() : null) : client.phone,
         notes: notes !== undefined ? (notes ? notes.trim() : null) : client.notes,
@@ -45,6 +46,7 @@ export async function PATCH(
         where: { id: loginUser.id },
         data: {
           name: name !== undefined ? name.trim() : loginUser.name,
+          image: image !== undefined ? (image ? image.trim() : null) : loginUser.image,
           email: email !== undefined ? (email ? email.trim() : null) : loginUser.email,
           phone: phone !== undefined ? (phone ? phone.trim() : null) : loginUser.phone,
           notes: notes !== undefined ? (notes ? notes.trim() : null) : loginUser.notes,
@@ -59,6 +61,7 @@ export async function PATCH(
       id: updatedClient.id,
       userId: updatedClient.userId,
       name: updatedClient.name,
+      image: updatedClient.image,
       email: updatedClient.email,
       phone: updatedClient.phone,
       notes: updatedClient.notes,

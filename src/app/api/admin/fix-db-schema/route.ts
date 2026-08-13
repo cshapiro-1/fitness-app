@@ -13,6 +13,9 @@ export async function GET() {
     await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "fitnessGoals" TEXT;`);
     results.push("Added fitnessGoals to Client");
 
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "image" TEXT;`);
+    results.push("Added image to Client");
+
     // Ensure columns exist on User table
     await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "phone" TEXT;`);
     results.push("Added phone to User");

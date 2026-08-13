@@ -2,7 +2,22 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck, Mail, Phone, Target, FileText, Link2 } from "lucide-react";
+import {
+  Dumbbell,
+  LogOut,
+  Edit3,
+  Check,
+  Copy,
+  ShieldCheck,
+  Mail,
+  Phone,
+  Target,
+  FileText,
+  Link2,
+  User,
+  CreditCard,
+  Camera,
+} from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
 import { computeAnalytics } from "./utils/analytics";
@@ -12,6 +27,7 @@ import { WorkoutBuilder } from "./components/WorkoutBuilder";
 import { WorkoutHistory } from "./components/WorkoutHistory";
 import { AnalyticsView } from "./components/AnalyticsView";
 import { SubscriptionBanner, SubscriptionInfo } from "./components/SubscriptionBanner";
+import { TrainerProfileModal } from "./components/TrainerProfileModal";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -25,11 +41,15 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const [subInfo, setSubInfo] = useState<ExtendedSubscriptionInfo | null>(null);
 
-  // Client Modals State
+  // Modals State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
+
+  const [currentTrainerImage, setCurrentTrainerImage] = useState<string | null>(userImage);
+  const [currentTrainerName, setCurrentTrainerName] = useState<string>(userName);
 
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
 
@@ -43,6 +63,17 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       const res = await fetch("/api/subscription");
       if (res.ok) {
         setSubInfo(await res.json());
+      }
+    } catch {}
+  }, []);
+
+  const fetchTrainerProfile = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user/profile");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user?.name) setCurrentTrainerName(data.user.name);
+        if (data.user?.image) setCurrentTrainerImage(data.user.image);
       }
     } catch {}
   }, []);
@@ -68,8 +99,9 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   useEffect(() => {
     fetchSubscription();
+    fetchTrainerProfile();
     fetchClients();
-  }, [fetchSubscription, fetchClients]);
+  }, [fetchSubscription, fetchTrainerProfile, fetchClients]);
 
   useEffect(() => {
     if (selected) fetchWorkouts(selected.id);
@@ -78,6 +110,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   const handleAddClient = async (clientData: {
     name: string;
+    image?: string | null;
     email: string | null;
     phone: string | null;
     fitnessGoals: string | null;
@@ -103,6 +136,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
   const handleEditClient = async (clientData: {
     name: string;
+    image?: string | null;
     email: string | null;
     phone: string | null;
     fitnessGoals: string | null;
@@ -143,8 +177,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId: client.id }),
       });
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      if (res.ok && data.inviteUrl) {
         const updated = {
           ...client,
           inviteToken: data.inviteToken || data.token,
@@ -153,9 +187,11 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         };
         handleInviteGenerated(updated);
         copyLink(data.inviteUrl);
+      } else {
+        alert(data.error || "Failed to generate invite link.");
       }
     } catch {
-      alert("Failed to generate invite link");
+      alert("Network error while generating invite link.");
     } finally {
       setGeneratingQuickInvite(false);
     }
@@ -167,200 +203,163 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const deleteClient = async (id: string) => {
-    if (!confirm("Delete this client and all workout history?")) return;
-    await fetch(`/api/clients/${id}`, { method: "DELETE" });
-    setClients((prev) => prev.filter((client) => client.id !== id));
-    if (selected?.id === id) {
-      const next = clients.find((client) => client.id !== id) ?? null;
-      setSelected(next);
-    }
-  };
-
-  const startWorkout = () => {
-    setActiveWorkout({ startedAt: new Date().toISOString(), notes: "", exercises: [], plannedWorkoutId: null });
-    setExercisePicker("");
-    setTab("log");
-  };
-
-  const beginPlannedWorkout = async (workout: WorkoutSession) => {
-    if (workout.status === "PLANNED") {
-      const res = await fetch(`/api/workouts/${workout.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "IN_PROGRESS",
-          startedAt: new Date().toISOString(),
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        alert(body?.error || "Unable to begin workout");
-        return;
-      }
-    }
-
-    setActiveWorkout({
-      startedAt: workout.startedAt || new Date().toISOString(),
-      notes: workout.notes || "",
-      plannedWorkoutId: workout.id,
-      exercises: workout.exercises.map((exercise) => ({
-        name: exercise.name,
-        sets: exercise.sets.map((setEntry) => ({
-          weight: String(setEntry.weight),
-          reps: String(setEntry.reps),
-          notes: setEntry.notes || "",
-        })),
-      })),
-    });
-
-    setTab("log");
-    fetchWorkouts(workout.clientId);
-  };
-
-  const saveWorkoutPlan = async () => {
-    if (!selected || !activeWorkout) return;
-
-    const normalizedExercises = activeWorkout.exercises
-      .map((exercise, exerciseIndex) => ({
-        name: exercise.name.trim(),
-        order: exerciseIndex,
-        sets: exercise.sets
-          .map((setEntry, setIndex) => ({
-            order: setIndex,
-            weight: setEntry.weight !== "" ? Number(setEntry.weight) : 0,
-            reps: setEntry.reps !== "" ? Number(setEntry.reps) : 0,
-            notes: setEntry.notes.trim() || "",
-          }))
-          .filter((setEntry) => !isNaN(setEntry.weight) && setEntry.weight >= 0 && !isNaN(setEntry.reps) && setEntry.reps > 0),
-      }))
-      .filter((exercise) => exercise.name && exercise.sets.length > 0);
-
-    if (!normalizedExercises.length) {
-      alert("Add at least one exercise with a valid number of reps before saving.");
-      return;
-    }
-
-    setSavingPlan(true);
-    const now = new Date().toISOString();
-    const res = await fetch("/api/workouts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: selected.id,
-        status: "PLANNED",
-        startedAt: activeWorkout.startedAt || now,
-        completedAt: null,
-        notes: activeWorkout.notes.trim() || "",
-        exercises: normalizedExercises,
-      }),
-    });
-
-    if (res.ok) {
-      const plannedWorkout = await res.json();
-      setWorkouts((prev) => [plannedWorkout, ...prev]);
-      setActiveWorkout(null);
-      setExercisePicker("");
-      fetchClients();
-    } else {
-      const body = await res.json().catch(() => null);
-      alert(body?.error || "Could not save workout plan");
-    }
-
-    setSavingPlan(false);
-  };
-
-  const completeWorkout = async () => {
-    if (!selected || !activeWorkout) return;
-
-    const normalizedExercises = activeWorkout.exercises
-      .map((exercise, exerciseIndex) => ({
-        name: exercise.name.trim(),
-        order: exerciseIndex,
-        sets: exercise.sets
-          .map((setEntry, setIndex) => ({
-            order: setIndex,
-            weight: setEntry.weight !== "" ? Number(setEntry.weight) : 0,
-            reps: setEntry.reps !== "" ? Number(setEntry.reps) : 0,
-            notes: setEntry.notes.trim() || "",
-          }))
-          .filter((setEntry) => !isNaN(setEntry.weight) && setEntry.weight >= 0 && !isNaN(setEntry.reps) && setEntry.reps > 0),
-      }))
-      .filter((exercise) => exercise.name && exercise.sets.length > 0);
-
-    if (!normalizedExercises.length) {
-      alert("Add at least one exercise with a valid number of reps before completing.");
-      return;
-    }
-
-    setSavingWorkout(true);
-    const now = new Date().toISOString();
-
-    const endpoint = activeWorkout.plannedWorkoutId
-      ? `/api/workouts/${activeWorkout.plannedWorkoutId}`
-      : "/api/workouts";
-    const method = activeWorkout.plannedWorkoutId ? "PATCH" : "POST";
-
-    const res = await fetch(endpoint, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientId: selected.id,
-        status: "COMPLETED",
-        startedAt: activeWorkout.startedAt || now,
-        completedAt: now,
-        notes: activeWorkout.notes.trim() || "",
-        exercises: normalizedExercises,
-      }),
-    });
-
-    if (res.ok) {
-      const createdWorkout = await res.json();
-      setWorkouts((prev) => {
-        const withoutCurrent = activeWorkout.plannedWorkoutId
-          ? prev.filter((workout) => workout.id !== activeWorkout.plannedWorkoutId)
-          : prev;
-        return [createdWorkout, ...withoutCurrent];
-      });
-      setActiveWorkout(null);
-      setExercisePicker("");
-      setTab("history");
-      fetchClients();
-    } else {
-      const body = await res.json().catch(() => null);
-      alert(body?.error || "Could not complete workout");
-    }
-
-    setSavingWorkout(false);
-  };
-
-  const deleteWorkout = async (id: string) => {
-    await fetch(`/api/workouts/${id}`, { method: "DELETE" });
-    setWorkouts((prev) => prev.filter((workout) => workout.id !== id));
-    fetchClients();
-  };
-
-  const completedWorkouts = useMemo(() => workouts.filter((workout) => workout.status === "COMPLETED"), [workouts]);
-  const plannedWorkouts = useMemo(
-    () => workouts.filter((workout) => workout.status === "PLANNED" || workout.status === "IN_PROGRESS"),
-    [workouts],
-  );
-
-  const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
-
-  const getInviteUrl = (client: Client) => {
-    if (client.inviteUrl) return client.inviteUrl;
-    if (client.inviteToken) {
-      const baseUrl = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
-      return `${baseUrl}/invite/${client.inviteToken}`;
+  const getInviteUrl = (c: Client) => {
+    if (c.inviteUrl) return c.inviteUrl;
+    if (c.inviteToken) {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      return `${origin}/invite/${c.inviteToken}`;
     }
     return null;
   };
 
+  const deleteClient = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this client profile? All associated workout logs will be permanently removed.")) {
+      return;
+    }
+    const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+    if (res.ok) {
+      const remaining = clients.filter((c) => c.id !== id);
+      setClients(remaining);
+      setSelected(remaining.length ? remaining[0] : null);
+      if (editingClient?.id === id) setEditingClient(null);
+    }
+  };
+
+  // Workouts Logic
+  const completedWorkouts = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
+  const plannedWorkouts = useMemo(() => workouts.filter((w) => w.status === "PLANNED"), [workouts]);
+  const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
+
+  const startWorkout = () => {
+    setActiveWorkout({
+      startedAt: new Date().toISOString(),
+      notes: "",
+      exercises: [],
+    });
+  };
+
+  const beginPlannedWorkout = (plan: WorkoutSession) => {
+    setActiveWorkout({
+      startedAt: new Date().toISOString(),
+      notes: plan.notes || "",
+      plannedWorkoutId: plan.id,
+      exercises: plan.exercises.map((ex) => ({
+        name: ex.name,
+        sets: ex.sets.map((s) => ({
+          weight: String(s.weight),
+          reps: String(s.reps),
+          notes: s.notes || "",
+        })),
+      })),
+    });
+  };
+
+  const saveWorkoutPlan = async () => {
+    if (!activeWorkout || !selected) return;
+    setSavingPlan(true);
+    try {
+      const payload = {
+        clientId: selected.id,
+        status: "PLANNED",
+        notes: activeWorkout.notes || null,
+        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+          name: ex.name,
+          order: exIndex,
+          sets: ex.sets.map((s, sIndex) => ({
+            order: sIndex,
+            weight: parseFloat(s.weight) || 0,
+            reps: parseInt(s.reps, 10) || 0,
+            notes: s.notes || null,
+          })),
+        })),
+      };
+
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        setWorkouts((prev) => [saved, ...prev]);
+        setActiveWorkout(null);
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "Failed to save workout plan.");
+      }
+    } catch {
+      alert("Error saving workout plan.");
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const completeWorkout = async () => {
+    if (!activeWorkout || !selected) return;
+    setSavingWorkout(true);
+    try {
+      const payload = {
+        clientId: selected.id,
+        status: "COMPLETED",
+        startedAt: activeWorkout.startedAt,
+        completedAt: new Date().toISOString(),
+        notes: activeWorkout.notes || null,
+        plannedWorkoutId: activeWorkout.plannedWorkoutId || null,
+        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+          name: ex.name,
+          order: exIndex,
+          sets: ex.sets.map((s, sIndex) => ({
+            order: sIndex,
+            weight: parseFloat(s.weight) || 0,
+            reps: parseInt(s.reps, 10) || 0,
+            notes: s.notes || null,
+          })),
+        })),
+      };
+
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        setWorkouts((prev) => {
+          const filtered = activeWorkout.plannedWorkoutId
+            ? prev.filter((w) => w.id !== activeWorkout.plannedWorkoutId)
+            : prev;
+          return [saved, ...filtered];
+        });
+        setActiveWorkout(null);
+        setTab("history");
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "Failed to complete workout.");
+      }
+    } catch {
+      alert("Error saving completed workout.");
+    } finally {
+      setSavingWorkout(false);
+    }
+  };
+
+  const deleteWorkout = async (workoutId: string) => {
+    if (!confirm("Are you sure you want to delete this workout log?")) return;
+    const res = await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
+    if (res.ok) {
+      setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+    }
+  };
+
   return (
     <div className="app">
-      <SubscriptionBanner subInfo={subInfo} onSubscribed={fetchSubscription} />
+      <SubscriptionBanner
+        subInfo={subInfo}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onSubscribed={fetchSubscription}
+      />
 
       {/* App Header */}
       <header className="header">
@@ -368,10 +367,29 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           <Dumbbell size={22} />
           <span className="header-title">Fitness Tracker</span>
         </div>
-        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <Link href="/onboarding" style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600, background: "#f1f5f9", color: "#475569", padding: "6px 12px", borderRadius: "6px", border: "1px solid #cbd5e1", textDecoration: "none" }}>
+
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {/* Switch Role Button */}
+          <Link
+            href="/onboarding"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: "#f1f5f9",
+              color: "#475569",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: "1px solid #cbd5e1",
+              textDecoration: "none",
+            }}
+          >
             <span className="hide-mobile">Switch Role</span>
           </Link>
+
+          {/* Admin Portal Button */}
           {subInfo?.isAdmin && (
             <Link
               href="/admin"
@@ -394,8 +412,74 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
             </Link>
           )}
 
-          {userImage && <img src={userImage} className="avatar" alt="" />}
-          <span className="header-name">{userName}</span>
+          {/* Profile & Billing Action Button */}
+          <button
+            type="button"
+            onClick={() => setIsProfileModalOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "12px",
+              fontWeight: 600,
+              background: "#eff6ff",
+              color: "#2563eb",
+              border: "1px solid #bfdbfe",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+            title="Manage profile, picture, and subscription"
+          >
+            <CreditCard size={14} />
+            <span className="hide-mobile">Profile & Billing</span>
+          </button>
+
+          {/* Trainer Avatar & Profile Click */}
+          <div
+            onClick={() => setIsProfileModalOpen(true)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              cursor: "pointer",
+              padding: "2px 6px",
+              borderRadius: "20px",
+              background: "rgba(0,0,0,0.03)",
+            }}
+            title="Edit trainer profile & photo"
+          >
+            {currentTrainerImage ? (
+              <img
+                src={currentTrainerImage}
+                className="avatar"
+                alt={currentTrainerName}
+                style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: "30px",
+                  height: "30px",
+                  borderRadius: "50%",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                }}
+              >
+                {currentTrainerName ? currentTrainerName.charAt(0).toUpperCase() : <User size={16} />}
+              </div>
+            )}
+            <span className="header-name" style={{ fontWeight: 600, fontSize: "13px" }}>
+              {currentTrainerName}
+            </span>
+          </div>
+
+          {/* Sign Out */}
           <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
             <LogOut size={16} />
           </button>
@@ -423,50 +507,111 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           ) : (
             <>
               {/* Client Info Header */}
-              <div className="main-header" style={{ flexWrap: "wrap", gap: "12px", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ flex: "1 1 300px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    <h2 className="client-heading">{selected.name}</h2>
+              <div className="main-header" style={{ flexWrap: "wrap", gap: "14px", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 300px" }}>
+                  {/* Client Picture in Header */}
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    {selected.image ? (
+                      <img
+                        src={selected.image}
+                        alt={selected.name}
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "2px solid #2563eb",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          borderRadius: "50%",
+                          background: selected.name === "My Workouts" ? "#eff6ff" : "#f1f5f9",
+                          color: selected.name === "My Workouts" ? "#2563eb" : "#64748b",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "18px",
+                          fontWeight: 700,
+                          border: "1px solid #cbd5e1",
+                        }}
+                      >
+                        {selected.name ? selected.name.charAt(0).toUpperCase() : <User size={24} />}
+                      </div>
+                    )}
                     {selected.name !== "My Workouts" && (
                       <button
                         onClick={() => setEditingClient(selected)}
-                        className="btn-edit-client"
-                        title="Edit client profile and goals"
+                        style={{
+                          position: "absolute",
+                          bottom: "-2px",
+                          right: "-2px",
+                          background: "#2563eb",
+                          color: "#ffffff",
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                        }}
+                        title="Edit client photo and profile"
                       >
-                        <Edit3 size={13} />
-                        <span>Edit Profile</span>
+                        <Camera size={11} />
                       </button>
                     )}
                   </div>
 
-                  {/* Client Meta Badges: Email, Phone, Goals */}
-                  <div className="client-header-meta">
-                    {selected.email && (
-                      <span className="client-badge" title="Email address">
-                        <Mail size={12} />
-                        <span>{selected.email}</span>
-                      </span>
-                    )}
-                    {selected.phone && (
-                      <span className="client-badge" title="Phone number">
-                        <Phone size={12} />
-                        <span>{selected.phone}</span>
-                      </span>
-                    )}
-                    {selected.fitnessGoals && (
-                      <span className="client-badge" title="Fitness Goals" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}>
-                        <Target size={12} />
-                        <span>{selected.fitnessGoals}</span>
-                      </span>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <h2 className="client-heading" style={{ margin: 0 }}>{selected.name}</h2>
+                      {selected.name !== "My Workouts" && (
+                        <button
+                          onClick={() => setEditingClient(selected)}
+                          className="btn-edit-client"
+                          title="Edit client profile and goals"
+                        >
+                          <Edit3 size={13} />
+                          <span>Edit Profile</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Client Meta Badges: Email, Phone, Goals */}
+                    <div className="client-header-meta" style={{ marginTop: "4px" }}>
+                      {selected.email && (
+                        <span className="client-badge" title="Email address">
+                          <Mail size={12} />
+                          <span>{selected.email}</span>
+                        </span>
+                      )}
+                      {selected.phone && (
+                        <span className="client-badge" title="Phone number">
+                          <Phone size={12} />
+                          <span>{selected.phone}</span>
+                        </span>
+                      )}
+                      {selected.fitnessGoals && (
+                        <span className="client-badge" title="Fitness Goals" style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}>
+                          <Target size={12} />
+                          <span>{selected.fitnessGoals}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {selected.notes && (
+                      <p className="client-header-notes" style={{ margin: "6px 0 0 0" }}>
+                        <FileText size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+                        {selected.notes}
+                      </p>
                     )}
                   </div>
-
-                  {selected.notes && (
-                    <p className="client-header-notes">
-                      <FileText size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
-                      {selected.notes}
-                    </p>
-                  )}
                 </div>
 
                 {/* Invite Link & Action Bar */}
@@ -475,7 +620,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                     <div>
                       {selected.inviteStatus === "ACCEPTED" ? (
                         <span style={{ fontSize: "12px", fontWeight: 600, color: "#15803d", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                          ✓ Joined Portal
+                          ✓ Joined Portal (Free)
                         </span>
                       ) : selected.inviteStatus === "PENDING" && getInviteUrl(selected) ? (
                         <button
@@ -561,6 +706,18 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         onSave={handleEditClient}
         onDelete={deleteClient}
         onInviteGenerated={handleInviteGenerated}
+      />
+
+      {/* Trainer Profile & Billing Modal */}
+      <TrainerProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        subInfo={subInfo}
+        onProfileUpdated={() => {
+          fetchSubscription();
+          fetchTrainerProfile();
+          fetchClients();
+        }}
       />
     </div>
   );

@@ -101,6 +101,7 @@ export async function GET(req: Request) {
         id: c.id,
         userId: c.userId,
         name: c.name || (isSelfProfile ? c.user?.name : "Client"),
+        image: isSelfProfile ? (c.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
         email: isSelfProfile ? (c.email || c.user?.email || null) : (c.email || c.loginUser?.email || null),
         phone: isSelfProfile ? (c.phone || c.user?.phone || null) : (c.phone || c.loginUser?.phone || null),
         notes: isSelfProfile ? (c.notes || c.user?.notes || null) : (c.notes || null),
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Trainer user profile not found" }, { status: 400 });
     }
 
-    const { name, email, phone, notes, fitnessGoals } = await req.json();
+    const { name, image, email, phone, notes, fitnessGoals } = await req.json();
     if (!name?.trim()) {
       return NextResponse.json({ error: "Client name is required" }, { status: 400 });
     }
@@ -158,6 +159,7 @@ export async function POST(req: Request) {
       data: {
         userId: trainerId,
         name: name.trim(),
+        image: image?.trim() || null,
         email: email?.trim() || null,
         phone: phone?.trim() || null,
         notes: notes?.trim() || null,
@@ -186,6 +188,7 @@ export async function POST(req: Request) {
       id: client.id,
       userId: client.userId,
       name: client.name,
+      image: client.image,
       email: client.email,
       phone: client.phone,
       notes: client.notes,

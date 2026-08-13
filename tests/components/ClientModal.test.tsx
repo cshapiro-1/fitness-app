@@ -37,6 +37,7 @@ describe("ClientModal Component", () => {
     const mockClient = {
       id: "client-123",
       name: "Marcus Aurelius",
+      image: "https://example.com/marcus.jpg",
       email: "marcus@rome.gov",
       phone: "555-0199",
       fitnessGoals: "Increase stoic endurance",
@@ -85,6 +86,7 @@ describe("ClientModal Component", () => {
     await waitFor(() => {
       expect(onSaveMock).toHaveBeenCalledWith({
         name: "John Connor",
+        image: null,
         email: null,
         phone: null,
         fitnessGoals: null,

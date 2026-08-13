@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState } from "react";
-import { Clock, ShieldCheck, Zap, CheckCircle2, Lock } from "lucide-react";
+import { Clock, ShieldCheck, Zap, CheckCircle2, Lock, User } from "lucide-react";
 
 export interface SubscriptionInfo {
   hasAccess: boolean;
@@ -11,10 +11,11 @@ export interface SubscriptionInfo {
 
 interface SubscriptionBannerProps {
   subInfo: SubscriptionInfo | null;
+  onOpenProfile?: () => void;
   onSubscribed?: () => void;
 }
 
-export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBannerProps) {
+export function SubscriptionBanner({ subInfo, onOpenProfile, onSubscribed }: SubscriptionBannerProps) {
   const [showPaywallModal, setShowPaywallModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("annual");
   const [loadingCheckout, setLoadingCheckout] = useState(false);
@@ -53,14 +54,24 @@ export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBanner
         <div style={{ background: "linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)", color: "#ffffff", padding: "8px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 500 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Clock size={15} />
-            <span><b>30-Day Free Trial:</b> You have <b>{subInfo.daysRemaining} days remaining</b> with unlimited clients & workouts.</span>
+            <span><b>30-Day Free Trial:</b> You have <b>{subInfo.daysRemaining} days remaining</b>. Clients use 100% free with unlimited coaching workouts.</span>
           </div>
-          <button
-            onClick={() => setShowPaywallModal(true)}
-            style={{ background: "#ffffff", color: "#2563eb", border: "none", padding: "4px 12px", borderRadius: "6px", fontWeight: 600, fontSize: "11px", cursor: "pointer" }}
-          >
-            Upgrade Now ($10/mo)
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {onOpenProfile && (
+              <button
+                onClick={onOpenProfile}
+                style={{ background: "rgba(255,255,255,0.2)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.4)", padding: "4px 10px", borderRadius: "6px", fontWeight: 600, fontSize: "11px", cursor: "pointer" }}
+              >
+                Profile & Billing
+              </button>
+            )}
+            <button
+              onClick={() => setShowPaywallModal(true)}
+              style={{ background: "#ffffff", color: "#2563eb", border: "none", padding: "4px 12px", borderRadius: "6px", fontWeight: 700, fontSize: "11px", cursor: "pointer" }}
+            >
+              Upgrade Now ($20/mo)
+            </button>
+          </div>
         </div>
       )}
 
@@ -68,32 +79,52 @@ export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBanner
         <div style={{ background: "#fee2e2", borderBottom: "1px solid #fca5a5", color: "#b91c1c", padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 600 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Lock size={15} />
-            <span>Your 30-Day Free Trial has ended. Upgrade your subscription to continue managing clients.</span>
+            <span>Your 30-Day Free Trial has ended. Upgrade to Trainer Pro to continue managing clients and workouts.</span>
           </div>
-          <button
-            onClick={() => setShowPaywallModal(true)}
-            style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "6px 14px", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: "pointer" }}
-          >
-            Unlock Account
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            {onOpenProfile && (
+              <button
+                onClick={onOpenProfile}
+                style={{ background: "#ffffff", color: "#b91c1c", border: "1px solid #fca5a5", padding: "6px 12px", borderRadius: "6px", fontWeight: 600, fontSize: "12px", cursor: "pointer" }}
+              >
+                Profile & Billing
+              </button>
+            )}
+            <button
+              onClick={() => setShowPaywallModal(true)}
+              style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "6px 14px", borderRadius: "6px", fontWeight: 700, fontSize: "12px", cursor: "pointer" }}
+            >
+              Unlock Account ($20/mo)
+            </button>
+          </div>
         </div>
       )}
 
       {subInfo.status === "active" && (
-        <div style={{ background: "#f0fdf4", borderBottom: "1px solid #bbf7d0", color: "#15803d", padding: "6px 16px", display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", fontWeight: 500 }}>
-          <ShieldCheck size={14} />
-          <span><b>Pro Trainer Plan Active:</b> Unlimited Clients & Analytics ({subInfo.daysRemaining} days remaining)</span>
+        <div style={{ background: "#f0fdf4", borderBottom: "1px solid #bbf7d0", color: "#15803d", padding: "6px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", fontWeight: 500 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <ShieldCheck size={14} />
+            <span><b>Trainer Pro Active:</b> Unlimited Clients & Workouts (Clients use free).</span>
+          </div>
+          {onOpenProfile && (
+            <button
+              onClick={onOpenProfile}
+              style={{ background: "#ffffff", color: "#15803d", border: "1px solid #bbf7d0", padding: "2px 8px", borderRadius: "4px", fontWeight: 600, fontSize: "10px", cursor: "pointer" }}
+            >
+              Manage Profile & Billing
+            </button>
+          )}
         </div>
       )}
 
       {/* Subscription Paywall Modal */}
       {(showPaywallModal || !subInfo.hasAccess) && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}>
-          <div style={{ background: "#ffffff", padding: "28px", borderRadius: "16px", width: "420px", maxWidth: "90%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+          <div style={{ background: "#ffffff", padding: "28px", borderRadius: "16px", width: "440px", maxWidth: "90%", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
             <div style={{ textAlign: "center", marginBottom: "20px" }}>
               <Zap size={32} style={{ color: "#2563eb", marginBottom: "8px" }} />
               <h2 style={{ margin: "0 0 6px 0", fontSize: "20px", fontWeight: 700, color: "#0f172a" }}>Trainer Pro Subscription</h2>
-              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>Unlock full platform access for your fitness coaching business.</p>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>Unlimited client coaching. All clients access for free.</p>
             </div>
 
             {/* Plan Switcher */}
@@ -110,7 +141,7 @@ export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBanner
                 }}
               >
                 <div style={{ fontSize: "12px", color: "#64748b" }}>Monthly</div>
-                <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", margin: "4px 0" }}>$10 <span style={{ fontSize: "12px", fontWeight: 400 }}>/mo</span></div>
+                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: "4px 0" }}>$20 <span style={{ fontSize: "12px", fontWeight: 400 }}>/mo</span></div>
                 <div style={{ fontSize: "10px", color: "#64748b" }}>Billed monthly</div>
               </div>
 
@@ -126,18 +157,18 @@ export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBanner
                   position: "relative",
                 }}
               >
-                <span style={{ position: "absolute", top: "-8px", right: "10px", background: "#16a34a", color: "#ffffff", fontSize: "9px", fontWeight: 700, padding: "2px 6px", borderRadius: "4px" }}>SAVE $20</span>
-                <div style={{ fontSize: "12px", color: "#64748b" }}>Annual</div>
-                <div style={{ fontSize: "20px", fontWeight: 700, color: "#0f172a", margin: "4px 0" }}>$100 <span style={{ fontSize: "12px", fontWeight: 400 }}>/yr</span></div>
-                <div style={{ fontSize: "10px", color: "#16a34a", fontWeight: 600 }}>$8.33 / mo equivalent</div>
+                <span style={{ position: "absolute", top: "-8px", right: "10px", background: "#16a34a", color: "#ffffff", fontSize: "9px", fontWeight: 800, padding: "2px 6px", borderRadius: "4px" }}>SAVE $40</span>
+                <div style={{ fontSize: "12px", color: "#64748b" }}>Annual Plan</div>
+                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: "4px 0" }}>$200 <span style={{ fontSize: "12px", fontWeight: 400 }}>/yr</span></div>
+                <div style={{ fontSize: "10px", color: "#16a34a", fontWeight: 600 }}>$16.67 / mo equivalent</div>
               </div>
             </div>
 
             <ul style={{ paddingLeft: 0, listStyle: "none", margin: "0 0 20px 0", fontSize: "12px", color: "#334155", display: "flex", flexDirection: "column", gap: "8px" }}>
               <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Unlimited Client Profiles</li>
-              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Unlimited Workout Plans & Logging</li>
-              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Full Analytics, 1RM Estimation & Muscle Breakdown</li>
-              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Client Invite Text Links</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Clients Use 100% Free</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> Workout Programming & History</li>
+              <li style={{ display: "flex", alignItems: "center", gap: "8px" }}><CheckCircle2 size={16} style={{ color: "#16a34a" }} /> 1RM Estimation & Analytics Breakdown</li>
             </ul>
 
             <button
@@ -156,7 +187,7 @@ export function SubscriptionBanner({ subInfo, onSubscribed }: SubscriptionBanner
                 boxShadow: "0 4px 6px -1px rgba(37,99,235,0.2)",
               }}
             >
-              {loadingCheckout ? "Redirecting to Checkout..." : `Subscribe ${selectedPlan === "annual" ? "$100/yr" : "$10/mo"}`}
+              {loadingCheckout ? "Redirecting to Checkout..." : `Subscribe ${selectedPlan === "annual" ? "$200/yr" : "$20/mo"}`}
             </button>
 
             {subInfo.hasAccess && (

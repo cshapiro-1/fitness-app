@@ -1,8 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, User, Mail, Phone, Target, FileText, Link2, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
+import {
+  X,
+  User,
+  Mail,
+  Phone,
+  Target,
+  FileText,
+  Link2,
+  Copy,
+  Check,
+  RefreshCw,
+  Trash2,
+  Camera,
+  Image as ImageIcon,
+} from "lucide-react";
 import { Client } from "../types";
+
+const CLIENT_PRESET_AVATARS = [
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80",
+];
 
 export interface ClientModalProps {
   isOpen: boolean;
@@ -11,6 +34,7 @@ export interface ClientModalProps {
   onClose: () => void;
   onSave: (clientData: {
     name: string;
+    image?: string | null;
     email: string | null;
     phone: string | null;
     fitnessGoals: string | null;
@@ -30,6 +54,7 @@ export function ClientModal({
   onInviteGenerated,
 }: ClientModalProps) {
   const [name, setName] = useState("");
+  const [image, setImage] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [fitnessGoals, setFitnessGoals] = useState("");
@@ -46,6 +71,7 @@ export function ClientModal({
       setCopied(false);
       if (mode === "edit" && client) {
         setName(client.name || "");
+        setImage(client.image || "");
         setEmail(client.email || "");
         setPhone(client.phone || "");
         setFitnessGoals(client.fitnessGoals || "");
@@ -58,6 +84,7 @@ export function ClientModal({
         setInviteUrl(existingUrl);
       } else {
         setName("");
+        setImage("");
         setEmail("");
         setPhone("");
         setFitnessGoals("");
@@ -109,6 +136,23 @@ export function ClientModal({
     }
   };
 
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image size should be less than 2MB");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          setImage(reader.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -121,6 +165,7 @@ export function ClientModal({
     try {
       await onSave({
         name: name.trim(),
+        image: image.trim() || null,
         email: email.trim() || null,
         phone: phone.trim() || null,
         fitnessGoals: fitnessGoals.trim() || null,
@@ -136,7 +181,7 @@ export function ClientModal({
 
   return (
     <div className="client-modal-backdrop" onClick={onClose}>
-      <div className="client-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div className="client-modal-card" style={{ maxWidth: "540px", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="client-modal-header">
           <div className="client-modal-header-info">
@@ -145,8 +190,8 @@ export function ClientModal({
             </h2>
             <p className="client-modal-subtitle">
               {mode === "add"
-                ? "Enter client details. An invite link can be generated at any time."
-                : "Update profile information, fitness goals, and invite status."}
+                ? "Enter client profile details and photo. All clients have 100% free access."
+                : "Update client profile details, photo, fitness goals, and invite status."}
             </p>
           </div>
           <button className="client-modal-close" onClick={onClose} aria-label="Close modal">
@@ -157,6 +202,100 @@ export function ClientModal({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="client-modal-form">
           {error && <div className="client-modal-alert-error">{error}</div>}
+
+          {/* Profile Picture Section */}
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "16px", padding: "14px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              {image ? (
+                <img
+                  src={image}
+                  alt={name || "Client Avatar"}
+                  style={{ width: "56px", height: "56px", borderRadius: "50%", objectFit: "cover", border: "2px solid #2563eb" }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    background: "#e2e8f0",
+                    color: "#64748b",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "20px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {name ? name.charAt(0).toUpperCase() : <User size={26} />}
+                </div>
+              )}
+              <label
+                htmlFor="client-avatar-upload"
+                style={{
+                  position: "absolute",
+                  bottom: "-2px",
+                  right: "-2px",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  width: "22px",
+                  height: "22px",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+                }}
+                title="Upload client photo"
+              >
+                <Camera size={12} />
+                <input
+                  id="client-avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: "#0f172a", marginBottom: "3px" }}>
+                Client Photo / Avatar
+              </div>
+              <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "6px" }}>
+                Upload an image or pick a preset:
+              </div>
+              <div style={{ display: "flex", gap: "5px", alignItems: "center", flexWrap: "wrap" }}>
+                {CLIENT_PRESET_AVATARS.map((avatarUrl, idx) => (
+                  <img
+                    key={idx}
+                    src={avatarUrl}
+                    alt={`Avatar ${idx + 1}`}
+                    onClick={() => setImage(avatarUrl)}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "50%",
+                      cursor: "pointer",
+                      border: image === avatarUrl ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                      opacity: image === avatarUrl ? 1 : 0.75,
+                    }}
+                  />
+                ))}
+                {image && (
+                  <button
+                    type="button"
+                    onClick={() => setImage("")}
+                    style={{ background: "none", border: "none", fontSize: "10px", color: "#ef4444", cursor: "pointer", marginLeft: "4px" }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div className="client-modal-fields-grid">
             {/* Name */}
@@ -206,6 +345,21 @@ export function ClientModal({
               />
             </div>
 
+            {/* Photo URL */}
+            <div className="client-modal-field">
+              <label className="client-modal-label">
+                <ImageIcon size={13} />
+                <span>Custom Image URL (Optional)</span>
+              </label>
+              <input
+                type="url"
+                className="client-modal-input"
+                placeholder="https://..."
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+              />
+            </div>
+
             {/* Fitness Goals */}
             <div className="client-modal-field client-modal-field-full">
               <label className="client-modal-label">
@@ -244,14 +398,14 @@ export function ClientModal({
                 <div className="client-modal-invite-title-group">
                   <div className="client-modal-invite-title">
                     <Link2 size={15} />
-                    <span>Client Portal Invite</span>
+                    <span>Client Portal Invite (Free Access)</span>
                   </div>
                   <div className="client-modal-invite-desc">
                     {client.inviteStatus === "ACCEPTED"
                       ? "Client has accepted their invite and activated their account."
                       : inviteUrl
-                      ? "Share this invite link with your client so they can access their workout portal."
-                      : "Generate an invite link to give your client portal access."}
+                      ? "Share this invite link with your client so they can access their workout portal for free."
+                      : "Generate an invite link to give your client free portal access."}
                   </div>
                 </div>
 
