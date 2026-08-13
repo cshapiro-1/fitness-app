@@ -2,7 +2,21 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
-import { LogOut, TrendingUp, Dumbbell, Camera, User, Check, X, ShieldCheck } from "lucide-react";
+import {
+  LogOut,
+  TrendingUp,
+  Dumbbell,
+  Camera,
+  User,
+  Check,
+  X,
+  ShieldCheck,
+  Calendar,
+  Award,
+  Flame,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 import Link from "next/link";
 
 const CLIENT_PRESETS = [
@@ -31,13 +45,41 @@ export function ClientDashboard({
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
 
+  // Dismissible Banner State (Persisted in localStorage)
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    try {
+      const isDismissed = localStorage.getItem("fitcoach_free_portal_banner_dismissed");
+      if (isDismissed === "true") {
+        setBannerDismissed(true);
+      }
+    } catch {
+      // Ignore local storage errors
+    }
+  }, []);
+
+  const handleDismissBanner = () => {
+    setBannerDismissed(true);
+    try {
+      localStorage.setItem("fitcoach_free_portal_banner_dismissed", "true");
+    } catch {
+      // Ignore local storage errors
+    }
+  };
+
   const fetchWorkouts = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/workouts/client");
-    if (res.ok) {
-      setWorkouts(await res.json());
+    try {
+      const res = await fetch("/api/workouts/client");
+      if (res.ok) {
+        setWorkouts(await res.json());
+      }
+    } catch (e) {
+      console.error("Failed to load workouts", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -56,7 +98,7 @@ export function ClientDashboard({
         setCurrentImage(newImage);
         setShowPhotoModal(false);
       }
-    } catch (e) {
+    } catch {
       alert("Failed to update photo.");
     } finally {
       setSavingPhoto(false);
@@ -83,36 +125,57 @@ export function ClientDashboard({
   const completed = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
   const planned = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
 
+  // Client Analytics Aggregations
+  const analyticsData = useMemo(() => {
+    let totalVolume = 0;
+    let totalSets = 0;
+    const prMap: Record<string, number> = {};
+
+    completed.forEach((w) => {
+      (w.exercises || []).forEach((ex: any) => {
+        (ex.sets || []).forEach((st: any) => {
+          const wt = Number(st.weight) || 0;
+          const reps = Number(st.reps) || 0;
+          totalVolume += wt * reps;
+          totalSets += 1;
+
+          const est1RM = reps > 1 ? Math.round(wt * (36 / (37 - Math.min(reps, 36)))) : wt;
+          const exName = (ex.name || "").trim();
+          if (exName && (!prMap[exName] || est1RM > prMap[exName])) {
+            prMap[exName] = est1RM;
+          }
+        });
+      });
+    });
+
+    const topPRs = Object.entries(prMap)
+      .map(([name, weight]) => ({ name, weight }))
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 6);
+
+    return { totalVolume, totalSets, topPRs };
+  }, [completed]);
+
   return (
     <div className="app">
       {/* App Header */}
       <header className="header">
         <div className="header-left">
-          <Dumbbell size={22} />
-          <span className="header-title">Client Workout Portal</span>
+          <Dumbbell size={20} style={{ color: "#2563eb" }} />
+          <span className="header-title">Client Portal</span>
         </div>
-        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           {isAdmin && (
             <Link
               href="/admin"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "12px",
-                fontWeight: 600,
-                background: "#0f172a",
-                color: "#38bdf8",
-                padding: "6px 12px",
-                borderRadius: "6px",
-                border: "1px solid #1e293b",
-                textDecoration: "none",
-              }}
+              className="nav-btn nav-btn-dark"
             >
-              <ShieldCheck size={15} />
-              <span className="hide-mobile">Admin Portal</span>
+              <ShieldCheck size={14} />
+              <span className="hide-mobile">Admin</span>
             </Link>
           )}
+
           {/* Nutrition & Macros */}
           <Link
             href="/nutrition"
@@ -135,7 +198,7 @@ export function ClientDashboard({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "8px",
+              gap: "6px",
               cursor: "pointer",
               padding: "2px 6px",
               borderRadius: "20px",
@@ -148,27 +211,27 @@ export function ClientDashboard({
                 src={currentImage}
                 className="avatar"
                 alt={userName}
-                style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
+                style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
               />
             ) : (
               <div
                 style={{
-                  width: "30px",
-                  height: "30px",
+                  width: "28px",
+                  height: "28px",
                   borderRadius: "50%",
                   background: "#16a34a",
                   color: "#ffffff",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "12px",
+                  fontSize: "11px",
                   fontWeight: 700,
                 }}
               >
-                {userName ? userName.charAt(0).toUpperCase() : <User size={16} />}
+                {userName ? userName.charAt(0).toUpperCase() : <User size={14} />}
               </div>
             )}
-            <span className="header-name">{userName}</span>
+            <span className="header-name hide-mobile" style={{ fontSize: "12px" }}>{userName}</span>
           </div>
 
           <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
@@ -178,93 +241,286 @@ export function ClientDashboard({
       </header>
 
       {/* Main Content */}
-      <main className="main" style={{ maxWidth: "900px", margin: "24px auto", padding: "0 16px" }}>
-        {/* Free Portal Access Badge */}
-        <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", padding: "10px 16px", borderRadius: "10px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
-          <div>
-            <b>Client Portal Active:</b> You have 100% free access to all routines assigned by your coach.
-          </div>
-          <button
-            onClick={() => setShowPhotoModal(true)}
-            style={{ background: "#ffffff", color: "#15803d", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", fontWeight: 600, fontSize: "11px", cursor: "pointer" }}
+      <main className="main" style={{ maxWidth: "860px", margin: "16px auto", padding: "0 14px 60px" }}>
+        {/* Dismissible Free Portal Access Banner */}
+        {!bannerDismissed && (
+          <div
+            style={{
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              color: "#166534",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              marginBottom: "16px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "12px",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+            }}
           >
-            Change Photo
-          </button>
-        </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Sparkles size={16} style={{ color: "#16a34a", flexShrink: 0 }} />
+              <span>
+                <b>Client Portal Active:</b> 100% free access to all coach routines &amp; nutrition.
+              </span>
+            </div>
 
-        <div className="tabs" style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setShowPhotoModal(true)}
+                className="btn-secondary"
+                style={{ padding: "4px 8px", fontSize: "11px", borderRadius: "6px", height: "auto" }}
+              >
+                Photo
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDismissBanner}
+                className="btn-ghost"
+                style={{ padding: "4px", color: "#166534", height: "auto" }}
+                title="Dismiss banner"
+                aria-label="Dismiss banner"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Clean Responsive Tab Switcher */}
+        <div className="tabs" style={{ marginBottom: "16px" }}>
           <button className={`tab${tab === "assigned" ? " active" : ""}`} onClick={() => setTab("assigned")}>
-            Assigned Workouts ({planned.length})
+            Assigned ({planned.length})
           </button>
           <button className={`tab${tab === "history" ? " active" : ""}`} onClick={() => setTab("history")}>
             History ({completed.length})
           </button>
           <button className={`tab${tab === "analytics" ? " active" : ""}`} onClick={() => setTab("analytics")}>
-            Analytics
+            Progress &amp; PRs
           </button>
         </div>
 
+        {/* TAB 1: Assigned Workouts */}
         {tab === "assigned" && (
-          <div className="card">
-            <h3 className="section-title">Assigned Workouts from Trainer</h3>
-            {loading && <div className="empty-state">Loading routines...</div>}
-            {!loading && !planned.length && (
-              <div className="empty-state">No assigned workouts right now. Check back when your trainer assigns a routine!</div>
-            )}
-            {planned.map((workout) => (
-              <div key={workout.id} className="history-card" style={{ marginBottom: "16px" }}>
-                <div className="history-card-header">
-                  <div>
-                    <div className="history-date">Planned Routine · {workout.exercises.length} Exercises</div>
-                    <div className="history-meta">{new Date(workout.createdAt).toLocaleDateString()}</div>
-                  </div>
-                </div>
-                {workout.exercises.map((ex: any) => (
-                  <div key={ex.id} className="history-exercise">
-                    <div className="history-exercise-name">
-                      {ex.name} ({ex.sets.length} sets)
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+          <div className="card" style={{ padding: "16px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Assigned Routines from Coach</h3>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: "10px" }}>
+                {planned.length} Active
+              </span>
+            </div>
 
-        {tab === "history" && (
-          <div className="card">
-            <h3 className="section-title">Workout History</h3>
-            {!completed.length && <div className="empty-state">No completed workouts yet.</div>}
-            {completed.map((workout) => (
-              <div key={workout.id} className="history-card" style={{ marginBottom: "16px" }}>
-                <div className="history-card-header">
-                  <div className="history-date">
-                    {new Date(workout.completedAt || workout.createdAt).toLocaleString()}
+            {loading && (
+              <div className="empty-state">
+                <div className="spin-inline" /> Loading assigned workouts...
+              </div>
+            )}
+
+            {!loading && !planned.length && (
+              <div className="empty-state" style={{ padding: "32px 16px" }}>
+                <Dumbbell size={32} style={{ opacity: 0.3, marginBottom: "8px" }} />
+                <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>No pending workouts assigned.</p>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>When your coach schedules a routine, it will appear here automatically.</span>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {planned.map((workout) => (
+                <div
+                  key={workout.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Calendar size={14} style={{ color: "#2563eb" }} />
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+                        Planned Session · {workout.exercises?.length || 0} Exercises
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                      {new Date(workout.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                </div>
-                {workout.exercises.map((ex: any) => (
-                  <div key={ex.id} className="history-exercise">
-                    <div className="history-exercise-name">{ex.name}</div>
-                    {ex.sets.map((st: any) => (
-                      <div key={st.id} className="history-set-row">
-                        <span>
-                          Set {st.order + 1}: {st.weight} lbs x {st.reps} reps
+
+                  {workout.notes && (
+                    <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px", color: "#475569", marginBottom: "10px" }}>
+                      <FileText size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+                      <b>Coach Notes:</b> {workout.notes}
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {(workout.exercises || []).map((ex: any, idx: number) => (
+                      <div
+                        key={ex.id || idx}
+                        style={{
+                          background: "#fafafa",
+                          border: "1px solid #f1f5f9",
+                          borderRadius: "8px",
+                          padding: "8px 10px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: "12px",
+                        }}
+                      >
+                        <span style={{ fontWeight: 700, color: "#0f172a" }}>{ex.name}</span>
+                        <span style={{ color: "#64748b", fontWeight: 600 }}>
+                          {(ex.sets || []).length} sets
                         </span>
                       </div>
                     ))}
                   </div>
-                ))}
-              </div>
-            ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
+        {/* TAB 2: Workout History */}
+        {tab === "history" && (
+          <div className="card" style={{ padding: "16px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Completed Workout History</h3>
+              <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "10px" }}>
+                {completed.length} Completed
+              </span>
+            </div>
+
+            {!completed.length && (
+              <div className="empty-state" style={{ padding: "32px 16px" }}>
+                <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>No completed workouts logged yet.</p>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {completed.map((workout) => (
+                <div
+                  key={workout.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+                      {new Date(workout.completedAt || workout.createdAt).toLocaleString()}
+                    </div>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
+                      ✓ Finished
+                    </span>
+                  </div>
+
+                  {workout.notes && (
+                    <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", marginBottom: "8px" }}>
+                      &ldquo;{workout.notes}&rdquo;
+                    </div>
+                  )}
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {(workout.exercises || []).map((ex: any) => (
+                      <div key={ex.id} style={{ background: "#fafafa", borderRadius: "8px", padding: "8px 10px", border: "1px solid #f1f5f9" }}>
+                        <div style={{ fontWeight: 700, fontSize: "12px", color: "#0f172a", marginBottom: "4px" }}>
+                          {ex.name}
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                          {(ex.sets || []).map((st: any) => (
+                            <span
+                              key={st.id}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #e2e8f0",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "11px",
+                                color: "#334155",
+                              }}
+                            >
+                              Set {st.order + 1}: <b>{st.weight}</b> lbs × <b>{st.reps}</b>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: Analytics & PRs */}
         {tab === "analytics" && (
-          <div className="card">
-            <h3 className="section-title">
-              <TrendingUp size={16} /> Progress & PRs
-            </h3>
-            <p style={{ fontSize: "14px", color: "#666" }}>Completed workouts: {completed.length}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Quick Metrics Bar */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
+              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Workouts</div>
+                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginTop: "2px" }}>
+                  {completed.length}
+                </div>
+              </div>
+
+              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Sets Done</div>
+                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginTop: "2px" }}>
+                  {analyticsData.totalSets}
+                </div>
+              </div>
+
+              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Tonnage</div>
+                <div style={{ fontSize: "20px", fontWeight: 800, color: "#2563eb", marginTop: "2px" }}>
+                  {Math.round(analyticsData.totalVolume).toLocaleString()} <span style={{ fontSize: "10px" }}>lbs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Top Estimated 1RM PRs */}
+            <div className="card" style={{ padding: "16px 18px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
+                <Award size={18} style={{ color: "#eab308" }} />
+                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Top Strength Personal Records</h3>
+              </div>
+
+              {analyticsData.topPRs.length === 0 ? (
+                <div className="empty-state">Complete workouts to see your strength records.</div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  {analyticsData.topPRs.map((pr) => (
+                    <div
+                      key={pr.name}
+                      style={{
+                        background: "#fafafa",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "10px",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {pr.name}
+                      </div>
+                      <div style={{ fontSize: "16px", fontWeight: 800, color: "#2563eb", marginTop: "2px" }}>
+                        {pr.weight} <span style={{ fontSize: "11px", fontWeight: 500, color: "#64748b" }}>lbs est. 1RM</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -276,7 +532,7 @@ export function ClientDashboard({
             <div className="client-modal-header">
               <div className="client-modal-header-info">
                 <h2 className="client-modal-title">Change Profile Photo</h2>
-                <p className="client-modal-subtitle">Upload a picture or select an athletic avatar.</p>
+                <p className="client-modal-subtitle">Upload your picture or pick an athletic avatar.</p>
               </div>
               <button className="client-modal-close" onClick={() => setShowPhotoModal(false)}>
                 <X size={18} />
@@ -302,70 +558,72 @@ export function ClientDashboard({
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: "28px",
+                      fontSize: "32px",
                       fontWeight: 700,
                     }}
                   >
-                    {userName ? userName.charAt(0).toUpperCase() : <User size={36} />}
+                    {userName ? userName.charAt(0).toUpperCase() : <User size={40} />}
                   </div>
                 )}
               </div>
 
-              <label
-                htmlFor="client-file-upload"
-                className="btn-primary"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  width: "100%",
-                  padding: "10px",
-                  cursor: "pointer",
-                  marginBottom: "16px",
-                }}
-              >
-                <Camera size={15} />
-                <span>Upload From Device</span>
-                <input
-                  id="client-file-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  style={{ display: "none" }}
-                />
-              </label>
-
-              <div style={{ fontSize: "12px", color: "#64748b", textAlign: "center", marginBottom: "10px" }}>
-                Or pick an avatar preset:
-              </div>
-
-              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap", marginBottom: "20px" }}>
-                {CLIENT_PRESETS.map((url, idx) => (
-                  <img
-                    key={idx}
-                    src={url}
-                    alt=""
-                    onClick={() => handleUpdatePhoto(url)}
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "50%",
-                      cursor: "pointer",
-                      border: currentImage === url ? "2px solid #2563eb" : "1px solid #cbd5e1",
-                    }}
+              {/* Upload Local Image */}
+              <div style={{ marginBottom: "20px", textAlign: "center" }}>
+                <label
+                  htmlFor="profile-upload-input"
+                  className="btn-primary"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "8px 16px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Camera size={14} />
+                  <span>Upload from Device</span>
+                  <input
+                    id="profile-upload-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
                   />
-                ))}
+                </label>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowPhotoModal(false)}
-                className="btn-secondary"
-                style={{ width: "100%" }}
-              >
-                Close
-              </button>
+              {/* Preset Avatars */}
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", marginBottom: "10px" }}>
+                  Or Choose an Athletic Avatar:
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
+                  {CLIENT_PRESETS.map((presetUrl, idx) => (
+                    <img
+                      key={idx}
+                      src={presetUrl}
+                      alt={`Avatar ${idx + 1}`}
+                      onClick={() => handleUpdatePhoto(presetUrl)}
+                      style={{
+                        width: "100%",
+                        height: "70px",
+                        borderRadius: "10px",
+                        objectFit: "cover",
+                        cursor: "pointer",
+                        border: currentImage === presetUrl ? "3px solid #2563eb" : "1px solid #e2e8f0",
+                        transition: "all 0.15s ease",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {savingPhoto && (
+                <div style={{ textAlign: "center", marginTop: "14px", fontSize: "12px", color: "#64748b" }}>
+                  <div className="spin-inline" /> Saving new photo...
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -373,3 +631,5 @@ export function ClientDashboard({
     </div>
   );
 }
+
+export default ClientDashboard;
