@@ -443,7 +443,7 @@ export function WorkoutBuilder({
                           />
 
                           <input
-                            className="input"
+                            className="input set-notes-input"
                             type="text"
                             placeholder="e.g. RPE 8, drop set"
                             value={set.notes}

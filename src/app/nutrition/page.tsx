@@ -513,8 +513,8 @@ export default function NutritionPage() {
           </div>
         </div>
 
-        {/* 2-Column Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: "24px", alignItems: "start" }}>
+        {/* Responsive Grid */}
+        <div className="nutrition-grid">
           {/* LEFT COLUMN: Targets, Calculator & Supplement Stack */}
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             {/* Macro Targets Blueprint */}
