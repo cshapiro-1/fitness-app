@@ -70,7 +70,6 @@ model User {
   trainerId    String?
   notes        String?
   fitnessGoals String?
-  status       String?   @default("PENDING")
   id                 String    @id @default(cuid())
   email        String?    @unique
   emailVerified      DateTime?

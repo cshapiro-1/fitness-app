@@ -1,0 +1,6 @@
+{
+  "name": "Fitness Tracker & Workout Coach",
+  "description": "Comprehensive workout logging, strength tracking, exercise library with visual guides, analytics, and AI fitness planner.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
