@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import crypto from "crypto";
 
 // GET /api/clients - STRICTLY ISOLATED to authenticated trainer
 export async function GET(req: Request) {
@@ -33,6 +32,7 @@ export async function GET(req: Request) {
       },
       include: {
         user: true,
+        loginUser: true,
         workouts: true,
         workoutSessions: {
           include: {
@@ -54,22 +54,26 @@ export async function GET(req: Request) {
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
     // Format for Dashboard expectations
-    const formattedClients = clients.map((c: any) => ({
-      id: c.id,
-      userId: c.userId,
-      name: c.name || c.user?.name || "Client",
-      email: c.email || c.user?.email || null,
-      phone: c.phone || c.user?.phone || null,
-      notes: c.notes || c.user?.notes || null,
-      fitnessGoals: c.fitnessGoals || c.user?.fitnessGoals || null,
-      inviteStatus: c.inviteStatus || "NOT_SENT",
-      inviteToken: c.inviteToken || null,
-      inviteUrl: c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null,
-      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
-      workouts: c.workouts || [],
-      workoutSessions: c.workoutSessions || [],
-      _count: c._count || { workoutSessions: 0 },
-    }));
+    const formattedClients = clients.map((c: any) => {
+      const isSelfProfile = c.name === "My Workouts";
+      return {
+        id: c.id,
+        userId: c.userId,
+        name: c.name || (isSelfProfile ? c.user?.name : "Client"),
+        // CRITICAL FIX: Do not fall back to c.user.email/phone (which is the trainer's account)
+        email: isSelfProfile ? (c.email || c.user?.email || null) : (c.email || c.loginUser?.email || null),
+        phone: isSelfProfile ? (c.phone || c.user?.phone || null) : (c.phone || c.loginUser?.phone || null),
+        notes: isSelfProfile ? (c.notes || c.user?.notes || null) : (c.notes || null),
+        fitnessGoals: isSelfProfile ? (c.fitnessGoals || c.user?.fitnessGoals || null) : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
+        inviteStatus: isSelfProfile ? "ACCEPTED" : (c.inviteStatus || "NOT_SENT"),
+        inviteToken: c.inviteToken || null,
+        inviteUrl: c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null,
+        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        workouts: c.workouts || [],
+        workoutSessions: c.workoutSessions || [],
+        _count: c._count || { workoutSessions: 0 },
+      };
+    });
 
     return NextResponse.json(formattedClients);
   } catch (error) {
@@ -78,7 +82,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/clients - Create Client Profile + Invite Link
+// POST /api/clients - Create Client Profile (default NOT_SENT invite)
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -101,9 +105,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Client name is required" }, { status: 400 });
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-
     // Create Client record linked to this trainer (userId: trainerId)
+    // Default inviteStatus is NOT_SENT, inviteToken is null
     const client = await prisma.client.create({
       data: {
         userId: trainerId,
@@ -112,20 +115,17 @@ export async function POST(req: Request) {
         phone: phone?.trim() || null,
         notes: notes?.trim() || null,
         fitnessGoals: fitnessGoals?.trim() || null,
-        inviteToken: token,
-        inviteStatus: "PENDING",
-        invitedAt: new Date(),
+        inviteToken: null,
+        inviteStatus: "NOT_SENT",
       },
       include: {
         user: true,
+        loginUser: true,
         workouts: true,
         workoutSessions: true,
         _count: { select: { workoutSessions: true } },
       },
     });
-
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
-    const inviteUrl = baseUrl ? `${baseUrl}/invite/${token}` : `/invite/${token}`;
 
     const formattedClient = {
       id: client.id,
@@ -136,8 +136,8 @@ export async function POST(req: Request) {
       notes: client.notes,
       fitnessGoals: client.fitnessGoals,
       inviteStatus: client.inviteStatus,
-      inviteToken: client.inviteToken,
-      inviteUrl,
+      inviteToken: null,
+      inviteUrl: null,
       createdAt: client.createdAt.toISOString(),
       workouts: client.workouts || [],
       workoutSessions: client.workoutSessions || [],

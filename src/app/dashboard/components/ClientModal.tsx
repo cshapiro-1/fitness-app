@@ -17,6 +17,7 @@ export interface ClientModalProps {
     notes: string | null;
   }) => Promise<void> | void;
   onDelete?: (id: string) => Promise<void> | void;
+  onInviteGenerated?: (client: Client) => void;
 }
 
 export function ClientModal({
@@ -26,6 +27,7 @@ export function ClientModal({
   onClose,
   onSave,
   onDelete,
+  onInviteGenerated,
 }: ClientModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -80,6 +82,14 @@ export function ClientModal({
         const data = await res.json();
         if (res.ok && data.inviteUrl) {
           setInviteUrl(data.inviteUrl);
+          if (onInviteGenerated) {
+            onInviteGenerated({
+              ...client,
+              inviteToken: data.inviteToken || data.token,
+              inviteUrl: data.inviteUrl,
+              inviteStatus: "PENDING",
+            });
+          }
         } else {
           setError(data.error || "Failed to generate invite link.");
         }
@@ -88,9 +98,6 @@ export function ClientModal({
       } finally {
         setGeneratingInvite(false);
       }
-    } else {
-      // In add mode, invite link will be generated upon creating the client
-      setInviteUrl(null);
     }
   };
 
@@ -138,7 +145,7 @@ export function ClientModal({
             </h2>
             <p className="client-modal-subtitle">
               {mode === "add"
-                ? "Enter client details to manage workouts and generate an access invite."
+                ? "Enter client details. An invite link can be generated at any time."
                 : "Update profile information, fitness goals, and invite status."}
             </p>
           </div>
@@ -173,7 +180,7 @@ export function ClientModal({
             <div className="client-modal-field">
               <label className="client-modal-label">
                 <Mail size={13} />
-                <span>Email Address</span>
+                <span>Email Address (Optional)</span>
               </label>
               <input
                 type="email"
@@ -188,7 +195,7 @@ export function ClientModal({
             <div className="client-modal-field">
               <label className="client-modal-label">
                 <Phone size={13} />
-                <span>Phone Number</span>
+                <span>Phone Number (Optional)</span>
               </label>
               <input
                 type="tel"
@@ -223,71 +230,75 @@ export function ClientModal({
               <textarea
                 className="client-modal-textarea"
                 rows={2}
-                placeholder="e.g. Left shoulder impingement history, prefers high-frequency training"
+                placeholder="e.g. Left shoulder impingement history, prefers morning sessions"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Invite Link Section */}
-          <div className="client-modal-invite-section">
-            <div className="client-modal-invite-header">
-              <div className="client-modal-invite-title-group">
-                <div className="client-modal-invite-title">
-                  <Link2 size={15} />
-                  <span>Client Invite Link</span>
+          {/* Invite Link Section (in edit mode or with generated URL) */}
+          {mode === "edit" && client && (
+            <div className="client-modal-invite-section">
+              <div className="client-modal-invite-header">
+                <div className="client-modal-invite-title-group">
+                  <div className="client-modal-invite-title">
+                    <Link2 size={15} />
+                    <span>Client Portal Invite</span>
+                  </div>
+                  <div className="client-modal-invite-desc">
+                    {client.inviteStatus === "ACCEPTED"
+                      ? "Client has accepted their invite and activated their account."
+                      : inviteUrl
+                      ? "Share this invite link with your client so they can access their workout portal."
+                      : "Generate an invite link to give your client portal access."}
+                  </div>
                 </div>
-                <div className="client-modal-invite-desc">
-                  {mode === "add"
-                    ? "An invite link will automatically be created when saving this client."
-                    : "Share this link with your client so they can access their workout portal."}
-                </div>
+
+                {client.inviteStatus !== "ACCEPTED" && (
+                  <button
+                    type="button"
+                    onClick={handleGenerateInvite}
+                    disabled={generatingInvite}
+                    className="btn-secondary client-modal-invite-btn"
+                  >
+                    <RefreshCw size={13} className={generatingInvite ? "spin" : ""} />
+                    <span>{generatingInvite ? "Generating..." : inviteUrl ? "New Invite Link" : "Generate Invite Link"}</span>
+                  </button>
+                )}
               </div>
 
-              {mode === "edit" && (
-                <button
-                  type="button"
-                  onClick={handleGenerateInvite}
-                  disabled={generatingInvite}
-                  className="btn-secondary client-modal-invite-btn"
-                >
-                  <RefreshCw size={13} className={generatingInvite ? "spin" : ""} />
-                  <span>{generatingInvite ? "Generating..." : inviteUrl ? "New Invite Link" : "Generate Invite"}</span>
-                </button>
+              {inviteUrl && (
+                <div className="client-modal-invite-box">
+                  <input
+                    type="text"
+                    readOnly
+                    value={inviteUrl}
+                    className="client-modal-invite-input"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="btn-primary client-modal-copy-btn"
+                    title="Copy link to clipboard"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={14} />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
-
-            {inviteUrl && (
-              <div className="client-modal-invite-box">
-                <input
-                  type="text"
-                  readOnly
-                  value={inviteUrl}
-                  className="client-modal-invite-input"
-                  onClick={(e) => (e.target as HTMLInputElement).select()}
-                />
-                <button
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="btn-primary client-modal-copy-btn"
-                  title="Copy link to clipboard"
-                >
-                  {copied ? (
-                    <>
-                      <Check size={14} />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      <span>Copy Link</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Modal Footer */}
           <div className="client-modal-footer">

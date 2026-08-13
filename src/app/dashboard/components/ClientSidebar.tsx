@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Users, UserPlus, ChevronRight, Trash2, Edit3, Mail, Phone } from "lucide-react";
+import { Users, UserPlus, ChevronRight, Trash2, Edit3 } from "lucide-react";
 import { Client } from "../types";
 
 interface ClientSidebarProps {
@@ -62,8 +62,8 @@ export function ClientSidebar({
 
         {clients.map((client) => {
           const isSelfProfile = client.name === "My Workouts";
-          const isPending = client.inviteStatus === "PENDING" || (!!client.inviteToken && client.inviteStatus !== "ACCEPTED");
           const isAccepted = client.inviteStatus === "ACCEPTED";
+          const isPending = client.inviteStatus === "PENDING";
 
           return (
             <div

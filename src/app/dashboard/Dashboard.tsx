@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
-import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck, Mail, Phone, Target, FileText } from "lucide-react";
+import { Dumbbell, LogOut, Edit3, Check, Copy, ShieldCheck, Mail, Phone, Target, FileText, Link2 } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
 import { computeAnalytics } from "./utils/analytics";
@@ -29,6 +29,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
   const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
 
@@ -124,6 +125,40 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
 
     const errorBody = await res.json().catch(() => null);
     throw new Error(errorBody?.error || "Failed to update client.");
+  };
+
+  const handleInviteGenerated = (updatedClient: Client) => {
+    setClients((prev) => prev.map((c) => (c.id === updatedClient.id ? { ...c, ...updatedClient } : c)));
+    setSelected((prev) => (prev?.id === updatedClient.id ? { ...prev, ...updatedClient } : prev));
+    if (editingClient?.id === updatedClient.id) {
+      setEditingClient(updatedClient);
+    }
+  };
+
+  const handleQuickGenerateInvite = async (client: Client) => {
+    setGeneratingQuickInvite(true);
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId: client.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const updated = {
+          ...client,
+          inviteToken: data.inviteToken || data.token,
+          inviteUrl: data.inviteUrl,
+          inviteStatus: "PENDING" as const,
+        };
+        handleInviteGenerated(updated);
+        copyLink(data.inviteUrl);
+      }
+    } catch {
+      alert("Failed to generate invite link");
+    } finally {
+      setGeneratingQuickInvite(false);
+    }
   };
 
   const copyLink = (url: string) => {
@@ -439,20 +474,28 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                   {selected.name !== "My Workouts" && (
                     <div>
                       {selected.inviteStatus === "ACCEPTED" ? (
-                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                        <span style={{ fontSize: "12px", fontWeight: 600, color: "#15803d", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                           ✓ Joined Portal
                         </span>
+                      ) : selected.inviteStatus === "PENDING" && getInviteUrl(selected) ? (
+                        <button
+                          onClick={() => copyLink(getInviteUrl(selected)!)}
+                          className="btn-primary"
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "8px 14px" }}
+                        >
+                          {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                          <span>{copiedLink ? "Link Copied!" : "Copy Invite Link"}</span>
+                        </button>
                       ) : (
-                        getInviteUrl(selected) && (
-                          <button
-                            onClick={() => copyLink(getInviteUrl(selected)!)}
-                            className="btn-primary"
-                            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "8px 14px" }}
-                          >
-                            {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                            <span>{copiedLink ? "Link Copied!" : "Copy Invite Link"}</span>
-                          </button>
-                        )
+                        <button
+                          onClick={() => handleQuickGenerateInvite(selected)}
+                          disabled={generatingQuickInvite}
+                          className="btn-secondary"
+                          style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "8px 14px" }}
+                        >
+                          <Link2 size={14} />
+                          <span>{generatingQuickInvite ? "Generating..." : "Generate Invite Link"}</span>
+                        </button>
                       )}
                     </div>
                   )}
@@ -517,6 +560,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         onClose={() => setEditingClient(null)}
         onSave={handleEditClient}
         onDelete={deleteClient}
+        onInviteGenerated={handleInviteGenerated}
       />
     </div>
   );
