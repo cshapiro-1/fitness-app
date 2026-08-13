@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendSystemAlert } from "@/lib/alerts";
 
 export async function GET() {
   const startTime = Date.now();
@@ -14,6 +15,13 @@ export async function GET() {
     dbStatus = "connected";
   } catch (error: any) {
     dbStatus = `error: ${error.message}`;
+    // Trigger instant alert notification if DB is down!
+    await sendSystemAlert({
+      level: "CRITICAL",
+      title: "Database Connection Failure",
+      message: `Health check failed to query PostgreSQL database: ${error.message}`,
+      context: { latencyMs: Date.now() - startTime, error: error.stack },
+    });
   }
 
   const isHealthy = dbStatus === "connected";

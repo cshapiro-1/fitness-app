@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { signOut } from "next-auth/react";
 import {
   X,
   User,
@@ -18,7 +19,11 @@ import {
   ExternalLink,
   Save,
   Check,
+  RotateCcw,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
+import Link from "next/link";
 import { SubscriptionInfo } from "./SubscriptionBanner";
 
 const PRESET_AVATARS = [
@@ -44,7 +49,7 @@ export function TrainerProfileModal({
   onProfileUpdated,
 }: TrainerProfileModalProps) {
   const [activeTab, setActiveTab] = useState<"profile" | "billing">("profile");
-  
+
   // Profile State
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -60,7 +65,12 @@ export function TrainerProfileModal({
   // Billing State
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual">("annual");
   const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [restoringPurchases, setRestoringPurchases] = useState(false);
   const [billingSuccessMsg, setBillingSuccessMsg] = useState<string | null>(null);
+
+  // Delete Account State
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -68,6 +78,7 @@ export function TrainerProfileModal({
       setProfileSuccess(false);
       setProfileError(null);
       setBillingSuccessMsg(null);
+      setShowDeleteConfirm(false);
     }
   }, [isOpen]);
 
@@ -152,6 +163,44 @@ export function TrainerProfileModal({
     }
   };
 
+  const handleRestorePurchases = async () => {
+    setRestoringPurchases(true);
+    setBillingSuccessMsg(null);
+    try {
+      const res = await fetch("/api/billing/restore", { method: "POST" });
+      const data = await res.json();
+      if (data.restored) {
+        setBillingSuccessMsg(data.message || "Active subscription restored!");
+        if (onProfileUpdated) onProfileUpdated();
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        alert(data.message || "No active past purchases found for this account.");
+      }
+    } catch {
+      alert("Failed to restore purchases. Please check your network connection.");
+    } finally {
+      setRestoringPurchases(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const res = await fetch("/api/user/delete-account", { method: "DELETE" });
+      if (res.ok) {
+        alert("Your account and all associated fitness data have been permanently deleted.");
+        signOut({ callbackUrl: "/auth/signin" });
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete account.");
+      }
+    } catch {
+      alert("Network error during account deletion.");
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -181,7 +230,7 @@ export function TrainerProfileModal({
         {/* Header */}
         <div className="client-modal-header" style={{ paddingBottom: "12px" }}>
           <div className="client-modal-header-info">
-            <h2 className="client-modal-title">Trainer Profile & Billing</h2>
+            <h2 className="client-modal-title">Trainer Profile &amp; Billing</h2>
             <p className="client-modal-subtitle">
               Manage your personal coaching profile, avatar, and active subscription plan.
             </p>
@@ -240,7 +289,7 @@ export function TrainerProfileModal({
             }}
           >
             <CreditCard size={15} />
-            <span>Billing & Subscription</span>
+            <span>Billing &amp; Subscription</span>
             {subInfo?.status === "active" ? (
               <span style={{ fontSize: "10px", background: "#dcfce7", color: "#15803d", padding: "2px 6px", borderRadius: "10px", fontWeight: 700 }}>Active</span>
             ) : subInfo?.status === "trial" ? (
@@ -421,7 +470,7 @@ export function TrainerProfileModal({
 
               <div className="client-modal-field client-modal-field-full">
                 <label className="client-modal-label">
-                  <span>Bio & Coaching Focus</span>
+                  <span>Bio &amp; Coaching Focus</span>
                 </label>
                 <textarea
                   className="client-modal-textarea"
@@ -433,8 +482,49 @@ export function TrainerProfileModal({
               </div>
             </div>
 
+            {/* Legal Links & Delete Account Section */}
+            <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: "#64748b" }}>
+                  <Link href="/privacy" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Privacy Policy</Link>
+                  <span>•</span>
+                  <Link href="/terms" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Terms of Service</Link>
+                </div>
+
+                {!showDeleteConfirm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    style={{ background: "none", border: "none", color: "#dc2626", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete Account &amp; Data</span>
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "12px", color: "#dc2626", fontWeight: 600 }}>Permanently delete?</span>
+                    <button
+                      type="button"
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                      style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                    >
+                      {deletingAccount ? "Deleting..." : "Yes, Delete Everything"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(false)}
+                      style={{ background: "#f1f5f9", color: "#475569", border: "1px solid #cbd5e1", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", cursor: "pointer" }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Footer */}
-            <div className="client-modal-footer" style={{ marginTop: "20px" }}>
+            <div className="client-modal-footer" style={{ marginTop: "12px" }}>
               <div />
               <div className="client-modal-action-group">
                 <button type="button" onClick={onClose} className="btn-secondary">
@@ -627,7 +717,7 @@ export function TrainerProfileModal({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <CheckCircle2 size={15} style={{ color: "#16a34a", flexShrink: 0 }} />
-                  <span>1RM Estimation & Analytics</span>
+                  <span>1RM Estimation &amp; Analytics</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <CheckCircle2 size={15} style={{ color: "#16a34a", flexShrink: 0 }} />
@@ -635,7 +725,7 @@ export function TrainerProfileModal({
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <CheckCircle2 size={15} style={{ color: "#16a34a", flexShrink: 0 }} />
-                  <span>Google Play & PWA Access</span>
+                  <span>Google Play &amp; App Store Access</span>
                 </div>
               </div>
             </div>
@@ -655,6 +745,7 @@ export function TrainerProfileModal({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
+                marginBottom: "12px",
               }}
             >
               <Zap size={16} />
@@ -666,6 +757,35 @@ export function TrainerProfileModal({
                   : `Activate Pro Subscription (${selectedPlan === "annual" ? "$200/year" : "$20/month"})`}
               </span>
             </button>
+
+            {/* Restore Purchases (App Store Requirement) */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>
+              <button
+                type="button"
+                onClick={handleRestorePurchases}
+                disabled={restoringPurchases}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#64748b",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontWeight: 600,
+                }}
+              >
+                <RotateCcw size={13} className={restoringPurchases ? "spin" : ""} />
+                <span>{restoringPurchases ? "Restoring..." : "Restore Past Purchases"}</span>
+              </button>
+
+              <div style={{ display: "flex", gap: "10px", fontSize: "11px", color: "#64748b" }}>
+                <Link href="/privacy" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Privacy</Link>
+                <span>•</span>
+                <Link href="/terms" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Terms</Link>
+              </div>
+            </div>
           </div>
         )}
       </div>
