@@ -8,7 +8,12 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
   try {
     const params = await props.params;
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId = (session?.user as any)?.id;
+    if (!userId && session?.user?.email) {
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      userId = dbUser?.id;
+    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     
     if (params.id.startsWith("session-")) return NextResponse.json({ error: "Cannot modify legacy flat workouts. Please start a new workout." }, { status: 400 });
@@ -49,7 +54,12 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
   try {
     const params = await props.params;
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId = (session?.user as any)?.id;
+    if (!userId && session?.user?.email) {
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      userId = dbUser?.id;
+    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (params.id.startsWith("session-")) {
       const realId = params.id.replace("session-", "");
       await prisma.workout.deleteMany({ where: { id: realId } });

@@ -7,7 +7,12 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId = (session?.user as any)?.id;
+    if (!userId && session?.user?.email) {
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      userId = dbUser?.id;
+    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const clientId = new URL(req.url).searchParams.get("clientId");
     if (!clientId) return NextResponse.json({ error: "clientId required" }, { status: 400 });
@@ -16,7 +21,7 @@ export async function GET(req: NextRequest) {
     const sessions = await prisma.workoutSession.findMany({
       where: { clientId },
       include: {
-        exercises: { orderBy: { order: 'asc' }, include: { sets: { orderBy: { order: 'asc' } } } }
+        exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } }
       },
       orderBy: { createdAt: "desc" },
     });
@@ -52,7 +57,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    let userId = (session?.user as any)?.id;
+    if (!userId && session?.user?.email) {
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      userId = dbUser?.id;
+    }
+    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
     const body = await req.json();
     const { clientId, status, startedAt, completedAt, notes, exercises } = body;
