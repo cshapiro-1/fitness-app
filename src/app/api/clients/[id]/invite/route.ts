@@ -27,12 +27,17 @@ export async function POST(
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
+    const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const baseUrl = `${proto}://${host}`;
     const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
 
     return NextResponse.json({
-      client: updatedClient,
+      success: true,
+      token: inviteToken,
+      inviteToken,
       inviteUrl,
+      client: updatedClient,
     });
   } catch (error: any) {
     console.error("POST /api/clients/[id]/invite Error:", error);

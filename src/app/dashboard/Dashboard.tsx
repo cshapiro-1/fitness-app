@@ -26,6 +26,7 @@ import {
   Users,
   UserPlus,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
@@ -62,6 +63,14 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   // Mobile Client Switcher Drawer
   const [showMobileClientDrawer, setShowMobileClientDrawer] = useState(false);
   const [mobileClientSearch, setMobileClientSearch] = useState("");
+
+  // Workout Session Auto-Save & Navigation Guard State
+  const [draftRestoredNotice, setDraftRestoredNotice] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<{
+    type: "tab" | "client";
+    targetTab?: "log" | "history" | "analytics";
+    targetClient?: Client;
+  } | null>(null);
 
   // Dark Theme
   const [isDark, setIsDark] = useState(false);
@@ -210,10 +219,12 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       const res = await fetch(`/api/clients/${client.id}/invite`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
-        const updated = { ...client, inviteToken: data.inviteToken, inviteStatus: "PENDING" as const };
+        const token = data.inviteToken || data.token || data.client?.inviteToken;
+        const inviteUrl = data.inviteUrl || `${window.location.origin}/invite/${token}`;
+        const updated = { ...client, inviteToken: token, inviteStatus: "PENDING" as const };
         setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
         setSelected(updated);
-        copyLink(`${window.location.origin}/invite/${data.inviteToken}`);
+        copyLink(inviteUrl);
       } else {
         alert("Failed to generate invite link.");
       }
@@ -231,7 +242,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
   };
 
   const getInviteUrl = (client: Client) => {
-    if (!client.inviteToken) return null;
+    if (!client.inviteToken || client.inviteToken === "undefined") return null;
     if (typeof window !== "undefined") {
       return `${window.location.origin}/invite/${client.inviteToken}`;
     }
@@ -270,12 +281,94 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
     );
   }, [clients, mobileClientSearch]);
 
+  // Has unsaved in-progress workout
+  const hasUnsavedWorkout = useMemo(() => {
+    return !!(activeWorkout && activeWorkout.exercises && activeWorkout.exercises.length > 0);
+  }, [activeWorkout]);
+
+  // Restore workout draft when client changes or app loads
+  useEffect(() => {
+    if (!selected) {
+      setActiveWorkout(null);
+      return;
+    }
+    try {
+      const draftKey = `fitcoach_active_draft_${selected.id}`;
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+          setActiveWorkout(parsed);
+          setDraftRestoredNotice(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore workout draft", e);
+    }
+  }, [selected?.id]);
+
+  // Auto-save active workout draft to localStorage
+  useEffect(() => {
+    if (!selected) return;
+    try {
+      const draftKey = `fitcoach_active_draft_${selected.id}`;
+      if (activeWorkout && activeWorkout.exercises && activeWorkout.exercises.length > 0) {
+        localStorage.setItem(draftKey, JSON.stringify(activeWorkout));
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    } catch (e) {
+      console.error("Failed to auto-save workout draft", e);
+    }
+  }, [activeWorkout, selected?.id]);
+
+  // Browser level beforeunload warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedWorkout) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedWorkout]);
+
+  // In-app navigation guards
+  const handleRequestTab = (targetTab: "log" | "history" | "analytics") => {
+    if (tab === "log" && targetTab !== "log" && hasUnsavedWorkout) {
+      setPendingNavigation({ type: "tab", targetTab });
+    } else {
+      setTab(targetTab);
+    }
+  };
+
+  const handleRequestSelectClient = (targetClient: Client) => {
+    if (selected && selected.id !== targetClient.id && hasUnsavedWorkout) {
+      setPendingNavigation({ type: "client", targetClient });
+    } else {
+      setSelected(targetClient);
+    }
+  };
+
   const startWorkout = () => {
     setActiveWorkout({
       startedAt: new Date().toISOString(),
       notes: "",
       exercises: [{ name: "Barbell Bench Press", sets: [{ weight: "", reps: "", notes: "" }] }],
     });
+    setDraftRestoredNotice(false);
+  };
+
+  const discardActiveWorkout = () => {
+    if (!confirm("Are you sure you want to discard this in-progress workout draft?")) return;
+    if (selected) {
+      try {
+        localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+      } catch {}
+    }
+    setActiveWorkout(null);
+    setDraftRestoredNotice(false);
   };
 
   const beginPlannedWorkout = (workout: WorkoutSession) => {
@@ -292,6 +385,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         })),
       })),
     });
+    setDraftRestoredNotice(false);
   };
 
   const saveWorkoutPlan = async () => {
@@ -323,7 +417,11 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       if (res.ok) {
         const saved = await res.json();
         setWorkouts((prev) => [saved, ...prev]);
+        try {
+          localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+        } catch {}
         setActiveWorkout(null);
+        setDraftRestoredNotice(false);
       } else {
         const err = await res.json().catch(() => null);
         alert(err?.error || "Failed to save workout plan.");
@@ -372,7 +470,11 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
             : prev;
           return [saved, ...filtered];
         });
+        try {
+          localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+        } catch {}
         setActiveWorkout(null);
+        setDraftRestoredNotice(false);
         setTab("history");
       } else {
         const err = await res.json().catch(() => null);
@@ -505,7 +607,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           clients={clients}
           selected={selected}
           loadingClients={loadingClients}
-          onSelectClient={setSelected}
+          onSelectClient={handleRequestSelectClient}
           onOpenAddClient={() => setIsAddModalOpen(true)}
           onOpenEditClient={(client) => setEditingClient(client)}
           onDeleteClient={deleteClient}
@@ -765,7 +867,11 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                   {/* Tabs */}
                   <div className="tabs">
                     {(["log", "history", "analytics"] as const).map((currentTab) => (
-                      <button key={currentTab} className={`tab${tab === currentTab ? " active" : ""}`} onClick={() => setTab(currentTab)}>
+                      <button
+                        key={currentTab}
+                        className={`tab${tab === currentTab ? " active" : ""}`}
+                        onClick={() => handleRequestTab(currentTab)}
+                      >
                         {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                       </button>
                     ))}
@@ -784,10 +890,13 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                   historyWorkouts={completedWorkouts}
                   savingPlan={savingPlan}
                   savingWorkout={savingWorkout}
+                  draftRestored={draftRestoredNotice}
+                  onClearDraftNotice={() => setDraftRestoredNotice(false)}
                   onStartWorkout={startWorkout}
                   onBeginPlannedWorkout={beginPlannedWorkout}
                   onSaveWorkoutPlan={saveWorkoutPlan}
                   onCompleteWorkout={completeWorkout}
+                  onDiscardWorkout={discardActiveWorkout}
                 />
               )}
 
@@ -899,7 +1008,7 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                     <div
                       key={client.id}
                       onClick={() => {
-                        setSelected(client);
+                        handleRequestSelectClient(client);
                         setShowMobileClientDrawer(false);
                       }}
                       style={{
@@ -977,6 +1086,89 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
                     No clients found matching &ldquo;{mobileClientSearch}&rdquo;
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation Guard: Unsaved Workout Alert Modal */}
+      {pendingNavigation && (
+        <div className="client-modal-backdrop" onClick={() => setPendingNavigation(null)}>
+          <div className="client-modal-card" style={{ maxWidth: "440px" }} onClick={(e) => e.stopPropagation()}>
+            <div className="client-modal-header" style={{ background: "#fffbeb", borderBottom: "1px solid #fef3c7" }}>
+              <div className="client-modal-header-info">
+                <h2 className="client-modal-title" style={{ display: "flex", alignItems: "center", gap: "8px", color: "#b45309" }}>
+                  <AlertTriangle size={18} />
+                  <span>Active Workout In Progress</span>
+                </h2>
+                <p className="client-modal-subtitle" style={{ color: "#92400e" }}>
+                  You have an in-progress workout for {selected?.name || "this client"}.
+                </p>
+              </div>
+              <button className="client-modal-close" onClick={() => setPendingNavigation(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: "20px" }}>
+              <p style={{ fontSize: "13px", color: "#475569", lineHeight: 1.5, margin: "0 0 18px 0" }}>
+                Your reps, weights, and sets are <b>safely saved to session storage</b>. How would you like to proceed?
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px 16px", fontSize: "13px" }}
+                  onClick={() => {
+                    setPendingNavigation(null);
+                    setTab("log");
+                  }}
+                >
+                  Stay on Workout
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px 16px", fontSize: "13px" }}
+                  onClick={() => {
+                    const nav = pendingNavigation;
+                    setPendingNavigation(null);
+                    if (nav.type === "tab" && nav.targetTab) {
+                      setTab(nav.targetTab);
+                    } else if (nav.type === "client" && nav.targetClient) {
+                      setSelected(nav.targetClient);
+                    }
+                  }}
+                >
+                  Keep Draft &amp; Continue
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-ghost-danger"
+                  style={{ width: "100%", justifyContent: "center", padding: "8px 16px", fontSize: "12px", border: "1px solid #fee2e2" }}
+                  onClick={() => {
+                    const nav = pendingNavigation;
+                    if (selected) {
+                      try {
+                        localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+                      } catch {}
+                    }
+                    setActiveWorkout(null);
+                    setDraftRestoredNotice(false);
+                    setPendingNavigation(null);
+                    if (nav.type === "tab" && nav.targetTab) {
+                      setTab(nav.targetTab);
+                    } else if (nav.type === "client" && nav.targetClient) {
+                      setSelected(nav.targetClient);
+                    }
+                  }}
+                >
+                  Discard Draft &amp; Switch
+                </button>
               </div>
             </div>
           </div>

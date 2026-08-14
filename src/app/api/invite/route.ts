@@ -1,11 +1,11 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import crypto from "crypto";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -28,17 +28,20 @@ export async function POST(req: Request) {
       },
     });
 
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
-    const inviteUrl = baseUrl ? `${baseUrl}/invite/${token}` : `/invite/${token}`;
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
+    const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const baseUrl = `${proto}://${host}`;
+    const inviteUrl = `${baseUrl}/invite/${token}`;
 
     return NextResponse.json({
+      success: true,
       inviteUrl,
       token,
       inviteToken: token,
       client: updatedClient,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Invite generation error:", error);
-    return NextResponse.json({ error: "Failed to generate invite" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to generate invite" }, { status: 500 });
   }
 }

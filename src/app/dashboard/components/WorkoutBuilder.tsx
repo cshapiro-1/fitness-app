@@ -16,10 +16,13 @@ interface WorkoutBuilderProps {
   setExercisePicker: (val: string) => void;
   savingWorkout: boolean;
   savingPlan: boolean;
+  draftRestored?: boolean;
+  onClearDraftNotice?: () => void;
   onStartWorkout: () => void;
   onBeginPlannedWorkout: (workout: WorkoutSession) => void;
   onSaveWorkoutPlan: () => void;
   onCompleteWorkout: () => void;
+  onDiscardWorkout?: () => void;
 }
 
 export function WorkoutBuilder({
@@ -268,13 +271,71 @@ export function WorkoutBuilder({
 
       {activeWorkout && (
         <>
+          {draftRestored && (
+            <div
+              style={{
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                color: "#166534",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <Sparkles size={14} style={{ color: "#16a34a" }} />
+                <span>
+                  <b>Draft Restored:</b> Recovered in-progress workout from your session backup.
+                </span>
+              </div>
+              {onClearDraftNotice && (
+                <button
+                  type="button"
+                  onClick={onClearDraftNotice}
+                  className="btn-ghost"
+                  style={{ padding: "2px 6px", fontSize: "11px", height: "auto" }}
+                >
+                  Dismiss
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="builder-top-row">
-            <div className="workout-meta">
+            <div className="workout-meta" style={{ alignItems: "center" }}>
               <span>Started: {new Date(activeWorkout.startedAt).toLocaleTimeString()}</span>
               <span>Exercises: {activeWorkout.exercises.length}</span>
               <span>Sets: {totalDraftSets}</span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "10px",
+                  fontWeight: 700,
+                  color: "#15803d",
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  padding: "2px 6px",
+                  borderRadius: "10px",
+                }}
+                title="Progress is automatically saved to local session storage"
+              >
+                ✓ Auto-Saved
+              </span>
             </div>
-            <button className="btn-ghost-danger" onClick={() => setActiveWorkout(null)}>Discard Workout</button>
+            <button
+              type="button"
+              className="btn-ghost-danger"
+              onClick={onDiscardWorkout ? onDiscardWorkout : () => setActiveWorkout(null)}
+              title="Discard this workout draft"
+            >
+              Discard Draft
+            </button>
           </div>
 
           {/* Exercise Picker Row */}
