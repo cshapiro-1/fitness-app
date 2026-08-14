@@ -4,13 +4,46 @@ export const dynamic = "force-dynamic";
 
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import { Shield, Key, ArrowRight, UserCheck, AlertCircle } from "lucide-react";
 
 export default function SignInPage() {
-  const [loading, setLoading] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingService, setLoadingService] = useState(false);
+  const [showServiceLogin, setShowServiceLogin] = useState(false);
+  const [serviceEmail, setServiceEmail] = useState("service@fitcoach.pro");
+  const [servicePassword, setServicePassword] = useState("FitCoachAdmin2026!");
+  const [serviceError, setServiceError] = useState("");
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
+    setLoadingGoogle(true);
     await signIn("google", { callbackUrl: "/dashboard" });
+  };
+
+  const handleServiceSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingService(true);
+    setServiceError("");
+
+    try {
+      const res = await signIn("credentials", {
+        email: serviceEmail,
+        password: servicePassword,
+        redirect: false,
+        callbackUrl: "/dashboard",
+      });
+
+      if (res?.error) {
+        setServiceError("Invalid service account credentials.");
+      } else if (res?.url) {
+        window.location.href = res.url;
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch {
+      setServiceError("Failed to sign in with service account.");
+    } finally {
+      setLoadingService(false);
+    }
   };
 
   return (
@@ -20,48 +53,54 @@ export default function SignInPage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#f9fafb",
+        backgroundColor: "#f8fafc",
         fontFamily: "system-ui, -apple-system, sans-serif",
-        padding: "1rem",
+        padding: "1.5rem",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "420px",
           backgroundColor: "#ffffff",
           padding: "2.5rem 2rem",
-          borderRadius: "16px",
-          boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01)",
-          border: "1px solid #f3f4f6",
+          borderRadius: "20px",
+          boxShadow: "0 10px 30px -5px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)",
+          border: "1px solid #e2e8f0",
           textAlign: "center",
         }}
       >
         {/* Header Icon & Title */}
         <div style={{ marginBottom: "1.5rem" }}>
-          <span style={{ fontSize: "3rem", display: "inline-block", marginBottom: "0.5rem" }} role="img" aria-label="muscle">
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              background: "#eff6ff",
+              color: "#2563eb",
+              borderRadius: "16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 1rem auto",
+              fontSize: "28px",
+            }}
+          >
             💪
-          </span>
-          <h1 style={{ fontSize: "1.75rem", fontWeight: 800, color: "#111827", margin: "0 0 0.5rem 0" }}>
-            Fitness Tracker
+          </div>
+          <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.4rem 0", letterSpacing: "-0.02em" }}>
+            FitCoach Portal
           </h1>
-          <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0 }}>
-            Trainer dashboard for coaches and clients
+          <p style={{ fontSize: "0.875rem", color: "#64748b", margin: 0 }}>
+            Unified platform for coaches and athletes
           </p>
         </div>
 
-        {/* Instructions */}
+        {/* Google Sign In Button (Hero) */}
         <div style={{ marginBottom: "1.5rem" }}>
-          <p style={{ fontSize: "0.75rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
-            Sign in or create an account
-          </p>
-        </div>
-
-        {/* Google Sign In Button */}
-        <div style={{ marginBottom: "1.25rem" }}>
           <button
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loadingGoogle || loadingService}
             style={{
               width: "100%",
               display: "flex",
@@ -69,19 +108,18 @@ export default function SignInPage() {
               justifyContent: "center",
               gap: "12px",
               borderRadius: "12px",
-              border: "1px solid #d1d5db",
+              border: "1px solid #cbd5e1",
               backgroundColor: "#ffffff",
               padding: "12px 16px",
-              fontSize: "0.875rem",
+              fontSize: "0.9rem",
               fontWeight: 600,
-              color: "#374151",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
+              color: "#1e293b",
+              cursor: loadingGoogle ? "not-allowed" : "pointer",
+              opacity: loadingGoogle ? 0.7 : 1,
               boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
-              transition: "all 0.2s ease",
+              transition: "all 0.15s ease",
             }}
           >
-            {/* Google SVG Logo with fixed width/height */}
             <svg width="20" height="20" viewBox="0 0 24 24" style={{ width: "20px", height: "20px", flexShrink: 0 }}>
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -100,13 +138,174 @@ export default function SignInPage() {
                 fill="#EA4335"
               />
             </svg>
-            <span>{loading ? "Connecting to Google..." : "Continue with Google"}</span>
+            <span>{loadingGoogle ? "Connecting..." : "Continue with Google"}</span>
           </button>
+          <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "8px", marginBottom: 0 }}>
+            Recommended for personal athlete and client accounts.
+          </p>
         </div>
 
-        <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
-          Coaches & clients sign in through the same Google portal.
-        </p>
+        {/* Divider */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            marginBottom: "1.25rem",
+            color: "#94a3b8",
+            fontSize: "12px",
+          }}
+        >
+          <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+          <span>OR</span>
+          <div style={{ flex: 1, height: "1px", background: "#e2e8f0" }} />
+        </div>
+
+        {/* Service Account Toggle / Form */}
+        {!showServiceLogin ? (
+          <button
+            type="button"
+            onClick={() => setShowServiceLogin(true)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              background: "#f1f5f9",
+              border: "1px solid #e2e8f0",
+              color: "#334155",
+              fontSize: "12px",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Shield size={14} style={{ color: "#2563eb" }} />
+            <span>Master Service Account Login (Admin / Trainer)</span>
+          </button>
+        ) : (
+          <form
+            onSubmit={handleServiceSignIn}
+            style={{
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "16px",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px" }}>
+              <Shield size={16} style={{ color: "#2563eb" }} />
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+                Service Account Login
+              </span>
+            </div>
+
+            {serviceError && (
+              <div
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  color: "#dc2626",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  fontSize: "11px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginBottom: "12px",
+                }}
+              >
+                <AlertCircle size={13} />
+                <span>{serviceError}</span>
+              </div>
+            )}
+
+            <div style={{ marginBottom: "10px" }}>
+              <label style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", display: "block", marginBottom: "4px" }}>
+                Service Email
+              </label>
+              <input
+                type="email"
+                value={serviceEmail}
+                onChange={(e) => setServiceEmail(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "13px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", display: "block", marginBottom: "4px" }}>
+                Password / Access Key
+              </label>
+              <input
+                type="password"
+                value={servicePassword}
+                onChange={(e) => setServicePassword(e.target.value)}
+                required
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "1px solid #cbd5e1",
+                  fontSize: "13px",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loadingService}
+              style={{
+                width: "100%",
+                padding: "10px",
+                borderRadius: "8px",
+                background: "#2563eb",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 700,
+                fontSize: "13px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "6px",
+                cursor: loadingService ? "not-allowed" : "pointer",
+                opacity: loadingService ? 0.7 : 1,
+              }}
+            >
+              <span>{loadingService ? "Authenticating..." : "Sign in as Service Admin"}</span>
+              <ArrowRight size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowServiceLogin(false)}
+              style={{
+                width: "100%",
+                background: "none",
+                border: "none",
+                color: "#64748b",
+                fontSize: "11px",
+                marginTop: "10px",
+                cursor: "pointer",
+                textAlign: "center",
+              }}
+            >
+              Cancel & Return
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );

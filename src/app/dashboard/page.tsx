@@ -21,5 +21,5 @@ export default async function DashboardPage() {
     return <ClientDashboard userName={userName} userImage={userImage} isAdmin={isAdmin} />;
   }
 
-  return <Dashboard userName={userName} userImage={userImage} />;
+  return <Dashboard userName={userName} userImage={userImage} isAdmin={isAdmin} />;
 }

@@ -186,6 +186,27 @@ export function ClientDashboard({
             <span className="hide-mobile">Nutrition</span>
           </Link>
 
+          {/* Admin Coach View Switcher */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch("/api/user/role", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role: "TRAINER" }),
+                });
+                window.location.href = "/dashboard";
+              }}
+              className="nav-btn nav-btn-dark"
+              style={{ background: "#1e293b", color: "#f8fafc", cursor: "pointer" }}
+              title="Switch to Coach / Trainer Dashboard"
+            >
+              <Dumbbell size={14} />
+              <span className="hide-mobile">Coach View</span>
+            </button>
+          )}
+
           <Link
             href="/onboarding"
             className="nav-btn"

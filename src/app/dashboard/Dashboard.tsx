@@ -27,6 +27,7 @@ import {
   UserPlus,
   X,
   AlertTriangle,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { Client, WorkoutSession, DraftWorkout } from "./types";
@@ -44,7 +45,7 @@ export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
 }
 
-export function Dashboard({ userName, userImage }: { userName: string; userImage: string | null }) {
+export function Dashboard({ userName, userImage, isAdmin }: { userName: string; userImage: string | null; isAdmin?: boolean }) {
   const [clients, setClients] = useState<Client[]>([]);
   const [selected, setSelected] = useState<Client | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
@@ -533,6 +534,27 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
           >
             <span className="hide-mobile">Switch Role</span>
           </Link>
+
+          {/* Quick Client Portal Switch for Admins & Service Accounts */}
+          {(isAdmin || subInfo?.isAdmin) && (
+            <button
+              type="button"
+              onClick={async () => {
+                await fetch("/api/user/role", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role: "CLIENT" }),
+                });
+                window.location.href = "/dashboard";
+              }}
+              className="nav-btn"
+              style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer" }}
+              title="Preview Athlete / Client Portal"
+            >
+              <UserCheck size={14} />
+              <span className="hide-mobile">Client View</span>
+            </button>
+          )}
 
           {/* Admin Portal Button */}
           {subInfo?.isAdmin && (
