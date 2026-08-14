@@ -4,27 +4,39 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-async function getAuthorizedClient(clientId: string, userEmail?: string | null) {
+async function getAuthorizedClient(clientId?: string | null, userEmail?: string | null) {
   if (!userEmail) return null;
+  const cleanEmail = userEmail.toLowerCase().trim();
   const user = await prisma.user.findUnique({
-    where: { email: userEmail.toLowerCase().trim() },
+    where: { email: cleanEmail },
     include: { clients: true, clientProfile: true },
   });
 
   if (!user) return null;
 
-  if (user.clientProfileId === clientId) {
-    return prisma.client.findUnique({ where: { id: clientId } });
+  if (clientId) {
+    if (user.clientProfileId === clientId) {
+      return prisma.client.findUnique({ where: { id: clientId } });
+    }
+
+    const client = await prisma.client.findFirst({
+      where: {
+        id: clientId,
+        OR: [
+          { userId: user.id },
+          { email: { equals: cleanEmail, mode: "insensitive" } },
+        ],
+      },
+    });
+    return client;
+  } else {
+    if (user.clientProfileId) {
+      return prisma.client.findUnique({ where: { id: user.clientProfileId } });
+    }
+    return prisma.client.findFirst({
+      where: { email: { equals: cleanEmail, mode: "insensitive" } },
+    });
   }
-
-  const client = await prisma.client.findFirst({
-    where: {
-      id: clientId,
-      userId: user.id,
-    },
-  });
-
-  return client;
 }
 
 // GET /api/nutrition/supplements?clientId=...&date=YYYY-MM-DD

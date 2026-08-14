@@ -103,14 +103,44 @@ export const authOptions: NextAuthOptions = {
       const email = token.email || user?.email;
       if (email) {
         try {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: email.toLowerCase().trim() },
-            select: { id: true, role: true, isAdmin: true },
+          const cleanEmail = email.toLowerCase().trim();
+          let dbUser = await prisma.user.findUnique({
+            where: { email: cleanEmail },
+            select: { id: true, role: true, isAdmin: true, clientProfileId: true },
           });
+
           if (dbUser) {
+            // Auto-link Client Profile if unlinked and matching client exists
+            if (!dbUser.clientProfileId) {
+              const matchedClient = await prisma.client.findFirst({
+                where: { email: { equals: cleanEmail, mode: "insensitive" } },
+                orderBy: { createdAt: "desc" },
+              });
+
+              if (matchedClient) {
+                const targetRole = dbUser.isAdmin ? dbUser.role : "CLIENT";
+                await prisma.user.update({
+                  where: { id: dbUser.id },
+                  data: {
+                    clientProfileId: matchedClient.id,
+                    role: targetRole,
+                  },
+                });
+                if (matchedClient.inviteStatus !== "ACCEPTED") {
+                  await prisma.client.update({
+                    where: { id: matchedClient.id },
+                    data: { inviteStatus: "ACCEPTED" },
+                  });
+                }
+                dbUser.clientProfileId = matchedClient.id;
+                dbUser.role = targetRole;
+              }
+            }
+
             token.id = dbUser.id;
             token.role = mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;
+            token.clientProfileId = dbUser.clientProfileId;
           }
         } catch (error) {
           console.error("JWT Fetch Error:", error);
@@ -125,12 +155,13 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { email: email.toLowerCase().trim() },
-              select: { id: true, role: true, isAdmin: true },
+              select: { id: true, role: true, isAdmin: true, clientProfileId: true },
             });
             if (dbUser) {
               (session.user as any).id = dbUser.id;
               (session.user as any).role = mapRole(dbUser.role);
               (session.user as any).isAdmin = !!dbUser.isAdmin;
+              (session.user as any).clientProfileId = dbUser.clientProfileId;
               return session;
             }
           } catch (err) {
@@ -140,6 +171,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id || token.sub;
         (session.user as any).role = token.role;
         (session.user as any).isAdmin = !!token.isAdmin;
+        (session.user as any).clientProfileId = (token as any).clientProfileId;
       }
       return session;
     },
