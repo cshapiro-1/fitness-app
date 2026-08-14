@@ -2,13 +2,13 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, staging ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, staging ]
 
 jobs:
   validate:
-    name: Lint, Typecheck & Build
+    name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -37,8 +37,8 @@ jobs:
         run: npm test
 
       - name: Test Production Build
-        run: npm run build
+        run: npx next build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mockdb?sslmode=disable' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-build-mock-secret-fitcoach-2026' }}
           NEXTAUTH_URL: "http://localhost:3000"
