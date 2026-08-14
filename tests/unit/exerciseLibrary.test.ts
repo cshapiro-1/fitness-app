@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EXERCISE_LIBRARY, searchExercises } from "@/app/dashboard/utils/exerciseLibrary";
+import { EXERCISE_LIBRARY, searchExercises, isDefaultBodyweight } from "@/app/dashboard/utils/exerciseLibrary";
 
 describe("Exercise Library Database", () => {
   it("should contain at least 80 pre-seeded exercises across all main muscle groups", () => {
@@ -22,5 +22,16 @@ describe("Exercise Library Database", () => {
     const dumbbells = searchExercises("", "All", "Dumbbell");
     expect(dumbbells.length).toBeGreaterThan(5);
     expect(dumbbells.every((ex) => ex.equipment === "Dumbbell")).toBe(true);
+  });
+
+  it("should accurately identify bodyweight / body resistance movements", () => {
+    expect(isDefaultBodyweight("Push-Up")).toBe(true);
+    expect(isDefaultBodyweight("Pushups")).toBe(true);
+    expect(isDefaultBodyweight("Back Extension / Hyperextension")).toBe(true);
+    expect(isDefaultBodyweight("Jumping Jacks")).toBe(true);
+    expect(isDefaultBodyweight("Pull-Up")).toBe(true);
+    expect(isDefaultBodyweight("Bodyweight Air Squats")).toBe(true);
+    expect(isDefaultBodyweight("Barbell Bench Press")).toBe(false);
+    expect(isDefaultBodyweight("Barbell Back Squat")).toBe(false);
   });
 });

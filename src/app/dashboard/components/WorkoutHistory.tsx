@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useMemo } from "react";
 import { Trash2, Calendar, Filter, RotateCcw, Copy, Check } from "lucide-react";
 import { WorkoutSession } from "../types";
 import { getMuscleGroup } from "../utils/analytics";
+import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutHistoryProps {
   completedWorkouts: WorkoutSession[];
@@ -341,10 +342,30 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
 
             {workout.exercises.map((exercise) => {
               const mg = getMuscleGroup(exercise.name);
+              const isBW = exercise.isBodyweight || exercise.category === "BODYWEIGHT" || isDefaultBodyweight(exercise.name);
+
               return (
                 <div key={exercise.id} className="history-exercise">
                   <div className="history-exercise-name" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span>{exercise.name}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span>{exercise.name}</span>
+                      {isBW && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            background: "#f0fdf4",
+                            color: "#166534",
+                            border: "1px solid #bbf7d0",
+                            padding: "1px 5px",
+                            borderRadius: "4px",
+                          }}
+                          title="Bodyweight / Body Resistance Exercise"
+                        >
+                          Bodyweight
+                        </span>
+                      )}
+                    </div>
                     <span style={{ fontSize: "10px", fontWeight: 500, background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "4px" }}>
                       {mg}
                     </span>
@@ -353,7 +374,17 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
                     {exercise.sets.map((setEntry) => (
                       <div key={setEntry.id} className="history-set-row">
                         <span>Set {setEntry.order + 1}</span>
-                        <span><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</span>
+                        <span>
+                          {isBW ? (
+                            setEntry.weight > 0 ? (
+                              <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                            ) : (
+                              <><b>BW</b> × {setEntry.reps} reps</>
+                            )
+                          ) : (
+                            <><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                          )}
+                        </span>
                         <span>{setEntry.notes || "-"}</span>
                       </div>
                     ))}

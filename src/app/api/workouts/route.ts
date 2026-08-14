@@ -81,7 +81,9 @@ export async function POST(req: NextRequest) {
         notes: notes || null,
         exercises: {
           create: exercises.map((ex: any, i: number) => ({
-            name: ex.name, order: i,
+            name: ex.name,
+            order: i,
+            category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
             sets: { create: ex.sets.map((s: any, j: number) => ({ order: j, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, notes: s.notes || null })) }
           }))
         }

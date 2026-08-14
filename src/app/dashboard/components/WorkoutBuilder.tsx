@@ -2,10 +2,10 @@
 
 import React, { useMemo, useState } from "react";
 import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2 } from "lucide-react";
-import { DraftWorkout, DraftSet, WorkoutSession } from "../types";
+import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
-import { EXERCISE_LIBRARY } from "../utils/exerciseLibrary";
+import { EXERCISE_LIBRARY, isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
@@ -100,22 +100,30 @@ export function WorkoutBuilder({
 
   const addExerciseWithName = (name: string) => {
     if (!name.trim()) return;
+    const isBW = isDefaultBodyweight(name);
     setActiveWorkout((current) => {
       const prevData = previousPerformanceMap[name.trim().toLowerCase()];
       const initialSets = prevData && prevData.sets.length > 0
         ? prevData.sets.map((ps) => ({ weight: ps.weight.toString(), reps: ps.reps.toString(), notes: "" }))
-        : [{ weight: "", reps: "", notes: "" }];
+        : [{ weight: isBW ? "0" : "", reps: "", notes: "" }];
+
+      const newEx: DraftExercise = {
+        name: name.trim(),
+        isBodyweight: isBW,
+        category: isBW ? "BODYWEIGHT" : "STRENGTH",
+        sets: initialSets,
+      };
 
       if (!current) {
         return {
           startedAt: new Date().toISOString(),
           notes: "",
-          exercises: [{ name: name.trim(), sets: initialSets }],
+          exercises: [newEx],
         };
       }
       return {
         ...current,
-        exercises: [...current.exercises, { name: name.trim(), sets: initialSets }],
+        exercises: [...current.exercises, newEx],
       };
     });
     setExercisePicker("");
@@ -129,12 +137,38 @@ export function WorkoutBuilder({
   };
 
   const updateExerciseName = (exerciseIndex: number, value: string) => {
+    const isBW = isDefaultBodyweight(value);
     setActiveWorkout((current) => {
       if (!current) return current;
       return {
         ...current,
         exercises: current.exercises.map((exercise, index) =>
-          index === exerciseIndex ? { ...exercise, name: value } : exercise,
+          index === exerciseIndex
+            ? {
+                ...exercise,
+                name: value,
+                isBodyweight: exercise.isBodyweight !== undefined ? exercise.isBodyweight : isBW,
+                category: exercise.isBodyweight ? "BODYWEIGHT" : (isBW ? "BODYWEIGHT" : "STRENGTH"),
+              }
+            : exercise,
+        ),
+      };
+    });
+  };
+
+  const toggleExerciseBodyweight = (exerciseIndex: number, isBodyweight: boolean) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, index) =>
+          index === exerciseIndex
+            ? {
+                ...exercise,
+                isBodyweight,
+                category: isBodyweight ? "BODYWEIGHT" : "STRENGTH",
+              }
+            : exercise,
         ),
       };
     });
@@ -390,14 +424,44 @@ export function WorkoutBuilder({
               return (
                 <div className="exercise-card" key={`${exercise.name}-${exerciseIndex}`}>
                   {/* Exercise Header */}
-                  <div className="exercise-card-header">
+                  <div className="exercise-card-header" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                     <input
                       className="input"
                       list="exercise-options"
                       value={exercise.name}
                       onChange={(event) => updateExerciseName(exerciseIndex, event.target.value)}
-                      style={{ fontWeight: 700, fontSize: "14px" }}
+                      style={{ fontWeight: 700, fontSize: "14px", flex: 1, minWidth: "180px" }}
                     />
+
+                    {/* Body Resistance / Bodyweight Toggle Checkbox */}
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                        background: exercise.isBodyweight ? "#f0fdf4" : "#f8fafc",
+                        border: exercise.isBodyweight ? "1px solid #86efac" : "1px solid #e2e8f0",
+                        color: exercise.isBodyweight ? "#166534" : "#64748b",
+                        padding: "6px 10px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        userSelect: "none",
+                        transition: "all 0.15s ease",
+                        whiteSpace: "nowrap",
+                      }}
+                      title="Check if this is a body resistance or bodyweight exercise (pushups, back extensions, pullups, jumping jacks, etc.)"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!exercise.isBodyweight}
+                        onChange={(e) => toggleExerciseBodyweight(exerciseIndex, e.target.checked)}
+                        style={{ width: "15px", height: "15px", accentColor: "#16a34a", cursor: "pointer" }}
+                      />
+                      <span>Bodyweight / Resistance</span>
+                    </label>
+
                     <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
                       <Trash2 size={14} />
                     </button>
@@ -451,7 +515,9 @@ export function WorkoutBuilder({
                   {/* Set Header */}
                   <div className="set-row set-row-header">
                     <span className="set-header-cell">Set</span>
-                    <span className="set-header-cell">Weight (lbs)</span>
+                    <span className="set-header-cell">
+                      {exercise.isBodyweight ? "Added Wt (+lbs / 0 for BW)" : "Weight (lbs)"}
+                    </span>
                     <span className="set-header-cell">Reps</span>
                     <span className="set-header-cell">Notes / Effort</span>
                     <span />
@@ -479,10 +545,10 @@ export function WorkoutBuilder({
                                   marginLeft: "4px",
                                   background: "#fef3c7",
                                   color: "#b45309",
-                                  padding: "1px 4px",
+                                  padding: "1px 5px",
                                   borderRadius: "4px",
-                                  fontSize: "9px",
-                                  fontWeight: 800,
+                                  fontSize: "10px",
+                                  fontWeight: 700,
                                 }}
                               >
                                 <Award size={10} /> PR
@@ -491,9 +557,9 @@ export function WorkoutBuilder({
                           </span>
 
                           <input
-                            className="input"
+                            className="input set-input"
                             type="number"
-                            placeholder={prev?.sets[setIndex] ? prev.sets[setIndex].weight.toString() : "lbs"}
+                            placeholder={exercise.isBodyweight ? "0 (BW)" : "lbs"}
                             value={set.weight}
                             onChange={(event) => updateSet(exerciseIndex, setIndex, "weight", event.target.value)}
                           />

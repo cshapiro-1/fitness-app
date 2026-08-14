@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import { isDefaultBodyweight } from "./utils/exerciseLibrary";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -360,26 +361,46 @@ export function ClientDashboard({
                   )}
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {(workout.exercises || []).map((ex: any, idx: number) => (
-                      <div
-                        key={ex.id || idx}
-                        style={{
-                          background: "#fafafa",
-                          border: "1px solid #f1f5f9",
-                          borderRadius: "8px",
-                          padding: "8px 10px",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          fontSize: "12px",
-                        }}
-                      >
-                        <span style={{ fontWeight: 700, color: "#0f172a" }}>{ex.name}</span>
-                        <span style={{ color: "#64748b", fontWeight: 600 }}>
-                          {(ex.sets || []).length} sets
-                        </span>
-                      </div>
-                    ))}
+                    {(workout.exercises || []).map((ex: any, idx: number) => {
+                      const isBW = ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name);
+                      return (
+                        <div
+                          key={ex.id || idx}
+                          style={{
+                            background: "#fafafa",
+                            border: "1px solid #f1f5f9",
+                            borderRadius: "8px",
+                            padding: "8px 10px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            fontSize: "12px",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontWeight: 700, color: "#0f172a" }}>{ex.name}</span>
+                            {isBW && (
+                              <span
+                                style={{
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  background: "#f0fdf4",
+                                  color: "#166534",
+                                  border: "1px solid #bbf7d0",
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                Bodyweight
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ color: "#64748b", fontWeight: 600 }}>
+                            {(ex.sets || []).length} sets
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -431,30 +452,57 @@ export function ClientDashboard({
                   )}
 
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {(workout.exercises || []).map((ex: any) => (
-                      <div key={ex.id} style={{ background: "#fafafa", borderRadius: "8px", padding: "8px 10px", border: "1px solid #f1f5f9" }}>
-                        <div style={{ fontWeight: 700, fontSize: "12px", color: "#0f172a", marginBottom: "4px" }}>
-                          {ex.name}
+                    {(workout.exercises || []).map((ex: any) => {
+                      const isBW = ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name);
+                      return (
+                        <div key={ex.id} style={{ background: "#fafafa", borderRadius: "8px", padding: "8px 10px", border: "1px solid #f1f5f9" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                            <span style={{ fontWeight: 700, fontSize: "12px", color: "#0f172a" }}>{ex.name}</span>
+                            {isBW && (
+                              <span
+                                style={{
+                                  fontSize: "9px",
+                                  fontWeight: 700,
+                                  background: "#f0fdf4",
+                                  color: "#166534",
+                                  border: "1px solid #bbf7d0",
+                                  padding: "1px 5px",
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                Bodyweight
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                            {(ex.sets || []).map((st: any) => (
+                              <span
+                                key={st.id}
+                                style={{
+                                  background: "#ffffff",
+                                  border: "1px solid #e2e8f0",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "11px",
+                                  color: "#334155",
+                                }}
+                              >
+                                Set {st.order + 1}:{" "}
+                                {isBW ? (
+                                  st.weight > 0 ? (
+                                    <><b>BW + {st.weight} lbs</b> × <b>{st.reps}</b></>
+                                  ) : (
+                                    <><b>BW</b> × <b>{st.reps}</b></>
+                                  )
+                                ) : (
+                                  <><b>{st.weight}</b> lbs × <b>{st.reps}</b></>
+                                )}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                          {(ex.sets || []).map((st: any) => (
-                            <span
-                              key={st.id}
-                              style={{
-                                background: "#ffffff",
-                                border: "1px solid #e2e8f0",
-                                padding: "2px 6px",
-                                borderRadius: "4px",
-                                fontSize: "11px",
-                                color: "#334155",
-                              }}
-                            >
-                              Set {st.order + 1}: <b>{st.weight}</b> lbs × <b>{st.reps}</b>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}

@@ -159,6 +159,14 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Turkish Get-Up", muscleGroup: "Full Body", equipment: "Kettlebell", isCompound: true },
   { name: "Burpee", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
   { name: "Box Jump", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Jumping Jacks", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Mountain Climbers", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Bodyweight Air Squats", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Walking Bodyweight Lunges", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Glute Bridge", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "High Knees", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Wall Sit", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
+  { name: "Back Extension / Hyperextension", muscleGroup: "Bodyweight", equipment: "Bodyweight" },
   { name: "Medicine Ball Slam", muscleGroup: "Full Body", equipment: "Other" },
 ];
 
@@ -175,3 +183,54 @@ export function searchExercises(query: string, muscleFilter?: string, equipmentF
     return matchesQuery && matchesMuscle && matchesEquipment;
   });
 }
+
+/**
+ * Automatically identifies if an exercise name represents a bodyweight or body resistance movement
+ */
+export function isDefaultBodyweight(name: string): boolean {
+  if (!name) return false;
+  const lower = name.toLowerCase().trim();
+  
+  // Check library definition first
+  const found = EXERCISE_LIBRARY.find((ex) => ex.name.toLowerCase() === lower);
+  if (found && (found.equipment === "Bodyweight" || found.muscleGroup === "Bodyweight")) {
+    return true;
+  }
+
+  // Fallback pattern matching
+  return (
+    lower.includes("push-up") ||
+    lower.includes("pushup") ||
+    lower.includes("push up") ||
+    lower.includes("pull-up") ||
+    lower.includes("pullup") ||
+    lower.includes("pull up") ||
+    lower.includes("chin-up") ||
+    lower.includes("chinup") ||
+    lower.includes("chin up") ||
+    lower.includes("dip") ||
+    lower.includes("back extension") ||
+    lower.includes("hyperextension") ||
+    lower.includes("jumping jack") ||
+    lower.includes("jumping jacks") ||
+    lower.includes("burpee") ||
+    lower.includes("plank") ||
+    lower.includes("crunch") ||
+    lower.includes("sit-up") ||
+    lower.includes("situp") ||
+    lower.includes("mountain climber") ||
+    lower.includes("air squat") ||
+    lower.includes("bodyweight") ||
+    lower.includes("glute bridge") ||
+    lower.includes("dead bug") ||
+    lower.includes("russian twist") ||
+    lower.includes("leg raise") ||
+    lower.includes("knee raise") ||
+    lower.includes("flutter kick") ||
+    lower.includes("hollow body") ||
+    lower.includes("box jump") ||
+    lower.includes("high knee") ||
+    lower.includes("wall sit")
+  );
+}
+

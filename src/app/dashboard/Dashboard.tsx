@@ -378,6 +378,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
       notes: workout.notes || "",
       exercises: workout.exercises.map((ex) => ({
         name: ex.name,
+        isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
+        category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
         sets: ex.sets.map((s) => ({
           weight: String(s.weight),
           reps: String(s.reps),
@@ -399,6 +401,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         exercises: activeWorkout.exercises.map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
+          isBodyweight: !!ex.isBodyweight,
+          category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
           sets: ex.sets.map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
@@ -447,6 +451,8 @@ export function Dashboard({ userName, userImage }: { userName: string; userImage
         exercises: activeWorkout.exercises.map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
+          isBodyweight: !!ex.isBodyweight,
+          category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
           sets: ex.sets.map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
