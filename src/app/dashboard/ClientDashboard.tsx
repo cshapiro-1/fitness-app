@@ -128,34 +128,6 @@ export function ClientDashboard({
   const completed = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
   const planned = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
 
-  // Client Analytics Aggregations
-  const analyticsData = useMemo(() => {
-    let totalVolume = 0;
-    let totalSets = 0;
-    const prMap: Record<string, number> = {};
-
-    completed.forEach((w) => {
-      (w.exercises || []).forEach((ex: any) => {
-        (ex.sets || []).forEach((st: any) => {
-          const wt = Number(st.weight) || 0;
-          const reps = Number(st.reps) || 0;
-          totalVolume += wt * reps;
-          totalSets += 1;
-
-          const est1RM = reps > 1 ? Math.round(wt * (36 / (37 - Math.min(reps, 36)))) : wt;
-          const exName = (ex.name || "").trim();
-          if (exName && (!prMap[exName] || est1RM > prMap[exName])) {
-            prMap[exName] = est1RM;
-          }
-        });
-      });
-    });
-
-    const topPRs = Object.entries(prMap)
-      .map(([name, weight]) => ({ name, weight }))
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, 6);
-
   const fullAnalytics = useMemo(() => computeAnalytics(workouts), [workouts]);
 
   return (
