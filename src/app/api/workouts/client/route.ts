@@ -35,16 +35,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (userId) {
-      const selfClients = await prisma.client.findMany({
-        where: { userId },
-        select: { id: true },
-      });
-      selfClients.forEach((c) => {
-        if (!clientIds.includes(c.id)) clientIds.push(c.id);
-      });
-    }
-
     if (clientIds.length === 0) {
       return NextResponse.json([]);
     }
