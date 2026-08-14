@@ -15,12 +15,39 @@ export async function GET(req: NextRequest) {
     }
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const clientId = new URL(req.url).searchParams.get("clientId");
-    if (!clientId) return NextResponse.json({ error: "clientId required" }, { status: 400 });
+    const urlClientId = new URL(req.url).searchParams.get("clientId");
+    let targetClientIds: string[] = [];
+
+    if (urlClientId) {
+      targetClientIds = [urlClientId];
+    } else {
+      // Find client IDs associated with current user
+      const userEmail = session?.user?.email;
+      const dbUser = userEmail ? await prisma.user.findUnique({ where: { email: userEmail } }) : null;
+      if (dbUser?.clientProfileId) targetClientIds.push(dbUser.clientProfileId);
+      if (userEmail) {
+        const matching = await prisma.client.findMany({
+          where: { email: { equals: userEmail, mode: "insensitive" } },
+          select: { id: true },
+        });
+        matching.forEach(c => { if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id); });
+      }
+      if (userId) {
+        const selfClients = await prisma.client.findMany({
+          where: { userId },
+          select: { id: true },
+        });
+        selfClients.forEach(c => { if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id); });
+      }
+    }
+
+    if (targetClientIds.length === 0) {
+      return NextResponse.json([]);
+    }
 
     // Fetch real WorkoutSessions
     const sessions = await prisma.workoutSession.findMany({
-      where: { clientId },
+      where: { clientId: { in: targetClientIds } },
       include: {
         exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } }
       },
@@ -28,7 +55,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch legacy seeded Workouts and dynamically group them
-    const legacyWorkouts = await prisma.workout.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } });
+    const legacyWorkouts = await prisma.workout.findMany({ where: { clientId: { in: targetClientIds } }, orderBy: { createdAt: "desc" } });
     const sessionMap = new Map();
     for (const w of legacyWorkouts) {
        const sessionKey = w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : "unknown");
