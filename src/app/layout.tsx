@@ -3,12 +3,17 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fitness Tracker & Workout Coach",
-  description: "Professional trainer dashboard for tracking client workouts and progress.",
+  title: "FitCoach — Professional Workout & Coaching Portal",
+  description: "Track workouts, plan periodized routines, analyze strength PRs, and manage coaching clients.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "FitCoach",
   },
 };
@@ -18,6 +23,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
