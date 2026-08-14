@@ -34,10 +34,13 @@ export function WorkoutBuilder({
   setExercisePicker,
   savingWorkout,
   savingPlan,
+  draftRestored = false,
+  onClearDraftNotice,
   onStartWorkout,
   onBeginPlannedWorkout,
   onSaveWorkoutPlan,
   onCompleteWorkout,
+  onDiscardWorkout,
 }: WorkoutBuilderProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
