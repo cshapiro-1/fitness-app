@@ -28,9 +28,11 @@ import {
   X,
   AlertTriangle,
   UserCheck,
+  Sparkles,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
-import { Client, WorkoutSession, DraftWorkout } from "./types";
+import { Client, WorkoutSession, DraftWorkout, DraftExercise } from "./types";
 import { computeAnalytics } from "./utils/analytics";
 import { ClientSidebar } from "./components/ClientSidebar";
 import { ClientModal } from "./components/ClientModal";
@@ -40,6 +42,9 @@ import { AnalyticsView } from "./components/AnalyticsView";
 import { SubscriptionBanner, SubscriptionInfo } from "./components/SubscriptionBanner";
 import { TrainerProfileModal } from "./components/TrainerProfileModal";
 import { ReportExportModal } from "./components/ReportExportModal";
+import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
+import { AIRoutineGeneratorModal } from "./components/AIRoutineGeneratorModal";
+import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -58,6 +63,8 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isPlateModalOpen, setIsPlateModalOpen] = useState(false);
+  const [isAIRoutineModalOpen, setIsAIRoutineModalOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
@@ -281,6 +288,27 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         (c.fitnessGoals && c.fitnessGoals.toLowerCase().includes(q))
     );
   }, [clients, mobileClientSearch]);
+
+  // Import AI-Generated Routine into Workout Builder
+  const handleImportAIRoutine = (routine: GeneratedRoutine) => {
+    const formattedExercises: DraftExercise[] = routine.exercises.map((ex) => ({
+      name: ex.name,
+      category: ex.category,
+      isBodyweight: ex.isBodyweight,
+      sets: Array.from({ length: ex.targetSets }).map(() => ({
+        reps: String(ex.targetReps || "10"),
+        weight: String(ex.suggestedWeight || (ex.isBodyweight ? "0" : "45")),
+        notes: "",
+      })),
+    }));
+
+    setActiveWorkout({
+      startedAt: new Date().toISOString(),
+      notes: `AI Generated: ${routine.routineName}. Warmup: ${routine.warmupInstructions.join("; ")}`,
+      exercises: formattedExercises,
+    });
+    setTab("log");
+  };
 
   // Has unsaved in-progress workout
   const hasUnsavedWorkout = useMemo(() => {
@@ -849,8 +877,41 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   </div>
                 </div>
 
-                {/* Actions: Export Report, Invite, Tabs */}
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                {/* Actions: AI Program, Plate Calculator, Export Report, Invite, Tabs */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  {/* AI Program Generator */}
+                  <button
+                    type="button"
+                    onClick={() => setIsAIRoutineModalOpen(true)}
+                    className="btn-primary"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      fontSize: "12px",
+                      padding: "7px 12px",
+                      background: "linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)",
+                      border: "none",
+                      color: "#ffffff",
+                    }}
+                    title="Generate an AI-periodized workout program"
+                  >
+                    <Sparkles size={13} />
+                    <span>AI Routine</span>
+                  </button>
+
+                  {/* Plate Calculator */}
+                  <button
+                    type="button"
+                    onClick={() => setIsPlateModalOpen(true)}
+                    className="btn-secondary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", padding: "7px 12px" }}
+                    title="Open Barbell Plate Loading Calculator"
+                  >
+                    <Dumbbell size={13} style={{ color: "#2563eb" }} />
+                    <span>Plate Math</span>
+                  </button>
+
                   {/* Export Progress Report */}
                   <button
                     type="button"
@@ -1201,6 +1262,22 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Plate Loading Calculator Modal */}
+      {isPlateModalOpen && (
+        <PlateCalculatorModal
+          initialWeight={135}
+          onClose={() => setIsPlateModalOpen(false)}
+        />
+      )}
+
+      {/* AI Workout Routine Generator Modal */}
+      {isAIRoutineModalOpen && (
+        <AIRoutineGeneratorModal
+          onClose={() => setIsAIRoutineModalOpen(false)}
+          onImportRoutine={handleImportAIRoutine}
+        />
       )}
     </div>
   );

@@ -16,11 +16,16 @@ import {
   Flame,
   FileText,
   Sparkles,
+  Timer,
+  Play,
+  Pause,
+  RotateCcw,
 } from "lucide-react";
 import Link from "next/link";
 import { isDefaultBodyweight } from "./utils/exerciseLibrary";
 import { AnalyticsView } from "./components/AnalyticsView";
 import { computeAnalytics } from "./utils/analytics";
+import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -46,7 +51,31 @@ export function ClientDashboard({
 
   const [currentImage, setCurrentImage] = useState<string | null>(userImage);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [showPlateModal, setShowPlateModal] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+
+  // Rest Timer State
+  const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // Timer Tick Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isTimerRunning && restSeconds !== null && restSeconds > 0) {
+      interval = setInterval(() => {
+        setRestSeconds((prev) => {
+          if (prev === null || prev <= 1) {
+            setIsTimerRunning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerRunning, restSeconds]);
 
   // Dismissible Banner State (Persisted in localStorage)
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -180,6 +209,18 @@ export function ClientDashboard({
             </button>
           )}
 
+          {/* Plate Calculator Button */}
+          <button
+            type="button"
+            onClick={() => setShowPlateModal(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
+            title="Open Barbell Plate Calculator"
+          >
+            <Dumbbell size={14} />
+            <span className="hide-mobile">Plate Math</span>
+          </button>
+
           <Link
             href="/onboarding"
             className="nav-btn"
@@ -285,6 +326,101 @@ export function ClientDashboard({
             </div>
           </div>
         )}
+
+        {/* Gym Floor Rest Timer Bar */}
+        <div
+          style={{
+            background: restSeconds !== null && restSeconds > 0 ? "#eff6ff" : "#f8fafc",
+            border: "1px solid",
+            borderColor: restSeconds !== null && restSeconds > 0 ? "#bfdbfe" : "#e2e8f0",
+            borderRadius: "10px",
+            padding: "8px 14px",
+            marginBottom: "14px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "10px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Timer size={16} style={{ color: restSeconds !== null && restSeconds > 0 ? "#2563eb" : "#64748b" }} />
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>
+              Rest Timer:
+            </span>
+            {restSeconds !== null ? (
+              <span style={{ fontSize: "16px", fontWeight: 800, color: restSeconds <= 10 && restSeconds > 0 ? "#dc2626" : "#2563eb", minWidth: "40px" }}>
+                {Math.floor(restSeconds / 60)}:{(restSeconds % 60).toString().padStart(2, "0")}
+              </span>
+            ) : (
+              <span style={{ fontSize: "12px", color: "#64748b" }}>Ready</span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            {[60, 90, 120, 180].map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                onClick={() => {
+                  setRestSeconds(sec);
+                  setIsTimerRunning(true);
+                }}
+                style={{
+                  padding: "4px 8px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  borderRadius: "6px",
+                  border: "1px solid #cbd5e1",
+                  background: "#ffffff",
+                  color: "#1e293b",
+                  cursor: "pointer",
+                }}
+              >
+                {sec}s
+              </button>
+            ))}
+
+            {restSeconds !== null && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsTimerRunning((r) => !r)}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    borderRadius: "6px",
+                    border: "none",
+                    background: isTimerRunning ? "#f59e0b" : "#2563eb",
+                    color: "#ffffff",
+                    cursor: "pointer",
+                  }}
+                >
+                  {isTimerRunning ? "Pause" : "Resume"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRestSeconds(null);
+                    setIsTimerRunning(false);
+                  }}
+                  style={{
+                    padding: "4px 8px",
+                    fontSize: "11px",
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    background: "#ffffff",
+                    color: "#64748b",
+                    cursor: "pointer",
+                  }}
+                >
+                  Reset
+                </button>
+              </>
+            )}
+          </div>
+        </div>
 
         {/* Clean Responsive Tab Switcher */}
         <div className="tabs" style={{ marginBottom: "16px" }}>
@@ -621,6 +757,14 @@ export function ClientDashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Plate Loading Calculator Modal */}
+      {showPlateModal && (
+        <PlateCalculatorModal
+          initialWeight={135}
+          onClose={() => setShowPlateModal(false)}
+        />
       )}
     </div>
   );
