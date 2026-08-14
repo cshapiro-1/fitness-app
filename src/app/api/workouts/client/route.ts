@@ -76,11 +76,15 @@ export async function GET(req: NextRequest) {
           createdAt: w.createdAt ? new Date(w.createdAt).toISOString() : w.date,
           completedAt: w.date || new Date().toISOString(),
           notes: w.notes || "",
+          loggedByRole: w.loggedByRole || "TRAINER",
+          loggedByName: w.loggedByName || null,
           exercises: [],
         });
       }
       const s = sessionMap.get(sessionKey);
       if (!s.notes && w.notes) s.notes = w.notes;
+      s.loggedByRole = w.loggedByRole || s.loggedByRole || "TRAINER";
+      s.loggedByName = w.loggedByName || s.loggedByName || null;
       s.exercises.push({
         id: "leg-ex-" + w.id,
         order: s.exercises.length,

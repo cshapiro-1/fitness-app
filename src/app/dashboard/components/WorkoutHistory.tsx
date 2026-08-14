@@ -304,7 +304,24 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
                   <Calendar size={13} style={{ display: "inline", marginRight: "5px", color: "#2563eb" }} />
                   {workout.completedAt ? new Date(workout.completedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-"}
                 </div>
-                <div className="history-meta">{workout.exercises.length} exercise{workout.exercises.length !== 1 ? "s" : ""} included</div>
+                <div className="history-meta" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
+                  <span>{workout.exercises.length} exercise{workout.exercises.length !== 1 ? "s" : ""} included</span>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      background: workout.loggedByRole === "CLIENT" ? "#eff6ff" : "#f8fafc",
+                      color: workout.loggedByRole === "CLIENT" ? "#1d4ed8" : "#475569",
+                      border: `1px solid ${workout.loggedByRole === "CLIENT" ? "#bfdbfe" : "#e2e8f0"}`,
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    {workout.loggedByRole === "CLIENT"
+                      ? `👤 Logged by Client${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`
+                      : `🏋️ Logged by Coach${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`}
+                  </span>
+                </div>
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>

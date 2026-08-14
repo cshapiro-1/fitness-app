@@ -39,6 +39,9 @@ export interface WorkoutSession {
   startedAt?: string | null;
   completedAt?: string | null;
   notes?: string | null;
+  loggedByRole?: "TRAINER" | "CLIENT" | string | null;
+  loggedById?: string | null;
+  loggedByName?: string | null;
   createdAt: string;
   exercises: WorkoutExercise[];
 }

@@ -68,6 +68,8 @@ export async function GET(req: NextRequest) {
        }
        const s = sessionMap.get(sessionKey);
        if (!s.notes && w.notes) s.notes = w.notes;
+       s.loggedByRole = w.loggedByRole || "TRAINER";
+       s.loggedByName = w.loggedByName || null;
        s.exercises.push({
           id: "leg-ex-" + w.id, order: s.exercises.length, name: w.exercise,
           sets: Array.from({ length: w.sets || 1 }, (_, i) => ({ id: "leg-set-" + w.id + "-" + i, order: i, weight: w.weight || 0, reps: w.reps || 0, notes: "" }))
@@ -87,11 +89,13 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
     let trainerName = session?.user?.name || "Your Coach";
+    let userRole = (session?.user as any)?.role || "TRAINER";
 
     if (!userId && session?.user?.email) {
       const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
       userId = dbUser?.id;
       if (dbUser?.name) trainerName = dbUser.name;
+      if (dbUser?.role) userRole = dbUser.role;
     }
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
@@ -102,10 +106,14 @@ export async function POST(req: NextRequest) {
 
     const created = await prisma.workoutSession.create({
       data: {
-        clientId, status: status || "COMPLETED",
+        clientId,
+        status: status || "COMPLETED",
         startedAt: startedAt ? new Date(startedAt) : null,
         completedAt: completedAt ? new Date(completedAt) : null,
         notes: notes || null,
+        loggedByRole: userRole,
+        loggedById: userId,
+        loggedByName: trainerName,
         exercises: {
           create: exercises.map((ex: any, i: number) => ({
             name: ex.name,

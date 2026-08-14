@@ -457,9 +457,16 @@ export function ClientDashboard({
                     boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
-                      {new Date(workout.completedAt || workout.createdAt).toLocaleString()}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "6px" }}>
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+                        {new Date(workout.completedAt || workout.createdAt).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                        {workout.loggedByRole === "CLIENT"
+                          ? `👤 Logged by You${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`
+                          : `🏋️ Logged by Coach${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`}
+                      </div>
                     </div>
                     <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
                       ✓ Finished

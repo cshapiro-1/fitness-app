@@ -89,10 +89,11 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime? @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  clients       Client[]
-  clientProfile Client?   @relation("ClientLogin", fields: [clientProfileId], references: [id], onDelete: SetNull)
+  accounts       Account[]
+  sessions       Session[]
+  clients        Client[]
+  clientProfile  Client?          @relation("ClientLogin", fields: [clientProfileId], references: [id], onDelete: SetNull)
+  loggedWorkouts WorkoutSession[] @relation("LoggedWorkouts")
 
   @@index([email])
   @@index([role])
@@ -128,36 +129,45 @@ model Client {
 }
 
 model Workout {
-  id        String   @id @default(cuid())
-  clientId  String
-  exercise  String
-  weight    Float
-  sets      Int
-  reps      Int
-  date      String
-  notes     String?
-  createdAt DateTime @default(now())
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  clientId     String
+  exercise     String
+  weight       Float
+  sets         Int
+  reps         Int
+  date         String
+  notes        String?
+  loggedByRole String?  @default("TRAINER")
+  loggedById   String?
+  loggedByName String?
+  createdAt    DateTime @default(now())
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([date])
 }
 
 model WorkoutSession {
-  id          String               @id @default(cuid())
-  clientId    String
-  status      WorkoutSessionStatus @default(COMPLETED)
-  sessionType String?              @default("WORKOUT") // WORKOUT, REST_DAY, CARDIO, WELLNESS
-  startedAt   DateTime?
-  completedAt DateTime?
-  notes       String?
-  createdAt   DateTime             @default(now())
-  client      Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  exercises   WorkoutExercise[]
+  id           String               @id @default(cuid())
+  clientId     String
+  status       WorkoutSessionStatus @default(COMPLETED)
+  sessionType  String?              @default("WORKOUT") // WORKOUT, REST_DAY, CARDIO, WELLNESS
+  startedAt    DateTime?
+  completedAt  DateTime?
+  notes        String?
+  loggedByRole String?              @default("TRAINER") // TRAINER, CLIENT
+  loggedById   String?
+  loggedByName String?
+  createdAt    DateTime             @default(now())
+  client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  loggedByUser User?                @relation("LoggedWorkouts", fields: [loggedById], references: [id], onDelete: SetNull)
+  exercises    WorkoutExercise[]
 
   @@index([clientId])
   @@index([status])
   @@index([completedAt])
+  @@index([loggedById])
+  @@index([loggedByRole])
 }
 
 model WorkoutExercise {
