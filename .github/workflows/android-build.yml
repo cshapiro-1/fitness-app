@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-android:
-    name: Build Android APK
+    name: Build Android APK & AAB
     runs-on: ubuntu-latest
 
     steps:
@@ -38,14 +38,20 @@ jobs:
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Build Debug APK with Gradle
+      - name: Build Android APK & Play Store AAB Bundle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug bundleDebug --no-daemon
 
-      - name: Upload Android APK Artifact
+      - name: Upload Android Test APK
         uses: actions/upload-artifact@v4
         with:
-          name: fitcoach-android-debug-apk
+          name: fitcoach-android-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload Google Play AAB Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitcoach-google-play-aab-bundle
+          path: android/app/build/outputs/bundle/debug/app-debug.aab
