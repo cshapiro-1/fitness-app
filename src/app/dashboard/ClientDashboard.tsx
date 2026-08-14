@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { isDefaultBodyweight } from "./utils/exerciseLibrary";
+import { AnalyticsView } from "./components/AnalyticsView";
+import { computeAnalytics } from "./utils/analytics";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -154,8 +156,7 @@ export function ClientDashboard({
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 6);
 
-    return { totalVolume, totalSets, topPRs };
-  }, [completed]);
+  const fullAnalytics = useMemo(() => computeAnalytics(workouts), [workouts]);
 
   return (
     <div className="app">
@@ -541,62 +542,7 @@ export function ClientDashboard({
         {/* TAB 3: Analytics & PRs */}
         {tab === "analytics" && (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Quick Metrics Bar */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Workouts</div>
-                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginTop: "2px" }}>
-                  {completed.length}
-                </div>
-              </div>
-
-              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Sets Done</div>
-                <div style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", marginTop: "2px" }}>
-                  {analyticsData.totalSets}
-                </div>
-              </div>
-
-              <div style={{ background: "#ffffff", padding: "14px", borderRadius: "12px", border: "1px solid #e2e8f0", textAlign: "center" }}>
-                <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>Tonnage</div>
-                <div style={{ fontSize: "20px", fontWeight: 800, color: "#2563eb", marginTop: "2px" }}>
-                  {Math.round(analyticsData.totalVolume).toLocaleString()} <span style={{ fontSize: "10px" }}>lbs</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Estimated 1RM PRs */}
-            <div className="card" style={{ padding: "16px 18px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                <Award size={18} style={{ color: "#eab308" }} />
-                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Top Strength Personal Records</h3>
-              </div>
-
-              {analyticsData.topPRs.length === 0 ? (
-                <div className="empty-state">Complete workouts to see your strength records.</div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  {analyticsData.topPRs.map((pr) => (
-                    <div
-                      key={pr.name}
-                      style={{
-                        background: "#fafafa",
-                        border: "1px solid #e2e8f0",
-                        borderRadius: "10px",
-                        padding: "10px 12px",
-                      }}
-                    >
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {pr.name}
-                      </div>
-                      <div style={{ fontSize: "16px", fontWeight: 800, color: "#2563eb", marginTop: "2px" }}>
-                        {pr.weight} <span style={{ fontSize: "11px", fontWeight: 500, color: "#64748b" }}>lbs est. 1RM</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <AnalyticsView analytics={fullAnalytics} />
           </div>
         )}
       </main>
