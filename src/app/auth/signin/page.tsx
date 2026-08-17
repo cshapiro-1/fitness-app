@@ -2,11 +2,17 @@
 
 export const dynamic = "force-dynamic";
 
+import React, { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
-import { Shield, Key, ArrowRight, UserCheck, AlertCircle } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Shield, Key, ArrowRight, UserCheck, AlertCircle, Sparkles } from "lucide-react";
 
-export default function SignInPage() {
+function SignInContent() {
+  const searchParams = useSearchParams();
+  const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = rawCallback.startsWith("/") ? rawCallback : "/dashboard";
+  const isInviteFlow = callbackUrl.includes("/invite/");
+
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingService, setLoadingService] = useState(false);
   const [showServiceLogin, setShowServiceLogin] = useState(false);
@@ -16,7 +22,7 @@ export default function SignInPage() {
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    await signIn("google", { callbackUrl });
   };
 
   const handleServiceSignIn = async (e: React.FormEvent) => {
@@ -29,7 +35,7 @@ export default function SignInPage() {
         email: serviceEmail,
         password: servicePassword,
         redirect: false,
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
 
       if (res?.error) {
@@ -37,7 +43,7 @@ export default function SignInPage() {
       } else if (res?.url) {
         window.location.href = res.url;
       } else {
-        window.location.href = "/dashboard";
+        window.location.href = callbackUrl;
       }
     } catch {
       setServiceError("Failed to sign in with service account.");
@@ -96,6 +102,31 @@ export default function SignInPage() {
           </p>
         </div>
 
+        {/* Invite Flow Alert Banner */}
+        {isInviteFlow && (
+          <div
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1e40af",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              fontSize: "12px",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "1.25rem",
+              textAlign: "left",
+            }}
+          >
+            <Sparkles size={16} style={{ color: "#2563eb", flexShrink: 0 }} />
+            <span>
+              <b>Accepting Client Invite:</b> Sign in with Google to automatically connect your athlete portal to your coach.
+            </span>
+          </div>
+        )}
+
         {/* Google Sign In Button (Hero) */}
         <div style={{ marginBottom: "1.5rem" }}>
           <button
@@ -141,7 +172,7 @@ export default function SignInPage() {
             <span>{loadingGoogle ? "Connecting..." : "Continue with Google"}</span>
           </button>
           <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "8px", marginBottom: 0 }}>
-            Recommended for personal athlete and client accounts.
+            {isInviteFlow ? "Instant 1-click free client portal access" : "Recommended for athlete and client accounts."}
           </p>
         </div>
 
@@ -308,5 +339,13 @@ export default function SignInPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#f8fafc" }} />}>
+      <SignInContent />
+    </Suspense>
   );
 }

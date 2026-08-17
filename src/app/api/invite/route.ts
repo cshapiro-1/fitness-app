@@ -28,8 +28,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
-    const proto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const rawHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
+    const host = rawHost.split(",")[0].trim();
+    const rawProto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const proto = rawProto.split(",")[0].trim();
     const baseUrl = `${proto}://${host}`;
     const inviteUrl = `${baseUrl}/invite/${token}`;
 
