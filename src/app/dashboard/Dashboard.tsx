@@ -44,6 +44,7 @@ import { TrainerProfileModal } from "./components/TrainerProfileModal";
 import { ReportExportModal } from "./components/ReportExportModal";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { AIRoutineGeneratorModal } from "./components/AIRoutineGeneratorModal";
+import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
@@ -65,6 +66,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isPlateModalOpen, setIsPlateModalOpen] = useState(false);
   const [isAIRoutineModalOpen, setIsAIRoutineModalOpen] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
@@ -554,6 +556,18 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             <span>🥗</span>
             <span className="hide-mobile">Nutrition &amp; Macros</span>
           </Link>
+
+          {/* What's New / Release Notes */}
+          <button
+            type="button"
+            onClick={() => setIsReleaseNotesOpen(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
+            title="What's New in FitCoach"
+          >
+            <Sparkles size={14} />
+            <span className="hide-mobile">What&apos;s New</span>
+          </button>
 
           {/* Switch Role Button */}
           <Link
@@ -1279,6 +1293,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           onImportRoutine={handleImportAIRoutine}
         />
       )}
+
+      {/* Release Notes & Changelog Modal */}
+      <ReleaseNotesModal
+        isOpen={isReleaseNotesOpen}
+        onClose={() => setIsReleaseNotesOpen(false)}
+      />
     </div>
   );
 }

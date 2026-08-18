@@ -87,7 +87,7 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Filter workouts by date range, muscle group/exercise hierarchy, and notes search; SORTED BY DATE DESCENDING
+  // Filter workouts by date range, muscle group/exercise hierarchy, and multi-field search; SORTED BY DATE DESCENDING
   const filteredWorkouts = useMemo(() => {
     const query = notesSearch.trim().toLowerCase();
 
@@ -107,14 +107,16 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
           if (workoutDate > end) return null;
         }
 
-        // Notes Search Check (checks session notes AND exercise/set notes)
+        // Multi-field Search Check (checks session notes, exercise name, and set notes)
         if (query) {
           const sessionNotesMatch = workout.notes?.toLowerCase().includes(query);
-          const exerciseNotesMatch = workout.exercises.some(
-            (ex) =>
-              ex.sets.some((s) => s.notes?.toLowerCase().includes(query))
+          const exerciseNameMatch = workout.exercises.some((ex) =>
+            ex.name.toLowerCase().includes(query)
           );
-          if (!sessionNotesMatch && !exerciseNotesMatch) return null;
+          const setNotesMatch = workout.exercises.some((ex) =>
+            ex.sets.some((s) => s.notes?.toLowerCase().includes(query))
+          );
+          if (!sessionNotesMatch && !exerciseNameMatch && !setNotesMatch) return null;
         }
 
         // Exercise & Muscle Group Hierarchy Check
@@ -125,6 +127,11 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
           }
           if (selectedExercise !== "ALL" && exercise.name !== selectedExercise) {
             return false;
+          }
+          if (query && !workout.notes?.toLowerCase().includes(query)) {
+            const exMatch = exercise.name.toLowerCase().includes(query);
+            const setMatch = exercise.sets.some((s) => s.notes?.toLowerCase().includes(query));
+            if (!exMatch && !setMatch) return false;
           }
           return true;
         });
