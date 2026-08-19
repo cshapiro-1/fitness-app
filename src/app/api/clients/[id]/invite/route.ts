@@ -27,7 +27,7 @@ export async function POST(
       },
     });
 
-    const rawHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
+    const rawHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "strkyr.fit";
     const host = rawHost.split(",")[0].trim();
     const rawProto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const proto = rawProto.split(",")[0].trim();

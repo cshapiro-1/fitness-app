@@ -1,9 +1,9 @@
 {
-  "appId": "com.fitcoach.app",
-  "appName": "FitCoach",
+  "appId": "com.strkyr.app",
+  "appName": "STRKYR",
   "webDir": "public",
   "server": {
-    "url": "https://fitness-app-blush-chi.vercel.app",
+    "url": "https://strkyr.fit",
     "cleartext": false
   },
   "plugins": {
@@ -21,7 +21,7 @@
   "ios": {
     "contentInset": "always",
     "preferredContentMode": "mobile",
-    "scheme": "FitCoach"
+    "scheme": "STRKYR"
   },
   "android": {
     "allowMixedContent": true,

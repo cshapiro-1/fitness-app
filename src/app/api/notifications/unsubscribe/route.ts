@@ -36,7 +36,7 @@ export async function GET(req: Request) {
       });
     }
 
-    const appUrl = process.env.NEXTAUTH_URL || "https://fitness-app-blush-chi.vercel.app";
+    const appUrl = process.env.NEXTAUTH_URL || "https://strkyr.fit";
     const toggleUrl = `${appUrl}/api/notifications/unsubscribe?${
       email ? `email=${encodeURIComponent(email)}` : `clientId=${clientId}`
     }&resubscribe=${!resubscribe}`;

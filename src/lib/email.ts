@@ -17,7 +17,7 @@ export function generateWorkoutEmailHtml(payload: WorkoutNotificationPayload): {
   subject: string;
   html: string;
 } {
-  const appUrl = process.env.NEXTAUTH_URL || "https://fitness-app-blush-chi.vercel.app";
+  const appUrl = process.env.NEXTAUTH_URL || "https://strkyr.fit";
   const unsubscribeUrl = `${appUrl}/api/notifications/unsubscribe?email=${encodeURIComponent(
     payload.recipientEmail
   )}`;

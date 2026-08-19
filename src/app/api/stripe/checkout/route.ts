@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const plan = (body.plan === "annual" ? "annual" : "monthly") as "monthly" | "annual";
     const selectedPlan = SUBSCRIPTION_PRICES[plan];
 
-    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "fitness-app-blush-chi.vercel.app";
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "strkyr.fit";
     const protocol = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
     const appBaseUrl = `${protocol}://${host}`;
 

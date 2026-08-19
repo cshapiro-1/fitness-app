@@ -52,10 +52,10 @@ describe("Invite Link API Integration", () => {
         inviteStatus: "PENDING",
       });
 
-      const req = new NextRequest("http://fitness-app-blush-chi.vercel.app/api/invite", {
+      const req = new NextRequest("http://strkyr.fit/api/invite", {
         method: "POST",
         headers: {
-          host: "fitness-app-blush-chi.vercel.app",
+          host: "strkyr.fit",
         },
         body: JSON.stringify({ clientId: "client-123" }),
       });
@@ -92,10 +92,10 @@ describe("Invite Link API Integration", () => {
         inviteStatus: "PENDING",
       });
 
-      const req = new NextRequest("http://fitness-app-blush-chi.vercel.app/api/clients/client-123/invite", {
+      const req = new NextRequest("http://strkyr.fit/api/clients/client-123/invite", {
         method: "POST",
         headers: {
-          host: "fitness-app-blush-chi.vercel.app",
+          host: "strkyr.fit",
         },
       });
 
