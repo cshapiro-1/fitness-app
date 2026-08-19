@@ -23,7 +23,7 @@ export function ReleaseNotesModal({ isOpen, onClose }: ReleaseNotesModalProps) {
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1e40af", padding: "3px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: 700, marginBottom: "6px" }}>
               <Sparkles size={12} />
-              <span>What&apos;s New in FitCoach</span>
+              <span>What&apos;s New in STRKYR Fitness</span>
             </div>
             <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
               Release Notes &amp; Updates

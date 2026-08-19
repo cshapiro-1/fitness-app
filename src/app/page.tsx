@@ -58,7 +58,7 @@ export default async function HomePage() {
             <Dumbbell size={20} />
           </div>
           <div>
-            <span style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>FitCoach</span>
+            <span style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>STRKYR Fitness</span>
             <span style={{ fontSize: "10px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "6px", marginLeft: "6px" }}>v1.2</span>
           </div>
         </div>
@@ -398,7 +398,7 @@ export default async function HomePage() {
       <footer style={{ borderTop: "1px solid #e2e8f0", padding: "32px 20px", background: "#f8fafc", textAlign: "center" }}>
         <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
           <div style={{ fontSize: "12px", color: "#64748b" }}>
-            © {new Date().getFullYear()} FitCoach Portal. All rights reserved.
+            © {new Date().getFullYear()} STRKYR Fitness Portal. All rights reserved.
           </div>
           <div style={{ display: "flex", gap: "16px", fontSize: "12px" }}>
             <Link href="/privacy" style={{ color: "#64748b", textDecoration: "none" }}>Privacy Policy</Link>

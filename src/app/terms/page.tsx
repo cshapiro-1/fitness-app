@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
         <div style={{ maxWidth: "800px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#2563eb", fontWeight: 700, fontSize: "16px" }}>
             <Dumbbell size={20} />
-            <span>FitCoach</span>
+            <span>STRKYR Fitness</span>
           </Link>
           <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", fontWeight: 600, color: "#64748b", textDecoration: "none" }}>
             <ArrowLeft size={14} />

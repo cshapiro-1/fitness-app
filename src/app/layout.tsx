@@ -3,7 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FitCoach — Professional Workout & Coaching Portal",
+  title: "STRKYR Fitness — Professional Workout & Coaching Portal",
   description: "Track workouts, plan periodized routines, analyze strength PRs, and manage coaching clients.",
   manifest: "/manifest.json",
   icons: {
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FitCoach",
+    title: "STRKYR Fitness",
   },
 };
 

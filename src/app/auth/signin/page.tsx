@@ -95,7 +95,7 @@ function SignInContent() {
             💪
           </div>
           <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.4rem 0", letterSpacing: "-0.02em" }}>
-            FitCoach Portal
+            STRKYR Fitness
           </h1>
           <p style={{ fontSize: "0.875rem", color: "#64748b", margin: 0 }}>
             Unified platform for coaches and athletes
