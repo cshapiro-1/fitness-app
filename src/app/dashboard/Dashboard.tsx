@@ -135,6 +135,10 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   }, []);
 
   useEffect(() => {
+    document.title = "STRKYR Fitness — Coach Dashboard";
+  }, []);
+
+  useEffect(() => {
     fetchSubscription();
     fetchTrainerProfile();
     fetchClients();

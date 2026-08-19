@@ -3,7 +3,10 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "STRKYR Fitness — Professional Workout & Coaching Portal",
+  title: {
+    default: "STRKYR Fitness — Professional Workout & Coaching Portal",
+    template: "%s | STRKYR Fitness",
+  },
   description: "Track workouts, plan periodized routines, analyze strength PRs, and manage coaching clients.",
   manifest: "/manifest.json",
   icons: {
@@ -30,6 +33,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <title>STRKYR Fitness — Professional Workout & Coaching Portal</title>
+      </head>
       <body>
         <Providers>{children}</Providers>
         <script

@@ -92,6 +92,11 @@ export function ClientDashboard({
     };
   }, [isTimerRunning, restSeconds]);
 
+  // Set Document Title
+  useEffect(() => {
+    document.title = "STRKYR Fitness — Client Portal";
+  }, []);
+
   // Dismissible Banner State (Persisted in localStorage)
   const [bannerDismissed, setBannerDismissed] = useState(false);
 

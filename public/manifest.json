@@ -1,6 +1,6 @@
 {
-  "name": "FitCoach - Workout Tracker & Personal Trainer",
-  "short_name": "FitCoach",
+  "name": "STRKYR Fitness — Professional Workout & Coaching Portal",
+  "short_name": "STRKYR Fitness",
   "description": "Professional workout tracking, client coaching, and periodized training portal.",
   "start_url": "/dashboard",
   "scope": "/",
