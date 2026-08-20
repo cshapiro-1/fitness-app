@@ -7,10 +7,24 @@ import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Shield, Key, ArrowRight, UserCheck, AlertCircle, Sparkles } from "lucide-react";
 
+function getCleanCallbackUrl(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {}
+  if (decoded.startsWith("/")) return decoded;
+  try {
+    const parsed = new URL(decoded);
+    if (parsed.pathname) return parsed.pathname + parsed.search;
+  } catch {}
+  return "/dashboard";
+}
+
 function SignInContent() {
   const searchParams = useSearchParams();
-  const rawCallback = searchParams.get("callbackUrl") || "/dashboard";
-  const callbackUrl = rawCallback.startsWith("/") ? rawCallback : "/dashboard";
+  const rawCallback = searchParams.get("callbackUrl");
+  const callbackUrl = getCleanCallbackUrl(rawCallback);
   const isInviteFlow = callbackUrl.includes("/invite/");
 
   const [loadingGoogle, setLoadingGoogle] = useState(false);

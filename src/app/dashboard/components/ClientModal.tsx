@@ -111,13 +111,17 @@ export function ClientModal({
           body: JSON.stringify({ clientId: client.id }),
         });
         const data = await res.json();
-        if (res.ok && data.inviteUrl) {
-          setInviteUrl(data.inviteUrl);
+        if (res.ok && (data.inviteUrl || data.inviteToken || data.token)) {
+          const token = data.inviteToken || data.token;
+          const url = typeof window !== "undefined" && token
+            ? `${window.location.origin}/invite/${token}`
+            : data.inviteUrl;
+          setInviteUrl(url);
           if (onInviteGenerated) {
             onInviteGenerated({
               ...client,
-              inviteToken: data.inviteToken || data.token,
-              inviteUrl: data.inviteUrl,
+              inviteToken: token,
+              inviteUrl: url,
               inviteStatus: "PENDING",
             });
           }

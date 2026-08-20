@@ -234,8 +234,10 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       if (res.ok) {
         const data = await res.json();
         const token = data.inviteToken || data.token || data.client?.inviteToken;
-        const inviteUrl = data.inviteUrl || `${window.location.origin}/invite/${token}`;
-        const updated = { ...client, inviteToken: token, inviteStatus: "PENDING" as const };
+        const inviteUrl = typeof window !== "undefined" && token
+          ? `${window.location.origin}/invite/${token}`
+          : data.inviteUrl || `/invite/${token}`;
+        const updated = { ...client, inviteToken: token, inviteUrl, inviteStatus: "PENDING" as const };
         setClients((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
         setSelected(updated);
         copyLink(inviteUrl);
