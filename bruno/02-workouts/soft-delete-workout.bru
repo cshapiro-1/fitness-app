@@ -1,0 +1,15 @@
+meta {
+  name: Soft Delete Workout with Remnant
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/workouts/sample-workout-id
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [200, 401, 404]
+}

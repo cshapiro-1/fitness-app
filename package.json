@@ -8,6 +8,12 @@
     "ci:check": "vitest run && tsc --noEmit && next build",
     "start": "next start",
     "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:api": "bru run bruno --env local",
+    "test:api:staging": "bru run bruno --env staging",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && tsc --noEmit",
     "test:watch": "vitest",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
@@ -34,6 +40,7 @@
     "stripe": "^17.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@prisma/config": "^7.9.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
@@ -41,6 +48,7 @@
     "@types/pg": "^8.21.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@usebruno/cli": "^1.38.0",
     "@vitejs/plugin-react": "^6.0.5",
     "dotenv": "^17.4.2",
     "jsdom": "^30.0.1",

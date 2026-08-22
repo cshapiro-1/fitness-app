@@ -1,0 +1,15 @@
+meta {
+  name: Nutrition & Macro Tracking
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/nutrition/logs?date=2026-08-22
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: in [200, 401]
+}

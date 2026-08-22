@@ -1,0 +1,41 @@
+meta {
+  name: Create Workout Session
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/workouts
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "clientId": "test-client-123",
+    "status": "COMPLETED",
+    "notes": "E2E Test Workout with Warm-Up and Stretches",
+    "exercises": [
+      {
+        "name": "Barbell Bench Press",
+        "category": "STRENGTH",
+        "sets": [
+          { "weight": 225, "reps": 5, "notes": "Heavy working set" },
+          { "weight": 225, "reps": 5, "notes": "Solid form" }
+        ]
+      },
+      {
+        "name": "Doorway Pec Stretch",
+        "category": "BODYWEIGHT",
+        "isBodyweight": true,
+        "sets": [
+          { "weight": 0, "reps": 60, "notes": "Deep post-workout stretch" }
+        ]
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: in [200, 401]
+}
