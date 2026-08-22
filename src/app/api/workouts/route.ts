@@ -43,22 +43,22 @@ export async function GET(req: NextRequest) {
         });
       }
     } else {
-      // Find all client IDs associated with current trainer/user
+      // urlClientId === "all" or missing: Find all client IDs associated with current trainer/user
+      if (userId) {
+        const trainerClients = await prisma.client.findMany({
+          where: { userId },
+          select: { id: true },
+        });
+        trainerClients.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
+      }
       if (userEmail) {
         const matching = await prisma.client.findMany({
           where: { email: { equals: userEmail, mode: "insensitive" } },
           select: { id: true },
         });
         matching.forEach((c) => {
-          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
-        });
-      }
-      if (userId) {
-        const selfClients = await prisma.client.findMany({
-          where: { userId },
-          select: { id: true },
-        });
-        selfClients.forEach((c) => {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
       }

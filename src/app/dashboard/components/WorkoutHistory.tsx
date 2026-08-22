@@ -137,6 +137,12 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
           return true;
         });
 
+        if (workout.exercises.length === 0 && selectedMuscleGroup === "ALL" && selectedExercise === "ALL") {
+          return {
+            ...workout,
+            exercises: [],
+          };
+        }
         if (matchingExercises.length === 0) return null;
 
         return {

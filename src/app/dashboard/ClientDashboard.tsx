@@ -237,8 +237,19 @@ export function ClientDashboard({
     }
   };
 
-  const completed = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
-  const planned = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
+  const completed = useMemo(() => {
+    return workouts.filter((w) => {
+      const s = (w.status || "").toUpperCase();
+      return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
+    });
+  }, [workouts]);
+
+  const planned = useMemo(() => {
+    return workouts.filter((w) => {
+      const s = (w.status || "").toUpperCase();
+      return s === "PLANNED" || s === "IN_PROGRESS";
+    });
+  }, [workouts]);
 
   const fullAnalytics = useMemo(() => computeAnalytics(workouts), [workouts]);
 

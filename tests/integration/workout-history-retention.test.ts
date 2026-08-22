@@ -132,6 +132,46 @@ describe("Workout History Retention & Attribution Suite", () => {
       expect(data.some((s: any) => s.id === "session-recent")).toBe(true);
       expect(data.some((s: any) => s.id === "session-legacy")).toBe(true);
     });
+
+    it("should retrieve all workouts across all clients when clientId=all", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "trainer-collin-1", email: "collin@fitpro.com" },
+      });
+
+      (prisma.client.findMany as any).mockResolvedValue([
+        { id: "client-1" },
+        { id: "client-2" },
+      ]);
+
+      const mockSessions = [
+        {
+          id: "session-client-1",
+          clientId: "client-1",
+          status: "COMPLETED",
+          completedAt: "2026-08-22T08:00:00Z",
+          exercises: [{ name: "Squat", sets: [{ weight: 315, reps: 3 }] }],
+        },
+        {
+          id: "session-client-2",
+          clientId: "client-2",
+          status: "COMPLETED",
+          completedAt: "2026-08-15T08:00:00Z",
+          exercises: [{ name: "Deadlift", sets: [{ weight: 405, reps: 2 }] }],
+        },
+      ];
+
+      (prisma.workoutSession.findMany as any).mockResolvedValue(mockSessions);
+      (prisma.workout.findMany as any).mockResolvedValue([]);
+
+      const req = new NextRequest("http://strkyr.fit/api/workouts?clientId=all");
+      const res = await getWorkouts(req);
+
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.length).toBe(2);
+      expect(data[0].id).toBe("session-client-1");
+      expect(data[1].id).toBe("session-client-2");
+    });
   });
 
   describe("GET /api/workouts/client - Athlete Client Portal History Resolution", () => {

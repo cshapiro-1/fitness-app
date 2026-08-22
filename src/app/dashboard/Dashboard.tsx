@@ -295,8 +295,19 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     return `/invite/${client.inviteToken}`;
   };
 
-  const completedWorkouts = useMemo(() => workouts.filter((w) => w.status === "COMPLETED"), [workouts]);
-  const plannedWorkouts = useMemo(() => workouts.filter((w) => w.status === "PLANNED" || w.status === "IN_PROGRESS"), [workouts]);
+  const completedWorkouts = useMemo(() => {
+    return workouts.filter((w) => {
+      const s = (w.status || "").toUpperCase();
+      return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
+    });
+  }, [workouts]);
+
+  const plannedWorkouts = useMemo(() => {
+    return workouts.filter((w) => {
+      const s = (w.status || "").toUpperCase();
+      return s === "PLANNED" || s === "IN_PROGRESS";
+    });
+  }, [workouts]);
   const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
 
   // Compute Weekly Workout Streak for Selected Client
