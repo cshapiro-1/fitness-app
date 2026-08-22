@@ -1081,6 +1081,13 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
               {tab === "mobility" && (
                 <MobilityTab
+                  clientId={selected.id}
+                  clientName={selected.name}
+                  clientsList={clients.map((c) => ({ id: c.id, name: c.name }))}
+                  isTrainer={true}
+                  onLogCompletedRoutine={(newWorkout) => {
+                    setWorkouts((prev) => [newWorkout, ...prev]);
+                  }}
                   recentWorkoutExercises={
                     completedWorkouts.length > 0
                       ? completedWorkouts[0].exercises.map((ex) => ({ name: ex.name, category: ex.category }))

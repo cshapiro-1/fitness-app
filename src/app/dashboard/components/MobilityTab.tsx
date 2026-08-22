@@ -22,11 +22,20 @@ import {
   Clock,
   Sliders,
   Check,
+  CalendarPlus,
+  Save,
+  Send,
+  UserCheck,
 } from "lucide-react";
 import { MOBILITY_ROUTINES, getMuscleGroupsFromWorkout } from "../utils/mobilityRoutines";
 
 interface MobilityTabProps {
   recentWorkoutExercises?: { name: string; category?: string | null }[];
+  clientId?: string;
+  clientName?: string;
+  clientsList?: Array<{ id: string; name: string }>;
+  isTrainer?: boolean;
+  onLogCompletedRoutine?: (workout: any) => void;
 }
 
 export interface MobilityMovement {
@@ -92,7 +101,14 @@ function playTimerChime() {
   }
 }
 
-export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
+export function MobilityTab({
+  recentWorkoutExercises,
+  clientId,
+  clientName,
+  clientsList = [],
+  isTrainer = false,
+  onLogCompletedRoutine,
+}: MobilityTabProps) {
   // AI Generator State
   const [selectedMuscles, setSelectedMuscles] = useState<string[]>([]);
   const [routineType, setRoutineType] = useState<string>("warmup");
@@ -106,6 +122,11 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
 
   // UI State
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
+  const [assigningRoutine, setAssigningRoutine] = useState<MobilityRoutine | null>(null);
+  const [assignTargetClientId, setAssignTargetClientId] = useState<string>(clientId || (clientsList[0]?.id || ""));
+  const [assignTiming, setAssignTiming] = useState<"PRE_WORKOUT" | "POST_WORKOUT" | "STANDALONE">("PRE_WORKOUT");
+  const [isSavingLog, setIsSavingLog] = useState(false);
+  const [logSavedSuccess, setLogSavedSuccess] = useState(false);
 
   // Timer State
   const [activeRoutine, setActiveRoutine] = useState<MobilityRoutine | null>(null);
@@ -200,6 +221,7 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
     setTotalElapsedTime(0);
     setIsPaused(false);
     setIsWaitingManualDismiss(false);
+    setLogSavedSuccess(false);
 
     if (routine.movements && routine.movements.length > 0) {
       const firstMove = routine.movements[0];
@@ -237,7 +259,6 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
         advanceToNextMovement();
       }
     } else {
-      // Manual dismiss mode: pause timer and wait for user to click next
       setIsWaitingManualDismiss(true);
       setIsPaused(true);
     }
@@ -287,6 +308,99 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
     setIsWaitingManualDismiss(false);
   };
 
+  // Log completed recovery routine to workout history
+  const handleSaveRecoveryToHistory = async () => {
+    if (!activeRoutine) return;
+    setIsSavingLog(true);
+    try {
+      const targetId = clientId || assignTargetClientId || (clientsList[0]?.id);
+      if (!targetId) {
+        alert("No client selected for workout logging.");
+        setIsSavingLog(false);
+        return;
+      }
+
+      const durMins = Math.max(1, Math.ceil(totalElapsedTime / 60));
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: targetId,
+          status: "COMPLETED",
+          startedAt: new Date(Date.now() - totalElapsedTime * 1000).toISOString(),
+          completedAt: new Date().toISOString(),
+          notes: `🧘 ${activeRoutine.name} (${durMins} min routine completed)`,
+          exercises: activeRoutine.movements.map((m: any, idx: number) => ({
+            name: m.name,
+            order: idx,
+            category: "BODYWEIGHT",
+            isBodyweight: true,
+            sets: [
+              {
+                weight: 0,
+                reps: m.duration ?? m.durationSeconds ?? perStretchSeconds ?? 60,
+                notes: m.cue || m.coachingCue || `${m.sides === "left_right" ? "Both sides" : "Completed"}`,
+              },
+            ],
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const savedWorkout = await res.json();
+        setLogSavedSuccess(true);
+        if (onLogCompletedRoutine) onLogCompletedRoutine(savedWorkout);
+      } else {
+        alert("Failed to save recovery session to history.");
+      }
+    } catch {
+      alert("Error saving recovery session.");
+    } finally {
+      setIsSavingLog(false);
+    }
+  };
+
+  // Trainer assigns routine to a client
+  const handleConfirmAssignRoutine = async () => {
+    if (!assigningRoutine || !assignTargetClientId) return;
+    try {
+      const timingLabel = assignTiming === "PRE_WORKOUT" ? "🔥 Pre-Workout Warm-Up" : assignTiming === "POST_WORKOUT" ? "❄️ Post-Workout Cool-Down" : "🧘 Recovery Protocol";
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: assignTargetClientId,
+          status: "PLANNED",
+          notes: `${timingLabel}: ${assigningRoutine.name}`,
+          exercises: assigningRoutine.movements.map((m: any, idx: number) => ({
+            name: m.name,
+            order: idx,
+            category: "BODYWEIGHT",
+            isBodyweight: true,
+            sets: [
+              {
+                weight: 0,
+                reps: m.duration ?? m.durationSeconds ?? 60,
+                notes: m.cue || m.coachingCue || "",
+              },
+            ],
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const assignedWorkout = await res.json();
+        alert(`✓ Routine successfully assigned to client!`);
+        setAssigningRoutine(null);
+        if (onLogCompletedRoutine) onLogCompletedRoutine(assignedWorkout);
+      } else {
+        alert("Failed to assign routine to client.");
+      }
+    } catch {
+      alert("Error assigning routine.");
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -301,17 +415,47 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
       return (
         <div style={modalStyles.overlay}>
           <div style={modalStyles.card}>
-            <div style={{ textAlign: "center", padding: "40px 20px" }}>
-              <div style={{ background: "#dcfce7", color: "#16a34a", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px" }}>
-                <Sparkles size={32} />
+            <div style={{ textAlign: "center", padding: "30px 16px" }}>
+              <div style={{ background: "#dcfce7", color: "#16a34a", width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                <CheckCircle2 size={36} />
               </div>
-              <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginBottom: "8px" }}>Routine Complete! 🎉</h2>
-              <p style={{ color: "#64748b", fontSize: "16px", marginBottom: "32px" }}>
-                Total recovery time: {formatTime(totalElapsedTime)}
+              <h2 style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>Routine Complete! 🎉</h2>
+              <p style={{ color: "#64748b", fontSize: "15px", marginBottom: "24px" }}>
+                Total recovery time: <b>{formatTime(totalElapsedTime)}</b> ({activeRoutine.movements.length} stretches)
               </p>
+
+              {/* Log to history notification or button */}
+              {logSavedSuccess ? (
+                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", padding: "12px", borderRadius: "10px", fontWeight: 700, fontSize: "14px", marginBottom: "20px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <Check size={18} />
+                  <span>Logged to Training History! Coach &amp; Client can view it.</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSaveRecoveryToHistory}
+                  disabled={isSavingLog}
+                  style={{
+                    ...styles.primaryButton,
+                    width: "100%",
+                    padding: "14px",
+                    fontSize: "15px",
+                    background: "#16a34a",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <Save size={18} />
+                  <span>{isSavingLog ? "Logging to History..." : "💾 Save & Log Recovery to History"}</span>
+                </button>
+              )}
+
               <button
                 onClick={endRoutine}
-                style={{ ...styles.primaryButton, width: "100%", padding: "14px", fontSize: "16px" }}
+                style={{ ...styles.primaryButton, width: "100%", padding: "12px", fontSize: "15px", background: logSavedSuccess ? "#2563eb" : "#f1f5f9", color: logSavedSuccess ? "#ffffff" : "#475569" }}
               >
                 Done
               </button>
@@ -510,7 +654,7 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
       {/* Header Section */}
       <div style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>Recovery &amp; Warm-Up</h1>
-        <p style={{ color: "#64748b", fontSize: "15px", margin: 0 }}>Custom warm-ups, stretches, sauna, and guided timers.</p>
+        <p style={{ color: "#64748b", fontSize: "15px", margin: 0 }}>Custom warm-ups, stretches, sauna, and guided timers with history logging.</p>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
@@ -629,7 +773,7 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
                   ))}
                 </div>
                 <div style={{ fontSize: "11px", color: "#64748b", marginTop: "6px" }}>
-                  Estimated ~{Math.max(2, Math.round((duration * 60) / perStretchSeconds))} unique stretches
+                  Exact ~{Math.max(2, Math.round((duration * 60) / perStretchSeconds))} unique stretches
                 </div>
               </div>
 
@@ -705,6 +849,7 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
                 isExpanded={expandedRoutineId === "ai"}
                 onToggleExpand={() => setExpandedRoutineId(expandedRoutineId === "ai" ? null : "ai")}
                 onStart={() => startRoutine(aiRoutine)}
+                onAssign={isTrainer ? () => setAssigningRoutine(aiRoutine) : undefined}
               />
             </div>
           )}
@@ -723,11 +868,94 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
                 isExpanded={expandedRoutineId === (routine.id || idx.toString())}
                 onToggleExpand={() => setExpandedRoutineId(expandedRoutineId === (routine.id || idx.toString()) ? null : routine.id || idx.toString())}
                 onStart={() => startRoutine(routine)}
+                onAssign={isTrainer ? () => setAssigningRoutine(routine) : undefined}
               />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Assign Routine Modal for Trainers */}
+      {assigningRoutine && (
+        <div style={modalStyles.overlay} onClick={() => setAssigningRoutine(null)}>
+          <div style={modalStyles.card} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                Assign Recovery Protocol to Client
+              </h3>
+              <button onClick={() => setAssigningRoutine(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+              <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontWeight: 700, fontSize: "14px", color: "#0f172a" }}>{assigningRoutine.name}</div>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                  {assigningRoutine.movements?.length} movements · {assigningRoutine.durationBadge || `~${assigningRoutine.durationMinutes} min`}
+                </div>
+              </div>
+
+              {clientsList.length > 0 && (
+                <div>
+                  <label style={styles.label}>Select Athlete / Client</label>
+                  <select
+                    value={assignTargetClientId}
+                    onChange={(e) => setAssignTargetClientId(e.target.value)}
+                    style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "14px", fontWeight: 600 }}
+                  >
+                    {clientsList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <label style={styles.label}>Assignment Timing</label>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {[
+                    { id: "PRE_WORKOUT", label: "🔥 Pre-Workout Warm-Up (Before Lifting)" },
+                    { id: "POST_WORKOUT", label: "❄️ Post-Workout Cool-Down (After Lifting)" },
+                    { id: "STANDALONE", label: "🧘 Standalone Recovery Day Session" },
+                  ].map((t) => (
+                    <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
+                      <input
+                        type="radio"
+                        name="assignTiming"
+                        checked={assignTiming === t.id}
+                        onChange={() => setAssignTiming(t.id as any)}
+                        style={{ accentColor: "#2563eb" }}
+                      />
+                      <span>{t.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={handleConfirmAssignRoutine}
+                style={{ ...styles.primaryButton, flex: 1, padding: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}
+              >
+                <Send size={15} />
+                <span>Confirm &amp; Assign to Client</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAssigningRoutine(null)}
+                style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "12px 16px", color: "#475569", fontWeight: 600, cursor: "pointer" }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {renderTimerModal()}
     </div>
@@ -735,7 +963,19 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
 }
 
 // Subcomponent for Routine Card
-function RoutineCard({ routine, isExpanded, onToggleExpand, onStart }: { routine: any; isExpanded: boolean; onToggleExpand: () => void; onStart: () => void }) {
+function RoutineCard({
+  routine,
+  isExpanded,
+  onToggleExpand,
+  onStart,
+  onAssign,
+}: {
+  routine: any;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+  onStart: () => void;
+  onAssign?: () => void;
+}) {
   const durationLabel = routine.durationBadge || (routine.durationMinutes ? `~${routine.durationMinutes} min` : "");
   const muscles = routine.muscleGroups || routine.targetMuscleGroups || [];
 
@@ -767,11 +1007,24 @@ function RoutineCard({ routine, isExpanded, onToggleExpand, onStart }: { routine
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "10px" }}>
-        <button onClick={onStart} style={{ ...styles.primaryButton, flex: 1, padding: "9px", fontSize: "13px" }}>
-          Start Routine
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+        <button onClick={onStart} style={{ ...styles.primaryButton, flex: 1, padding: "9px 12px", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+          <Play size={14} />
+          <span>Start Timer</span>
         </button>
-        <button onClick={onToggleExpand} style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "9px 12px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="View exercises">
+
+        {onAssign && (
+          <button
+            onClick={onAssign}
+            style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: "8px", padding: "9px 12px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+            title="Assign this routine directly to a client"
+          >
+            <CalendarPlus size={14} />
+            <span>Assign</span>
+          </button>
+        )}
+
+        <button onClick={onToggleExpand} style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "9px 12px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }} title="View movements">
           {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </button>
       </div>
@@ -788,7 +1041,7 @@ function RoutineCard({ routine, isExpanded, onToggleExpand, onStart }: { routine
                   {cue && <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", marginTop: "2px" }}>&ldquo;{cue}&rdquo;</div>}
                 </div>
                 <div style={{ fontSize: "12px", fontWeight: 700, color: "#2563eb", whiteSpace: "nowrap", marginLeft: "12px" }}>
-                  {m.sides === "left_right" ? `${dur}s (Each Side)` : `${dur}s`}
+                  {m.sides === "left_right" ? `${dur}s (${Math.floor(dur / 2)}s/side)` : `${dur}s`}
                 </div>
               </div>
             );

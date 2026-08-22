@@ -456,7 +456,9 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
                       <div key={setEntry.id} className="history-set-row">
                         <span>Set {setEntry.order + 1}</span>
                         <span>
-                          {isBW ? (
+                          {exercise.category === "STRETCHING" || exercise.name.toLowerCase().includes("stretch") || exercise.name.toLowerCase().includes("warm") || exercise.name.toLowerCase().includes("pose") || exercise.name.toLowerCase().includes("roll") ? (
+                            <><b>{setEntry.reps}s</b> hold / duration</>
+                          ) : isBW ? (
                             setEntry.weight > 0 ? (
                               <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
                             ) : (

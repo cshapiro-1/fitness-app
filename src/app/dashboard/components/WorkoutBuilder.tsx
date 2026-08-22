@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame } from "lucide-react";
 import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
@@ -246,6 +246,54 @@ export function WorkoutBuilder({
     });
   };
 
+  const handleAddPreWorkoutWarmup = () => {
+    const warmupMovements: DraftExercise[] = [
+      { name: "Arm Circles & Hugs (Warm-Up)", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "30", notes: "Dynamic Warm-Up" }] },
+      { name: "Inchworm to Cobra Walkout", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Core & Shoulder Prep" }] },
+      { name: "Thoracic Spine Rotations", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "30", notes: "T-Spine Mobility (Each Side)" }] },
+      { name: "High Knees & Lateral Lunges", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Hips & Cardio Warm-Up" }] },
+    ];
+
+    setActiveWorkout((current) => {
+      if (!current) {
+        return {
+          startedAt: new Date().toISOString(),
+          notes: "Includes Pre-Workout Dynamic Warm-Up",
+          exercises: warmupMovements,
+        };
+      }
+      return {
+        ...current,
+        notes: current.notes ? `${current.notes} (Pre-Workout Warm-Up Added)` : "Pre-Workout Warm-Up Added",
+        exercises: [...warmupMovements, ...current.exercises],
+      };
+    });
+  };
+
+  const handleAddPostWorkoutCooldown = () => {
+    const cooldownMovements: DraftExercise[] = [
+      { name: "Doorway Pec & Chest Stretch", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Chest & Anterior Shoulder (Each Side)" }] },
+      { name: "Child's Pose with Lat Reach", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Back & Spine Decompression" }] },
+      { name: "Standing Hamstring Fold & Quads", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Legs & Hips (Each Side)" }] },
+      { name: "Pigeon Pose Glute Stretch", isBodyweight: true, category: "BODYWEIGHT", sets: [{ weight: "0", reps: "45", notes: "Glutes & Lower Back (Each Side)" }] },
+    ];
+
+    setActiveWorkout((current) => {
+      if (!current) {
+        return {
+          startedAt: new Date().toISOString(),
+          notes: "Includes Post-Workout Cool-Down",
+          exercises: cooldownMovements,
+        };
+      }
+      return {
+        ...current,
+        notes: current.notes ? `${current.notes} (Post-Workout Cool-Down Added)` : "Post-Workout Cool-Down Added",
+        exercises: [...current.exercises, ...cooldownMovements],
+      };
+    });
+  };
+
   return (
     <div className="card workout-builder-card">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
@@ -425,6 +473,53 @@ export function WorkoutBuilder({
             >
               <Dumbbell size={14} />
               <span>Library</span>
+            </button>
+          </div>
+
+          {/* Quick Warm-Up & Cool-Down Protocols */}
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "14px" }}>
+            <button
+              type="button"
+              onClick={handleAddPreWorkoutWarmup}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: "1px solid #fed7aa",
+                background: "#fff7ed",
+                color: "#c2410c",
+                cursor: "pointer",
+              }}
+              title="Insert dynamic warm-up movements at start of workout"
+            >
+              <Flame size={14} />
+              <span>+ Add Warm-Up Routine (8 min)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAddPostWorkoutCooldown}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: "1px solid #bbf7d0",
+                background: "#f0fdf4",
+                color: "#166534",
+                cursor: "pointer",
+              }}
+              title="Insert static cool-down stretches at end of workout"
+            >
+              <span>🧘</span>
+              <span>+ Add Cool-Down Stretches (10 min)</span>
             </button>
           </div>
 

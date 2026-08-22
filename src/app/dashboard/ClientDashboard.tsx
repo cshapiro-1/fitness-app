@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
   LogOut,
   TrendingUp,
@@ -53,6 +53,7 @@ export function ClientDashboard({
   userImage: string | null;
   isAdmin?: boolean;
 }) {
+  const { data: session } = useSession();
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"assigned" | "history" | "analytics" | "mobility">("assigned");
@@ -1118,7 +1119,9 @@ export function ClientDashboard({
                                 }}
                               >
                                 Set {st.order + 1}:{" "}
-                                {isBW ? (
+                                {ex.category === "STRETCHING" || ex.name.toLowerCase().includes("stretch") || ex.name.toLowerCase().includes("warm") || ex.name.toLowerCase().includes("pose") || ex.name.toLowerCase().includes("roll") ? (
+                                  <><b>{st.reps}s</b> hold</>
+                                ) : isBW ? (
                                   st.weight > 0 ? (
                                     <><b>BW + {st.weight} lbs</b> × <b>{st.reps}</b></>
                                   ) : (
@@ -1150,6 +1153,12 @@ export function ClientDashboard({
         {/* TAB 4: Mobility & Recovery */}
         {tab === "mobility" && (
           <MobilityTab
+            clientId={workouts[0]?.clientId || (session?.user as any)?.id || ""}
+            clientName={userName}
+            isTrainer={false}
+            onLogCompletedRoutine={(newWorkout) => {
+              setWorkouts((prev) => [newWorkout, ...prev]);
+            }}
             recentWorkoutExercises={
               completed.length > 0
                 ? completed[0].exercises?.map((ex: any) => ({ name: ex.name, category: ex.category }))

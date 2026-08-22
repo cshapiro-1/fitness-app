@@ -90,57 +90,95 @@ export async function POST(req: NextRequest) {
       const isCooldown = routineType === "cooldown";
       const typeLabel = isWarmup ? "Dynamic Warm-Up" : isCooldown ? "Post-Workout Cool-Down" : "Recovery Protocol";
 
-      // Pool of targeted mobility movements
-      const movementPool: Record<string, Array<{ name: string; duration: number; cue: string; sides?: "left_right" | "none" }>> = {
+      // Comprehensive pool of targeted mobility and stretching movements
+      const movementPool: Record<string, Array<{ name: string; cue: string; sides?: "left_right" | "none" }>> = {
         Chest: [
-          { name: "Doorway Chest Stretch", duration: perStretchSeconds, cue: "Place forearms on door frame and step forward until deep stretch is felt in pecs", sides: "left_right" },
-          { name: "Chest Opener with Clasp", duration: perStretchSeconds, cue: "Interlace fingers behind back and pull shoulder blades together and down", sides: "none" },
-          { name: "Floor Pec Stretch (Scorpion)", duration: perStretchSeconds, cue: "Lie prone, extend arm at 90 degrees, roll body gently away from arm", sides: "left_right" },
+          { name: "Doorway Pec Stretch", cue: "Forearms on door frame, step forward until deep stretch is felt in mid & upper chest", sides: "left_right" },
+          { name: "Chest Opener with Hand Clasp", cue: "Interlace fingers behind lower back, peel shoulder blades back and downwards", sides: "none" },
+          { name: "Floor Pec Stretch (Scorpion)", cue: "Lie prone, extend arm at 90 degrees, roll body gently away from arm", sides: "left_right" },
+          { name: "High-Angle Corner Chest Stretch", cue: "Place hands high on wall or corner, lean chest in to target lower pec fibers", sides: "none" },
+          { name: "Foam Roller Thoracic Pec Angels", cue: "Lie spine on foam roller, open arms wide in snow-angel motion", sides: "none" },
+          { name: "Cross-Body Hug & Chest Expansion", cue: "Dynamic rhythmic opening and hugging across chest with controlled breathing", sides: "none" },
+          { name: "Pec Minor Wall Slide Stretch", cue: "Elbow at 135 degrees against wall, rotate torso away gently", sides: "left_right" },
+          { name: "Prone Y-Reach Chest Elevation", cue: "Prone on floor, reach arms in Y-shape, lift chest and stretch anterior chain", sides: "none" },
         ],
         Back: [
-          { name: "Cat-Cow Stretch", duration: perStretchSeconds, cue: "Inhale to arch spine and drop belly, exhale to round upper back toward ceiling", sides: "none" },
-          { name: "Child's Pose with Lat Reach", duration: perStretchSeconds, cue: "Sink hips back onto heels, walk hands diagonally to stretch lats", sides: "left_right" },
-          { name: "Thoracic Spine Rotations", duration: perStretchSeconds, cue: "On all fours, hand behind head, rotate elbow up toward ceiling", sides: "left_right" },
-          { name: "Thread the Needle", duration: perStretchSeconds, cue: "Slide arm underneath torso to open upper back and posterior shoulder", sides: "left_right" },
+          { name: "Cat-Cow Dynamic Spine Flow", cue: "Inhale to arch spine and drop belly, exhale to round upper back toward ceiling", sides: "none" },
+          { name: "Child's Pose with Lat Reach", cue: "Sink hips back onto heels, walk hands diagonally to stretch lats deeply", sides: "left_right" },
+          { name: "Thoracic Spine Rotations", cue: "On all fours, hand behind head, rotate elbow up toward ceiling", sides: "left_right" },
+          { name: "Thread the Needle Stretch", cue: "Slide arm underneath torso to open upper back and posterior shoulder", sides: "left_right" },
+          { name: "Standing Lat & Side Body Reach", cue: "Cross feet, grasp wrist overhead, lean to the side to lengthen latissimus", sides: "left_right" },
+          { name: "Puppy Dog T-Spine Opener", cue: "Hips over knees, walk hands forward, melt chest to floor", sides: "none" },
+          { name: "Seated Spinal Twist", cue: "Sit upright, cross leg over, gently twist torso looking over back shoulder", sides: "left_right" },
+          { name: "Prone Cobra Lumbar Extension", cue: "Lie face down, lift chest, externally rotate arms, pinch lower traps", sides: "none" },
         ],
         Shoulders: [
-          { name: "Cross-Body Shoulder Stretch", duration: perStretchSeconds, cue: "Gently pull arm across chest with opposite forearm, keeping shoulders down", sides: "left_right" },
-          { name: "Overhead Triceps & Shoulder Stretch", duration: perStretchSeconds, cue: "Reach hand down spine, gently pull elbow from above", sides: "left_right" },
-          { name: "Arm Circles & Hugs", duration: perStretchSeconds, cue: "Start small, expand to large circles, then hug chest dynamically", sides: "none" },
-          { name: "Wall Angels", duration: perStretchSeconds, cue: "Back flat against wall, glide arms up and down keeping elbows and wrists touching", sides: "none" },
+          { name: "Cross-Body Posterior Deltoid Stretch", cue: "Gently pull arm across chest with opposite forearm, keep shoulder depressed", sides: "left_right" },
+          { name: "Overhead Triceps & Shoulder Stretch", cue: "Reach hand down spine, gently guide elbow back and inward", sides: "left_right" },
+          { name: "Arm Circles & Dynamic Hugs", cue: "Start small, expand to large circles, reverse direction halfway", sides: "none" },
+          { name: "Wall Angels Mobility Slide", cue: "Back flat against wall, glide arms up and down keeping elbows touching", sides: "none" },
+          { name: "Sleeper Stretch (Internal Rotation)", cue: "Lie on side, gently press wrist toward floor with elbow at 90 degrees", sides: "left_right" },
+          { name: "Eagle Arms Scapular Spread", cue: "Wrap arms at elbows and wrists, lift elbows to shoulder height", sides: "left_right" },
+          { name: "Prone Swimmer Hover Holds", cue: "Move hands behind head, extend and rotate to lower back without touching floor", sides: "none" },
+          { name: "Band Dislocates / Broomstick Reach", cue: "Wide grip on band or stick, rotate overhead behind back smoothly", sides: "none" },
         ],
         Arms: [
-          { name: "Biceps Wall Stretch", duration: perStretchSeconds, cue: "Place palm flat on wall behind you at shoulder height and rotate chest away", sides: "left_right" },
-          { name: "Wrist Flexor & Extensor Stretch", duration: perStretchSeconds, cue: "Extend arm with palm facing forward, pull fingers back gently", sides: "left_right" },
-          { name: "Overhead Triceps Stretch", duration: perStretchSeconds, cue: "Pull elbow back and breathe into the stretch", sides: "left_right" },
+          { name: "Biceps Wall Extension Stretch", cue: "Place palm flat on wall at shoulder height, rotate torso away", sides: "left_right" },
+          { name: "Wrist Flexor & Extensor Stretch", cue: "Extend arm with palm facing up then down, gently apply tension", sides: "left_right" },
+          { name: "Overhead Triceps Stretch", cue: "Pull elbow back behind head, breathe deeply into lat and triceps", sides: "left_right" },
+          { name: "Forearm Pronator / Supinator Flow", cue: "Rotate palms smoothly from ceiling to floor with arms extended", sides: "none" },
+          { name: "Reverse Tabletop Biceps Opener", cue: "Hands behind hips on floor, press chest up to stretch biceps and front delts", sides: "none" },
+          { name: "Cross-Chest Triceps Lock", cue: "Hook forearm around opposite arm, squeeze tricep gently", sides: "left_right" },
         ],
         Legs: [
-          { name: "Standing Quad Stretch", duration: perStretchSeconds, cue: "Grab ankle, pull heel toward glute, tuck pelvis forward", sides: "left_right" },
-          { name: "Hamstring Sweep & Fold", duration: perStretchSeconds, cue: "Hinge at hips with flat back until stretch is felt in posterior thigh", sides: "none" },
-          { name: "Walking Lunge with Overhead Reach", duration: perStretchSeconds, cue: "Step forward, drop back knee, reach opposite arm overhead to stretch hip flexor", sides: "left_right" },
-          { name: "Standing Calf Stretch", duration: perStretchSeconds, cue: "Press back heel into floor with straight back leg", sides: "left_right" },
+          { name: "Standing Quad & Hip Flexor Stretch", cue: "Grab ankle, pull heel toward glute, tuck pelvis forward", sides: "left_right" },
+          { name: "Hamstring Sweep & Fold", cue: "Hinge at hips with flat back until stretch is felt in posterior thigh", sides: "none" },
+          { name: "Low Lunge with Overhead Reach", cue: "Step into deep lunge, drop back knee, reach opposite arm overhead", sides: "left_right" },
+          { name: "Standing Calf & Achilles Stretch", cue: "Press back heel into floor with straight back leg, lean into wall", sides: "left_right" },
+          { name: "Half-Kneeling Hamstring Stretch", cue: "Front leg straight, flex foot, hinge forward from hips with flat spine", sides: "left_right" },
+          { name: "Adductor Frog Stretch", cue: "Knees wide on floor, feet turned out, rock hips gently backwards", sides: "none" },
+          { name: "Cossack Squat Dynamic Flow", cue: "Shift weight laterally from side to side, keeping heel grounded", sides: "left_right" },
+          { name: "Seated Butterfly Adductor Stretch", cue: "Soles of feet together, knees dropped wide, gently press knees down", sides: "none" },
         ],
         Glutes: [
-          { name: "Pigeon Pose", duration: perStretchSeconds, cue: "Front shin angled, square hips to floor, breathe into outer hip", sides: "left_right" },
-          { name: "Figure-4 Glute Stretch", duration: perStretchSeconds, cue: "Ankle over opposite knee, pull thigh toward chest", sides: "left_right" },
-          { name: "90/90 Hip Switches", duration: perStretchSeconds, cue: "Sit with legs in 90-degree angles, rotate knees smoothly from side to side", sides: "left_right" },
+          { name: "Pigeon Pose Glute Stretch", cue: "Front shin angled, square hips to floor, breathe into outer hip", sides: "left_right" },
+          { name: "Figure-4 Supine Glute Stretch", cue: "Ankle over opposite knee, pull thigh toward chest", sides: "left_right" },
+          { name: "90/90 Hip Switches", cue: "Sit with legs in 90-degree angles, rotate knees smoothly from side to side", sides: "left_right" },
+          { name: "Seated Piriformis Cross-Leg Stretch", cue: "Cross leg, hug knee toward opposite shoulder, sit tall", sides: "left_right" },
+          { name: "Pretzel Stretch (Hip + Quad)", cue: "Lie on side, hold bottom foot and top knee, rotate shoulders flat", sides: "left_right" },
+          { name: "Lying Knee-to-Chest Glute Hug", cue: "Lie on back, hug knee to chest and pull slightly across midline", sides: "left_right" },
         ],
         Core: [
-          { name: "Cobra / Sphinx Stretch", duration: perStretchSeconds, cue: "Press palms into floor, gently extend spine keeping hips grounded", sides: "none" },
-          { name: "Supine Spinal Twist", duration: perStretchSeconds, cue: "Lie on back, drop bent knee across body while keeping opposite shoulder down", sides: "left_right" },
-          { name: "Bird-Dog Holds", duration: perStretchSeconds, cue: "Extend opposite arm and leg, hold for 2 seconds, brace core", sides: "left_right" },
+          { name: "Cobra / Sphinx Abdominal Stretch", cue: "Press palms into floor, gently extend spine keeping hips grounded", sides: "none" },
+          { name: "Supine Spinal Twist", cue: "Lie on back, drop bent knee across body while keeping opposite shoulder down", sides: "left_right" },
+          { name: "Bird-Dog Core Stability Holds", cue: "Extend opposite arm and leg, hold for 2 seconds, brace core", sides: "left_right" },
+          { name: "Side Plank Reach & Thread", cue: "Hold side plank, reach top arm under torso and open to ceiling", sides: "left_right" },
+          { name: "Deadbug Breathing Extension", cue: "Lower opposite arm and leg slowly, keep lower back pressed to floor", sides: "left_right" },
+          { name: "Kneeling Side-Bend QL Stretch", cue: "One knee down, reach opposite arm overhead and bend sideways", sides: "left_right" },
         ],
         "Full Body": [
-          { name: "World's Greatest Stretch", duration: perStretchSeconds, cue: "Lunge forward, place inside elbow to instep, then rotate arm to ceiling", sides: "left_right" },
-          { name: "Deep Squat with T-Spine Rotation", duration: perStretchSeconds, cue: "Hold bottom of squat, grasp opposite ankle and rotate chest open", sides: "left_right" },
-          { name: "Inchworm to Cobra", duration: perStretchSeconds, cue: "Walk hands out into push-up position, drop hips into cobra, walk feet in", sides: "none" },
-          { name: "Downward Dog to Upward Dog", duration: perStretchSeconds, cue: "Flow between pedal calf stretch and upward facing dog", sides: "none" },
+          { name: "World's Greatest Stretch", cue: "Lunge forward, place inside elbow to instep, then rotate arm to ceiling", sides: "left_right" },
+          { name: "Deep Squat with T-Spine Rotation", cue: "Hold bottom of squat, grasp opposite ankle and rotate chest open", sides: "left_right" },
+          { name: "Inchworm to Cobra Walkout", cue: "Walk hands out into push-up position, drop hips into cobra, walk feet in", sides: "none" },
+          { name: "Downward Dog to Upward Dog Flow", cue: "Flow between pedal calf stretch and upward facing dog", sides: "none" },
+          { name: "Standing Forward Fold with Shoulder Rinse", cue: "Fold over legs, interlace fingers overhead, breathe deeply", sides: "none" },
+          { name: "Scorpion Stretch (Chest & Hip)", cue: "Lie prone, kick foot across body to opposite hand", sides: "left_right" },
+          { name: "Spiderman Lunge with Hip Circles", cue: "Deep runner's lunge, draw gentle circles with hips to mobilize hip joints", sides: "left_right" },
+          { name: "Cat-Cow to Child's Pose Flow", cue: "Flow dynamically through spine flexion, extension, and hip relaxation", sides: "none" },
         ],
       };
 
-      const selectedList: Array<{ name: string; duration: number; cue: string; sides?: "left_right" | "none" }> = [];
-      const targets = muscleGroups.includes("Full Body") ? ["Full Body", "Chest", "Back", "Legs", "Glutes"] : muscleGroups;
+      // Calculate exact number of stretches needed for target duration
+      const totalSecondsRequested = durationMinutes * 60;
+      const targetCount = Math.max(2, Math.min(25, Math.round(totalSecondsRequested / perStretchSeconds)));
 
+      const targets = muscleGroups.includes("Full Body")
+        ? ["Full Body", "Chest", "Back", "Legs", "Glutes", "Shoulders", "Core"]
+        : muscleGroups;
+
+      const selectedList: Array<{ name: string; duration: number; cue: string; sides?: "left_right" | "none" }> = [];
+
+      // Pass 1: Primary target muscle group pools
       targets.forEach((mg: string) => {
         const pool = movementPool[mg] || movementPool["Full Body"];
         pool.forEach((m) => {
@@ -150,14 +188,27 @@ export async function POST(req: NextRequest) {
         });
       });
 
-      // Target movement count based on duration and per-stretch seconds
-      const targetCount = Math.max(2, Math.min(20, Math.round((durationMinutes * 60) / perStretchSeconds)));
+      // Pass 2: If we still need more stretches to fill the duration, draw from Full Body and synergistic pools
+      const fallbackOrder = ["Full Body", "Back", "Legs", "Chest", "Shoulders", "Glutes", "Core", "Arms"];
+      for (const fb of fallbackOrder) {
+        if (selectedList.length >= targetCount) break;
+        const pool = movementPool[fb];
+        if (pool) {
+          pool.forEach((m) => {
+            if (selectedList.length < targetCount && !selectedList.find((x) => x.name === m.name)) {
+              selectedList.push({ ...m, duration: perStretchSeconds });
+            }
+          });
+        }
+      }
+
+      // Pick exact number of stretches to fulfill the chosen duration
       const chosenMovements = selectedList.slice(0, targetCount);
 
       const routine = {
         name: `AI ${typeLabel} (${targets.slice(0, 3).join(", ")})`,
         durationBadge: `~${durationMinutes} min (${chosenMovements.length} × ${perStretchSeconds >= 60 ? `${perStretchSeconds / 60}m` : `${perStretchSeconds}s`})`,
-        description: `Customized ${typeLabel.toLowerCase()} targeting ${targets.join(", ")} with ${perStretchSeconds}s per stretch.`,
+        description: `Complete ${durationMinutes}-minute ${typeLabel.toLowerCase()} with ${chosenMovements.length} targeted stretches (${perStretchSeconds}s each) for ${targets.join(", ")}.`,
         muscleGroups: targets,
         movements: chosenMovements,
       };
