@@ -54,16 +54,18 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug bundleDebug --no-daemon
+          ./gradlew assembleDebug assembleRelease bundleRelease bundleDebug --no-daemon || ./gradlew assembleDebug bundleDebug --no-daemon
 
       - name: Upload Android Test APK
         uses: actions/upload-artifact@v4
         with:
-          name: fitcoach-android-test-apk
+          name: strkyr-android-test-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload Google Play AAB Bundle
         uses: actions/upload-artifact@v4
         with:
-          name: fitcoach-google-play-aab-bundle
-          path: android/app/build/outputs/bundle/debug/app-debug.aab
+          name: strkyr-google-play-aab-bundle
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/bundle/debug/*.aab
