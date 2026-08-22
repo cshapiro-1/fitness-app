@@ -7,6 +7,7 @@ import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
 import { AnatomyGuideModal } from "./AnatomyGuideModal";
 import { EXERCISE_LIBRARY, isDefaultBodyweight } from "../utils/exerciseLibrary";
+import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
@@ -783,7 +784,23 @@ export function WorkoutBuilder({
               <BookmarkPlus size={15} />
               <span>{savingPlan ? "Saving Plan..." : "Save Workout Plan"}</span>
             </button>
-            <button className="btn-primary complete-btn" onClick={() => setIsCompleting(true)} disabled={savingWorkout || savingPlan} style={{ padding: "10px 20px", fontSize: "13px" }}>
+            <button
+              className="btn-primary complete-btn"
+              onClick={() => {
+                const summaryRes = generateWorkoutSummary(activeWorkout);
+                setActiveWorkout((current) => {
+                  if (!current) return current;
+                  // If notes are empty or already an AI summary, populate with fresh AI summary
+                  return {
+                    ...current,
+                    notes: current.notes?.trim() ? current.notes : summaryRes.summary,
+                  };
+                });
+                setIsCompleting(true);
+              }}
+              disabled={savingWorkout || savingPlan}
+              style={{ padding: "10px 20px", fontSize: "13px" }}
+            >
               <CheckCircle2 size={15} />
               <span>{savingWorkout ? "Saving Workout..." : "Complete Workout"}</span>
             </button>
@@ -791,18 +808,39 @@ export function WorkoutBuilder({
 
           {/* Completion Modal */}
           {isCompleting && (
-            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ background: "#fff", padding: "24px", borderRadius: "12px", width: "90%", maxWidth: "400px", boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
-                <h3 style={{ margin: "0 0 16px 0", fontSize: "18px", color: "#0f172a" }}>Finish Workout</h3>
-                <label style={{ display: "block", marginBottom: "20px" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 600, color: "#475569", marginBottom: "8px", display: "block" }}>Workout Notes (Optional)</span>
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+              <div style={{ background: "#ffffff", padding: "24px", borderRadius: "14px", width: "100%", maxWidth: "460px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <h3 style={{ margin: 0, fontSize: "17px", fontWeight: 800, color: "#0f172a" }}>Finish Workout</h3>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: "10px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Sparkles size={12} /> AI Summary
+                  </span>
+                </div>
+
+                <label style={{ display: "block", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#475569" }}>Session Notes &amp; Highlights</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const summaryRes = generateWorkoutSummary(activeWorkout);
+                        setActiveWorkout((current) => current ? { ...current, notes: summaryRes.summary } : current);
+                      }}
+                      className="btn-ghost-primary"
+                      style={{ fontSize: "11px", padding: "2px 6px", display: "inline-flex", alignItems: "center", gap: "3px" }}
+                      title="Regenerate AI workout summary"
+                    >
+                      <Sparkles size={11} />
+                      <span>Regenerate AI Summary</span>
+                    </button>
+                  </div>
                   <textarea
                     className="input"
-                    rows={3}
-                    placeholder="How did this session feel?"
+                    rows={4}
+                    placeholder="AI Summary of your workout..."
                     value={activeWorkout.notes}
                     onChange={(event) => setActiveWorkout((current) => current ? { ...current, notes: event.target.value } : current)}
-                    style={{ width: "100%", padding: "10px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "10px", fontSize: "13px", lineHeight: "1.45" }}
                   />
                 </label>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>

@@ -1,4 +1,4 @@
-﻿import { WorkoutSession } from "../types";
+import { WorkoutSession } from "../types";
 
 export type ExerciseTrendPoint = {
   completedAt: string;
@@ -60,13 +60,13 @@ export type DashboardAnalytics = {
 };
 
 export function getMuscleGroup(exerciseName: string): string {
-  const name = exerciseName.toLowerCase();
-  if (name.includes("bench") || name.includes("push up") || name.includes("chest") || name.includes("fly") || name.includes("landmine press")) return "Chest";
+  const name = exerciseName.toLowerCase().replace(/-/g, " ");
+  if (name.includes("bench") || name.includes("push up") || name.includes("chest") || name.includes("fly") || name.includes("landmine press") || name.includes("dip")) return "Chest";
   if (name.includes("overhead press") || name.includes("dumbbell press") || name.includes("arnold press") || name.includes("lateral raise") || name.includes("front raise") || name.includes("delt") || name.includes("face pull") || name.includes("upright row") || name.includes("shoulder")) return "Shoulders";
-  if (name.includes("pull up") || name.includes("chin up") || name.includes("pulldown") || name.includes("row") || name.includes("shrug") || name.includes("lat ")) return "Back";
+  if (name.includes("pull up") || name.includes("chin up") || name.includes("pulldown") || name.includes("row") || name.includes("shrug") || name.includes("lat ") || name.includes("hyperextension") || name.includes("back extension")) return "Back";
   if (name.includes("squat") || name.includes("deadlift") || name.includes("lunge") || name.includes("leg ") || name.includes("nordic") || name.includes("hip ") || name.includes("glute") || name.includes("calf") || name.includes("good morning") || name.includes("rack pull") || name.includes("step up") || name.includes("sled")) return "Legs";
-  if (name.includes("curl") || name.includes("triceps") || name.includes("skull crusher")) return "Arms";
-  if (name.includes("plank") || name.includes("leg raise") || name.includes("crunch") || name.includes("twist") || name.includes("ab wheel") || name.includes("farmer carry")) return "Core";
+  if (name.includes("curl") || name.includes("triceps") || name.includes("skull crusher") || name.includes("biceps")) return "Arms";
+  if (name.includes("plank") || name.includes("leg raise") || name.includes("crunch") || name.includes("twist") || name.includes("ab wheel") || name.includes("farmer carry") || name.includes("sit up")) return "Core";
   return "Other";
 }
 
