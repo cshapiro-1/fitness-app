@@ -10,11 +10,12 @@ interface WorkoutHistoryProps {
   completedWorkouts: WorkoutSession[];
   loadingWorkouts: boolean;
   onDeleteWorkout: (id: string) => void;
+  onRepeatWorkout?: (workout: WorkoutSession) => void;
 }
 
 const MUSCLE_GROUPS = ["ALL", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Other"];
 
-export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWorkout }: WorkoutHistoryProps) {
+export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWorkout, onRepeatWorkout }: WorkoutHistoryProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("ALL");
@@ -332,6 +333,31 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {/* Repeat Workout Button */}
+                {onRepeatWorkout && (
+                  <button
+                    onClick={() => onRepeatWorkout(workout)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      background: "#eff6ff",
+                      color: "#2563eb",
+                      border: "1px solid #bfdbfe",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    title="Load this workout into the builder with pre-filled weights"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Repeat</span>
+                  </button>
+                )}
+
                 {/* Copy Entire Day's Workout Button */}
                 <button
                   onClick={() => copyWorkoutToClipboard(workout)}

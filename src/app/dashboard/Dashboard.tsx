@@ -45,6 +45,7 @@ import { ReportExportModal } from "./components/ReportExportModal";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { AIRoutineGeneratorModal } from "./components/AIRoutineGeneratorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
+import { MobilityTab } from "./components/MobilityTab";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
@@ -78,7 +79,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [draftRestoredNotice, setDraftRestoredNotice] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<{
     type: "tab" | "client";
-    targetTab?: "log" | "history" | "analytics";
+    targetTab?: "log" | "history" | "analytics" | "mobility";
     targetClient?: Client;
   } | null>(null);
 
@@ -88,7 +89,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [currentTrainerImage, setCurrentTrainerImage] = useState<string | null>(userImage);
   const [currentTrainerName, setCurrentTrainerName] = useState<string>(userName);
 
-  const [tab, setTab] = useState<"log" | "history" | "analytics">("log");
+  const [tab, setTab] = useState<"log" | "history" | "analytics" | "mobility">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
   const [exercisePicker, setExercisePicker] = useState("");
@@ -372,7 +373,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   }, [hasUnsavedWorkout]);
 
   // In-app navigation guards
-  const handleRequestTab = (targetTab: "log" | "history" | "analytics") => {
+  const handleRequestTab = (targetTab: "log" | "history" | "analytics" | "mobility") => {
     if (tab === "log" && targetTab !== "log" && hasUnsavedWorkout) {
       setPendingNavigation({ type: "tab", targetTab });
     } else {
@@ -536,6 +537,27 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     if (res.ok) {
       setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
     }
+  };
+
+  const handleRepeatWorkout = (workout: WorkoutSession) => {
+    const draftExercises: DraftExercise[] = workout.exercises.map((ex) => ({
+      name: ex.name,
+      category: ex.category || "STRENGTH",
+      isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
+      sets: ex.sets.map((s) => ({
+        weight: String(s.weight),
+        reps: String(s.reps),
+        notes: "",
+      })),
+    }));
+
+    setActiveWorkout({
+      startedAt: new Date().toISOString(),
+      notes: "",
+      exercises: draftExercises,
+    });
+    setTab("log");
+    setDraftRestoredNotice(true);
   };
 
   return (
@@ -975,13 +997,13 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
                   {/* Tabs */}
                   <div className="tabs">
-                    {(["log", "history", "analytics"] as const).map((currentTab) => (
+                    {(["log", "history", "analytics", "mobility"] as const).map((currentTab) => (
                       <button
                         key={currentTab}
                         className={`tab${tab === currentTab ? " active" : ""}`}
                         onClick={() => handleRequestTab(currentTab)}
                       >
-                        {currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                        {currentTab === "mobility" ? "Mobility" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -1006,6 +1028,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onSaveWorkoutPlan={saveWorkoutPlan}
                   onCompleteWorkout={completeWorkout}
                   onDiscardWorkout={discardActiveWorkout}
+                  onDeleteWorkout={deleteWorkout}
                 />
               )}
 
@@ -1014,11 +1037,22 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   completedWorkouts={completedWorkouts}
                   loadingWorkouts={loadingWorkouts}
                   onDeleteWorkout={deleteWorkout}
+                  onRepeatWorkout={handleRepeatWorkout}
                 />
               )}
 
               {tab === "analytics" && (
                 <AnalyticsView analytics={analytics} />
+              )}
+
+              {tab === "mobility" && (
+                <MobilityTab
+                  recentWorkoutExercises={
+                    completedWorkouts.length > 0
+                      ? completedWorkouts[0].exercises.map((ex) => ({ name: ex.name, category: ex.category }))
+                      : undefined
+                  }
+                />
               )}
             </>
           )}

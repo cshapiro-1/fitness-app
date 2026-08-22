@@ -23,6 +23,7 @@ interface WorkoutBuilderProps {
   onSaveWorkoutPlan: () => void;
   onCompleteWorkout: () => void;
   onDiscardWorkout?: () => void;
+  onDeleteWorkout?: (id: string) => void;
 }
 
 export function WorkoutBuilder({
@@ -41,6 +42,7 @@ export function WorkoutBuilder({
   onSaveWorkoutPlan,
   onCompleteWorkout,
   onDiscardWorkout,
+  onDeleteWorkout,
 }: WorkoutBuilderProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
@@ -296,9 +298,26 @@ export function WorkoutBuilder({
                     </div>
                     <div className="planned-row-meta">{new Date(plannedWorkout.createdAt).toLocaleString()}</div>
                   </div>
-                  <button className="btn-primary" onClick={() => onBeginPlannedWorkout(plannedWorkout)}>
-                    {plannedWorkout.status === "IN_PROGRESS" ? "Resume Workout" : "Begin Workout"}
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <button className="btn-primary" onClick={() => onBeginPlannedWorkout(plannedWorkout)}>
+                      {plannedWorkout.status === "IN_PROGRESS" ? "Resume Workout" : "Begin Workout"}
+                    </button>
+                    {onDeleteWorkout && (
+                      <button
+                        type="button"
+                        className="btn-ghost-danger"
+                        onClick={() => {
+                          if (confirm("Delete this planned workout? This cannot be undone.")) {
+                            onDeleteWorkout(plannedWorkout.id);
+                          }
+                        }}
+                        title="Delete planned workout"
+                        style={{ padding: "8px 10px", borderRadius: "8px" }}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

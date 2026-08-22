@@ -55,16 +55,39 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const params = await props.params;
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
-    if (!userId && session?.user?.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    let userEmail = session?.user?.email;
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
       userId = dbUser?.id;
     }
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const dbUser = userEmail ? await prisma.user.findUnique({ where: { email: userEmail } }) : null;
+
     if (params.id.startsWith("session-")) {
       const realId = params.id.replace("session-", "");
       await prisma.workout.deleteMany({ where: { id: realId } });
       return NextResponse.json({ success: true });
     }
+
+    const sessionToDelete = await prisma.workoutSession.findUnique({
+      where: { id: params.id },
+      include: { client: true },
+    });
+
+    if (!sessionToDelete) {
+      return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+    }
+
+    // Check permission: user is coach of client, loggedBy user, or the client profile owner
+    const isCoach = sessionToDelete.client.userId === userId || sessionToDelete.loggedById === userId;
+    const isClientOwner = dbUser?.clientProfileId === sessionToDelete.clientId || (userEmail && sessionToDelete.client.email?.toLowerCase() === userEmail.toLowerCase());
+    const isAdmin = (session?.user as any)?.isAdmin === true || dbUser?.isAdmin === true;
+
+    if (!isCoach && !isClientOwner && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to delete this workout" }, { status: 403 });
+    }
+
     await prisma.workoutSession.delete({ where: { id: params.id } });
     return NextResponse.json({ success: true });
   } catch (error: any) {

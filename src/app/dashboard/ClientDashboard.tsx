@@ -23,6 +23,7 @@ import {
   Search,
   Filter,
   Copy,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { isDefaultBodyweight } from "./utils/exerciseLibrary";
@@ -30,6 +31,7 @@ import { AnalyticsView } from "./components/AnalyticsView";
 import { computeAnalytics, getMuscleGroup } from "./utils/analytics";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
+import { MobilityTab } from "./components/MobilityTab";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -53,7 +55,7 @@ export function ClientDashboard({
 }) {
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"assigned" | "history" | "analytics">("assigned");
+  const [tab, setTab] = useState<"assigned" | "history" | "analytics" | "mobility">("assigned");
 
   const [currentImage, setCurrentImage] = useState<string | null>(userImage);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
@@ -171,6 +173,61 @@ export function ClientDashboard({
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const [repeatingWorkoutId, setRepeatingWorkoutId] = useState<string | null>(null);
+
+  const handleDeleteWorkout = async (workoutId: string) => {
+    if (!confirm("Are you sure you want to delete this workout? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
+      if (res.ok) {
+        setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete workout.");
+      }
+    } catch {
+      alert("Network error while deleting workout.");
+    }
+  };
+
+  const handleRepeatWorkout = async (workout: any) => {
+    setRepeatingWorkoutId(workout.id);
+    try {
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: workout.clientId,
+          status: "PLANNED",
+          notes: workout.notes ? `Repeat: ${workout.notes}` : `Repeat session from ${new Date(workout.completedAt || workout.createdAt).toLocaleDateString()}`,
+          exercises: (workout.exercises || []).map((ex: any) => ({
+            name: ex.name,
+            category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
+            isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
+            sets: (ex.sets || []).map((s: any) => ({
+              weight: s.weight || 0,
+              reps: s.reps || 0,
+              notes: s.notes || "",
+            })),
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const created = await res.json();
+        setWorkouts((prev) => [created, ...prev]);
+        setTab("assigned");
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to repeat workout.");
+      }
+    } catch {
+      alert("Network error repeating workout.");
+    } finally {
+      setRepeatingWorkoutId(null);
     }
   };
 
@@ -580,6 +637,9 @@ export function ClientDashboard({
           <button className={`tab${tab === "analytics" ? " active" : ""}`} onClick={() => setTab("analytics")}>
             Progress &amp; PRs
           </button>
+          <button className={`tab${tab === "mobility" ? " active" : ""}`} onClick={() => setTab("mobility")}>
+            Mobility
+          </button>
         </div>
 
         {/* TAB 1: Assigned Workouts */}
@@ -625,9 +685,20 @@ export function ClientDashboard({
                         Planned Session · {workout.exercises?.length || 0} Exercises
                       </span>
                     </div>
-                    <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
-                      {new Date(workout.createdAt).toLocaleDateString()}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                        {new Date(workout.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteWorkout(workout.id)}
+                        className="btn-ghost-danger"
+                        title="Remove assigned workout"
+                        style={{ padding: "3px 6px", borderRadius: "6px" }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
 
                   {workout.notes && (
@@ -875,6 +946,29 @@ export function ClientDashboard({
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <button
                         type="button"
+                        onClick={() => handleRepeatWorkout(workout)}
+                        disabled={repeatingWorkoutId === workout.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          border: "1px solid #bfdbfe",
+                          padding: "3px 8px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                        title="Re-assign this workout to your assigned list"
+                      >
+                        <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
+                        <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => copyWorkoutToClipboard(workout)}
                         style={{
                           display: "flex",
@@ -894,6 +988,16 @@ export function ClientDashboard({
                       >
                         {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
                         <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteWorkout(workout.id)}
+                        className="btn-ghost-danger"
+                        title="Delete workout from history"
+                        style={{ padding: "3px 6px", borderRadius: "6px" }}
+                      >
+                        <Trash2 size={13} />
                       </button>
 
                       <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
@@ -993,6 +1097,17 @@ export function ClientDashboard({
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             <AnalyticsView analytics={fullAnalytics} />
           </div>
+        )}
+
+        {/* TAB 4: Mobility & Recovery */}
+        {tab === "mobility" && (
+          <MobilityTab
+            recentWorkoutExercises={
+              completed.length > 0
+                ? completed[0].exercises?.map((ex: any) => ({ name: ex.name, category: ex.category }))
+                : undefined
+            }
+          />
         )}
       </main>
 
