@@ -5,6 +5,7 @@ import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, Bookmark
 import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
+import { AnatomyGuideModal } from "./AnatomyGuideModal";
 import { EXERCISE_LIBRARY, isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutBuilderProps {
@@ -47,6 +48,31 @@ export function WorkoutBuilder({
   const [isCompleting, setIsCompleting] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
+
+  // Anatomy Guide Modal State
+  const [selectedAnatomyExercise, setSelectedAnatomyExercise] = useState<string | null>(null);
+  const [anatomyChartData, setAnatomyChartData] = useState<any | null>(null);
+  const [loadingAnatomy, setLoadingAnatomy] = useState(false);
+
+  const handleOpenAnatomyGuide = async (exerciseName: string) => {
+    setSelectedAnatomyExercise(exerciseName);
+    setLoadingAnatomy(true);
+    try {
+      const res = await fetch("/api/ai/anatomy-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exerciseName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnatomyChartData(data.chart);
+      }
+    } catch {
+      console.error("Failed to load anatomy chart");
+    } finally {
+      setLoadingAnatomy(false);
+    }
+  };
 
   const totalDraftSets = useMemo(() => {
     if (!activeWorkout) return 0;
@@ -576,6 +602,30 @@ export function WorkoutBuilder({
                       <span>Bodyweight / Resistance</span>
                     </label>
 
+                    {/* 3D Anatomy Muscle Guide Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAnatomyGuide(exercise.name)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        background: "#f0f9ff",
+                        border: "1px solid #bae6fd",
+                        color: "#0284c7",
+                        padding: "6px 10px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                      title="View 3D Anatomical Muscle Recruitment Chart"
+                    >
+                      <Sparkles size={13} style={{ color: "#0284c7" }} />
+                      <span>Anatomy Guide</span>
+                    </button>
+
                     <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
                       <Trash2 size={14} />
                     </button>
@@ -773,6 +823,18 @@ export function WorkoutBuilder({
         isOpen={showLibraryModal}
         onClose={() => setShowLibraryModal(false)}
         onSelectExercise={(name) => addExerciseWithName(name)}
+      />
+
+      {/* 3D Anatomy Muscle Guide Modal */}
+      <AnatomyGuideModal
+        isOpen={!!selectedAnatomyExercise}
+        onClose={() => {
+          setSelectedAnatomyExercise(null);
+          setAnatomyChartData(null);
+        }}
+        exerciseName={selectedAnatomyExercise || ""}
+        chartData={anatomyChartData}
+        loading={loadingAnatomy}
       />
     </div>
   );

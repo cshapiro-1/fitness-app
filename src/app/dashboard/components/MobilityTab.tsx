@@ -26,8 +26,10 @@ import {
   Save,
   Send,
   UserCheck,
+  Activity,
 } from "lucide-react";
 import { MOBILITY_ROUTINES, getMuscleGroupsFromWorkout } from "../utils/mobilityRoutines";
+import { AnatomyGuideModal } from "./AnatomyGuideModal";
 
 interface MobilityTabProps {
   recentWorkoutExercises?: { name: string; category?: string | null }[];
@@ -127,6 +129,31 @@ export function MobilityTab({
   const [assignTiming, setAssignTiming] = useState<"PRE_WORKOUT" | "POST_WORKOUT" | "STANDALONE">("PRE_WORKOUT");
   const [isSavingLog, setIsSavingLog] = useState(false);
   const [logSavedSuccess, setLogSavedSuccess] = useState(false);
+
+  // Anatomy Guide Modal State
+  const [selectedAnatomyMovement, setSelectedAnatomyMovement] = useState<string | null>(null);
+  const [anatomyChartData, setAnatomyChartData] = useState<any | null>(null);
+  const [loadingAnatomy, setLoadingAnatomy] = useState(false);
+
+  const handleOpenAnatomy = async (movementName: string) => {
+    setSelectedAnatomyMovement(movementName);
+    setLoadingAnatomy(true);
+    try {
+      const res = await fetch("/api/ai/anatomy-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exerciseName: movementName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnatomyChartData(data.chart);
+      }
+    } catch {
+      console.error("Failed to load anatomy chart");
+    } finally {
+      setLoadingAnatomy(false);
+    }
+  };
 
   // Timer State
   const [activeRoutine, setActiveRoutine] = useState<MobilityRoutine | null>(null);
@@ -519,10 +546,32 @@ export function MobilityTab({
               </div>
             )}
             {moveCue && (
-              <p style={{ fontSize: "15px", fontStyle: "italic", color: "#475569", maxWidth: "480px", margin: "0 auto" }}>
+              <p style={{ fontSize: "15px", fontStyle: "italic", color: "#475569", maxWidth: "480px", margin: "0 auto 10px" }}>
                 &ldquo;{moveCue}&rdquo;
               </p>
             )}
+
+            <button
+              type="button"
+              onClick={() => handleOpenAnatomy(currentMove.name)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                background: "#f0f9ff",
+                border: "1px solid #bae6fd",
+                color: "#0284c7",
+                padding: "5px 12px",
+                borderRadius: "20px",
+                fontSize: "12px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(2,132,199,0.1)",
+              }}
+            >
+              <Sparkles size={13} />
+              <span>View 3D Muscle Anatomy Guide</span>
+            </button>
           </div>
 
           {/* Circular Countdown Progress Timer */}
@@ -850,6 +899,7 @@ export function MobilityTab({
                 onToggleExpand={() => setExpandedRoutineId(expandedRoutineId === "ai" ? null : "ai")}
                 onStart={() => startRoutine(aiRoutine)}
                 onAssign={isTrainer ? () => setAssigningRoutine(aiRoutine) : undefined}
+                onOpenAnatomy={handleOpenAnatomy}
               />
             </div>
           )}
@@ -869,6 +919,7 @@ export function MobilityTab({
                 onToggleExpand={() => setExpandedRoutineId(expandedRoutineId === (routine.id || idx.toString()) ? null : routine.id || idx.toString())}
                 onStart={() => startRoutine(routine)}
                 onAssign={isTrainer ? () => setAssigningRoutine(routine) : undefined}
+                onOpenAnatomy={handleOpenAnatomy}
               />
             ))}
           </div>
@@ -958,6 +1009,18 @@ export function MobilityTab({
       )}
 
       {renderTimerModal()}
+
+      {/* 3D Anatomy Muscle Guide Modal */}
+      <AnatomyGuideModal
+        isOpen={!!selectedAnatomyMovement}
+        onClose={() => {
+          setSelectedAnatomyMovement(null);
+          setAnatomyChartData(null);
+        }}
+        exerciseName={selectedAnatomyMovement || ""}
+        chartData={anatomyChartData}
+        loading={loadingAnatomy}
+      />
     </div>
   );
 }
@@ -969,12 +1032,14 @@ function RoutineCard({
   onToggleExpand,
   onStart,
   onAssign,
+  onOpenAnatomy,
 }: {
   routine: any;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onStart: () => void;
   onAssign?: () => void;
+  onOpenAnatomy?: (name: string) => void;
 }) {
   const durationLabel = routine.durationBadge || (routine.durationMinutes ? `~${routine.durationMinutes} min` : "");
   const muscles = routine.muscleGroups || routine.targetMuscleGroups || [];
@@ -1035,13 +1100,40 @@ function RoutineCard({
             const dur = m.duration ?? m.durationSeconds ?? 60;
             const cue = m.cue ?? m.coachingCue ?? "";
             return (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "10px 12px", borderRadius: "8px", border: "1px solid #f1f5f9" }}>
-                <div>
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc", padding: "10px 12px", borderRadius: "8px", border: "1px solid #f1f5f9", flexWrap: "wrap", gap: "8px" }}>
+                <div style={{ flex: 1, minWidth: "160px" }}>
                   <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>{m.name}</div>
                   {cue && <div style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", marginTop: "2px" }}>&ldquo;{cue}&rdquo;</div>}
                 </div>
-                <div style={{ fontSize: "12px", fontWeight: 700, color: "#2563eb", whiteSpace: "nowrap", marginLeft: "12px" }}>
-                  {m.sides === "left_right" ? `${dur}s (${Math.floor(dur / 2)}s/side)` : `${dur}s`}
+
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {onOpenAnatomy && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenAnatomy(m.name)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        background: "#f0f9ff",
+                        border: "1px solid #bae6fd",
+                        color: "#0284c7",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                      title="View 3D Anatomical Muscle Guide"
+                    >
+                      <Sparkles size={11} />
+                      <span>Anatomy</span>
+                    </button>
+                  )}
+
+                  <div style={{ fontSize: "12px", fontWeight: 700, color: "#2563eb", whiteSpace: "nowrap" }}>
+                    {m.sides === "left_right" ? `${dur}s (${Math.floor(dur / 2)}s/side)` : `${dur}s`}
+                  </div>
                 </div>
               </div>
             );

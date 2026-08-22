@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { X, Search, Dumbbell, Plus, Sparkles, HeartPulse, Activity, Zap, Check } from "lucide-react";
 import { EXERCISE_LIBRARY, ExerciseDefinition, searchExercises } from "../utils/exerciseLibrary";
+import { AnatomyGuideModal } from "./AnatomyGuideModal";
 
 export interface ExerciseLibraryModalProps {
   isOpen: boolean;
@@ -51,6 +52,32 @@ export function ExerciseLibraryModal({
   const [customCategory, setCustomCategory] = useState<string>("Chest");
   const [customEquipment, setCustomEquipment] = useState<string>("Barbell");
   const [customExercises, setCustomExercises] = useState<ExerciseDefinition[]>([]);
+
+  // Anatomy Guide Modal State
+  const [selectedAnatomyExercise, setSelectedAnatomyExercise] = useState<string | null>(null);
+  const [anatomyChartData, setAnatomyChartData] = useState<any | null>(null);
+  const [loadingAnatomy, setLoadingAnatomy] = useState(false);
+
+  const handleOpenAnatomy = async (e: React.MouseEvent, exerciseName: string) => {
+    e.stopPropagation();
+    setSelectedAnatomyExercise(exerciseName);
+    setLoadingAnatomy(true);
+    try {
+      const res = await fetch("/api/ai/anatomy-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exerciseName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnatomyChartData(data.chart);
+      }
+    } catch {
+      console.error("Failed to load anatomy chart");
+    } finally {
+      setLoadingAnatomy(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -361,29 +388,65 @@ export function ExerciseLibraryModal({
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  style={{
-                    background: "#2563eb",
-                    color: "#ffffff",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    cursor: "pointer",
-                  }}
-                >
-                  <Plus size={13} />
-                  <span>Add</span>
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenAnatomy(e, ex.name)}
+                    style={{
+                      background: "#f0f9ff",
+                      border: "1px solid #bae6fd",
+                      color: "#0284c7",
+                      borderRadius: "6px",
+                      padding: "6px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      cursor: "pointer",
+                    }}
+                    title="View 3D Anatomical Muscle Guide"
+                  >
+                    <Sparkles size={12} />
+                    <span>Anatomy</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    style={{
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "6px 12px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Plus size={13} />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
+
+        {/* 3D Anatomy Muscle Guide Modal */}
+        <AnatomyGuideModal
+          isOpen={!!selectedAnatomyExercise}
+          onClose={() => {
+            setSelectedAnatomyExercise(null);
+            setAnatomyChartData(null);
+          }}
+          exerciseName={selectedAnatomyExercise || ""}
+          chartData={anatomyChartData}
+          loading={loadingAnatomy}
+        />
       </div>
     </div>
   );
