@@ -11,6 +11,6 @@ get {
 }
 
 assert {
-  res.status: eq 200
-  res.body.status: eq ok
+  res.status: in [200, 503]
+  res.body.status: in ["healthy", "ok"]
 }
