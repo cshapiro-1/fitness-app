@@ -79,6 +79,7 @@ export function ClientSidebar({
                   <img
                     src={client.image}
                     alt={client.name}
+                    referrerPolicy="no-referrer"
                     style={{
                       width: "36px",
                       height: "36px",
@@ -93,8 +94,8 @@ export function ClientSidebar({
                       width: "36px",
                       height: "36px",
                       borderRadius: "50%",
-                      background: isSelfProfile ? "#dbeafe" : "#f1f5f9",
-                      color: isSelfProfile ? "#1d4ed8" : "#64748b",
+                      background: isSelfProfile ? "#eff6ff" : "#f1f5f9",
+                      color: isSelfProfile ? "#2563eb" : "#64748b",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -103,32 +104,17 @@ export function ClientSidebar({
                       border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #e2e8f0",
                     }}
                   >
-                    {isSelfProfile ? "👤" : (client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />)}
+                    {isSelfProfile ? <Dumbbell size={16} /> : (client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />)}
                   </div>
                 )}
               </div>
 
               <div className="client-item-main">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span className="client-name" style={isSelfProfile ? { fontWeight: 700, color: "#1e3a8a" } : undefined}>
+                  <span className="client-name" style={isSelfProfile ? { fontWeight: 700, color: "#0f172a" } : undefined}>
                     {client.name}
                   </span>
-                  {isSelfProfile ? (
-                    <span
-                      style={{
-                        fontSize: "10px",
-                        fontWeight: 700,
-                        background: "#eff6ff",
-                        color: "#2563eb",
-                        border: "1px solid #bfdbfe",
-                        padding: "1px 6px",
-                        borderRadius: "10px",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      Myself
-                    </span>
-                  ) : (
+                  {!isSelfProfile && (
                     <span
                       className={`client-status-badge ${
                         isAccepted

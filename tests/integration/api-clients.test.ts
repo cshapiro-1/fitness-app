@@ -89,7 +89,7 @@ describe("API: /api/clients", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data).toHaveLength(2);
-      expect(data[0].name).toBe("My Workouts (Personal)");
+      expect(data[0].name).toBe("My Workouts");
       expect(data[0].isSelf).toBe(true);
       expect(data[1].name).toBe("Client Sarah");
     });

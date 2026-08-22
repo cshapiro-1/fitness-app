@@ -376,9 +376,24 @@ export function ClientDashboard({
     <div className="app">
       {/* App Header */}
       <header className="header">
-        <div className="header-left">
-          <Dumbbell size={20} style={{ color: "#2563eb" }} />
-          <span className="header-title">Client Portal</span>
+        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              background: "#2563eb",
+              color: "#ffffff",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Dumbbell size={18} />
+          </div>
+          <span className="header-title" style={{ fontWeight: 800, letterSpacing: "-0.02em", color: "#0f172a" }}>
+            STRKYR Athlete
+          </span>
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -398,7 +413,7 @@ export function ClientDashboard({
             onClick={() => setShowReleaseModal(true)}
             className="nav-btn"
             style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
-            title="What's New in FitCoach"
+            title="What's New in STRKYR"
           >
             <Sparkles size={14} />
             <span className="hide-mobile">What&apos;s New</span>
@@ -408,20 +423,20 @@ export function ClientDashboard({
           <Link
             href="/recovery"
             className="nav-btn"
-            style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
-            title="Pre/post workout warm-ups, stretches, sauna, and recovery"
+            style={{ fontWeight: 600 }}
+            title="Pre/post workout warm-ups, stretches, and recovery"
           >
-            <span>🧘</span>
             <span className="hide-mobile">Recovery</span>
           </Link>
 
           {/* Nutrition & Macros */}
           <Link
             href="/nutrition"
-            className="nav-btn nav-btn-green"
+            className="nav-btn"
+            style={{ fontWeight: 600 }}
+            title="Nutrition & Macros"
           >
-            <span>🥗</span>
-            <span className="hide-mobile">Nutrition</span>
+            <span className="hide-mobile">Nutrition &amp; Macros</span>
           </Link>
 
           {/* Admin Coach View Switcher */}
@@ -469,7 +484,16 @@ export function ClientDashboard({
 
           {/* Avatar with Clickable Change Modal */}
           <div
-            style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              cursor: "pointer",
+              padding: "3px 8px",
+              borderRadius: "20px",
+              background: "rgba(0,0,0,0.04)",
+              border: "1px solid #e2e8f0",
+            }}
             onClick={() => setShowPhotoModal(true)}
             title="Click to update photo"
           >
@@ -478,7 +502,8 @@ export function ClientDashboard({
                 src={currentImage}
                 alt={userName}
                 className="avatar"
-                style={{ objectFit: "cover", border: "1px solid #cbd5e1" }}
+                referrerPolicy="no-referrer"
+                style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
               />
             ) : (
               <div
@@ -493,13 +518,12 @@ export function ClientDashboard({
                   justifyContent: "center",
                   fontSize: "12px",
                   fontWeight: 700,
-                  border: "1px solid #bfdbfe",
                 }}
               >
                 {userName ? userName.charAt(0).toUpperCase() : <User size={14} />}
               </div>
             )}
-            <span className="header-name hide-mobile" style={{ fontSize: "12px" }}>{userName}</span>
+            <span className="header-name hide-mobile" style={{ fontSize: "12px", fontWeight: 600, color: "#0f172a" }}>{userName}</span>
           </div>
 
           <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">

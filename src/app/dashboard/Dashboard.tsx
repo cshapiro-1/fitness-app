@@ -617,10 +617,26 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       />
 
       {/* App Header */}
+      {/* App Header */}
       <header className="header">
-        <div className="header-left">
-          <Dumbbell size={22} />
-          <span className="header-title">Fitness Tracker</span>
+        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              background: "#2563eb",
+              color: "#ffffff",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Dumbbell size={18} />
+          </div>
+          <span className="header-title" style={{ fontWeight: 800, letterSpacing: "-0.02em", color: "#0f172a" }}>
+            STRKYR Studio
+          </span>
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -628,19 +644,19 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           <Link
             href="/recovery"
             className="nav-btn"
-            style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
-            title="Pre/post workout warm-ups, stretches, sauna, and recovery"
+            style={{ fontWeight: 600 }}
+            title="Pre/post workout warm-ups, stretches, and recovery"
           >
-            <span>🧘</span>
             <span className="hide-mobile">Recovery</span>
           </Link>
 
           {/* Nutrition & Macros Planner */}
           <Link
             href="/nutrition"
-            className="nav-btn nav-btn-green"
+            className="nav-btn"
+            style={{ fontWeight: 600 }}
+            title="Nutrition plans and macro tracker"
           >
-            <span>🥗</span>
             <span className="hide-mobile">Nutrition &amp; Macros</span>
           </Link>
 
@@ -650,7 +666,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             onClick={() => setIsReleaseNotesOpen(true)}
             className="nav-btn"
             style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
-            title="What's New in FitCoach"
+            title="What's New in STRKYR"
           >
             <Sparkles size={14} />
             <span className="hide-mobile">What&apos;s New</span>
@@ -715,9 +731,10 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
               alignItems: "center",
               gap: "8px",
               cursor: "pointer",
-              padding: "2px 6px",
+              padding: "3px 8px",
               borderRadius: "20px",
-              background: "rgba(0,0,0,0.03)",
+              background: "rgba(0,0,0,0.04)",
+              border: "1px solid #e2e8f0",
             }}
             title="Click to view Trainer Profile & Billing"
           >
@@ -726,13 +743,14 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                 src={currentTrainerImage}
                 className="avatar"
                 alt={currentTrainerName}
-                style={{ width: "30px", height: "30px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
+                referrerPolicy="no-referrer"
+                style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
               />
             ) : (
               <div
                 style={{
-                  width: "30px",
-                  height: "30px",
+                  width: "28px",
+                  height: "28px",
                   borderRadius: "50%",
                   background: "#2563eb",
                   color: "#ffffff",
@@ -743,10 +761,10 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   fontWeight: 700,
                 }}
               >
-                {currentTrainerName ? currentTrainerName.charAt(0).toUpperCase() : <User size={16} />}
+                {currentTrainerName ? currentTrainerName.charAt(0).toUpperCase() : <User size={14} />}
               </div>
             )}
-            <span className="header-name" style={{ fontWeight: 600, fontSize: "13px" }}>
+            <span className="header-name" style={{ fontWeight: 600, fontSize: "13px", color: "#0f172a" }}>
               {currentTrainerName}
             </span>
           </div>
@@ -854,7 +872,6 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   className="btn-secondary"
                   style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", padding: "8px 16px" }}
                 >
-                  <span>🧘</span>
                   <span>Open Recovery</span>
                 </Link>
                 <Link
@@ -862,7 +879,6 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   className="btn-secondary"
                   style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", padding: "8px 16px" }}
                 >
-                  <span>🥗</span>
                   <span>Nutrition &amp; Macros</span>
                 </Link>
               </div>
@@ -878,6 +894,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                       <img
                         src={selected.image}
                         alt={selected.name}
+                        referrerPolicy="no-referrer"
                         style={{
                           width: "52px",
                           height: "52px",
@@ -892,8 +909,8 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                           width: "52px",
                           height: "52px",
                           borderRadius: "50%",
-                          background: selected.name === "My Workouts" ? "#eff6ff" : "#f1f5f9",
-                          color: selected.name === "My Workouts" ? "#2563eb" : "#64748b",
+                          background: selected.name.includes("My Workouts") ? "#eff6ff" : "#f1f5f9",
+                          color: selected.name.includes("My Workouts") ? "#2563eb" : "#64748b",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -902,10 +919,10 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                           border: "1px solid #cbd5e1",
                         }}
                       >
-                        {selected.name ? selected.name.charAt(0).toUpperCase() : <User size={24} />}
+                        {selected.name.includes("My Workouts") ? <Dumbbell size={22} /> : (selected.name ? selected.name.charAt(0).toUpperCase() : <User size={24} />)}
                       </div>
                     )}
-                    {selected.name !== "My Workouts" && (
+                    {!selected.name.includes("My Workouts") && (
                       <button
                         onClick={() => setEditingClient(selected)}
                         style={{

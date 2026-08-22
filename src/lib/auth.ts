@@ -106,7 +106,7 @@ export const authOptions: NextAuthOptions = {
           const cleanEmail = email.toLowerCase().trim();
           let dbUser = await prisma.user.findUnique({
             where: { email: cleanEmail },
-            select: { id: true, role: true, isAdmin: true, clientProfileId: true },
+            select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true },
           });
 
           if (dbUser) {
@@ -141,6 +141,8 @@ export const authOptions: NextAuthOptions = {
             token.role = mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;
             token.clientProfileId = dbUser.clientProfileId;
+            if (dbUser.image) token.picture = dbUser.image;
+            if (dbUser.name) token.name = dbUser.name;
           }
         } catch (error) {
           console.error("JWT Fetch Error:", error);
@@ -155,13 +157,15 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { email: email.toLowerCase().trim() },
-              select: { id: true, role: true, isAdmin: true, clientProfileId: true },
+              select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true },
             });
             if (dbUser) {
               (session.user as any).id = dbUser.id;
               (session.user as any).role = mapRole(dbUser.role);
               (session.user as any).isAdmin = !!dbUser.isAdmin;
               (session.user as any).clientProfileId = dbUser.clientProfileId;
+              if (dbUser.image) session.user.image = dbUser.image;
+              if (dbUser.name) session.user.name = dbUser.name;
               return session;
             }
           } catch (err) {
@@ -172,6 +176,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).isAdmin = !!token.isAdmin;
         (session.user as any).clientProfileId = (token as any).clientProfileId;
+        if (token.picture) session.user.image = token.picture as string;
+        if (token.name) session.user.name = token.name as string;
       }
       return session;
     },

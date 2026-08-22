@@ -144,5 +144,29 @@ describe("Backend Security & Authentication Suite", () => {
       expect(auth.authorized).toBe(true);
       expect(auth.userId).toBe("admin-user");
     });
+
+    it("should preserve Google user avatar and profile details", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: {
+          id: "collin-1",
+          email: "collin@fit.com",
+          name: "Collin Shapiro",
+          image: "https://lh3.googleusercontent.com/a/test-avatar",
+        },
+      });
+
+      (prisma.user.findUnique as any).mockResolvedValue({
+        id: "collin-1",
+        email: "collin@fit.com",
+        name: "Collin Shapiro",
+        image: "https://lh3.googleusercontent.com/a/test-avatar",
+        isAdmin: true,
+        role: "TRAINER",
+      });
+
+      const session = await getServerSession({} as any);
+      expect(session?.user?.image).toBe("https://lh3.googleusercontent.com/a/test-avatar");
+      expect(session?.user?.name).toBe("Collin Shapiro");
+    });
   });
 });

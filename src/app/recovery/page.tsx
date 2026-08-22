@@ -38,19 +38,17 @@ export default function RecoveryPage() {
             <ArrowLeft size={16} />
             <span>Dashboard</span>
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontWeight: 800, fontSize: "16px" }}>
-            <span>🧘</span>
-            <span>Recovery &amp; Warm-Up</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#0f172a", fontWeight: 800, fontSize: "16px" }}>
+            <span>Recovery &amp; Mobility</span>
           </div>
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Link
             href="/nutrition"
-            className="nav-btn nav-btn-green"
-            style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}
+            className="nav-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600 }}
           >
-            <span>🥗</span>
             <span className="hide-mobile">Nutrition &amp; Macros</span>
           </Link>
 

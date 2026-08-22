@@ -97,13 +97,12 @@ export async function GET(req: Request) {
 
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
-    // Format for Dashboard expectations
     const formattedClients = clients.map((c: any) => {
-      const isSelfProfile = c.name === "My Workouts";
+      const isSelfProfile = c.name === "My Workouts" || c.name === "My Workouts (Personal)";
       return {
         id: c.id,
         userId: c.userId,
-        name: isSelfProfile ? "My Workouts (Personal)" : (c.name || "Client"),
+        name: isSelfProfile ? "My Workouts" : (c.name || "Client"),
         image: isSelfProfile ? (c.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
         email: isSelfProfile ? null : (c.email || c.loginUser?.email || null),
         phone: isSelfProfile ? null : (c.phone || c.loginUser?.phone || null),

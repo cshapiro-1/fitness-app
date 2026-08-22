@@ -411,14 +411,13 @@ export default function NutritionPage() {
       <header style={{ background: "#ffffff", borderBottom: "1px solid #e2e8f0", padding: "14px 24px", position: "sticky", top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#0f172a", fontWeight: 700, fontSize: "16px" }}>
+            <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", color: "#0f172a", fontWeight: 800, fontSize: "16px" }}>
               <Dumbbell size={20} style={{ color: "#2563eb" }} />
-              <span>FitCoach</span>
+              <span>STRKYR Studio</span>
             </Link>
             <span style={{ color: "#cbd5e1" }}>/</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontWeight: 700, fontSize: "15px" }}>
-              <Apple size={18} />
-              <span>Nutrition, Macros &amp; Supplements</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 700, fontSize: "15px" }}>
+              <span>Nutrition &amp; Macros</span>
             </div>
           </div>
 
