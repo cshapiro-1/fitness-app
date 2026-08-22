@@ -471,16 +471,16 @@ export default async function HomePage() {
             {/* Coach Annual */}
             <div style={{ background: "#ffffff", border: "2px solid #2563eb", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 8px 24px rgba(37,99,235,0.12)" }}>
               <div style={{ position: "absolute", top: "-10px", right: "16px", background: "#2563eb", color: "#ffffff", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "10px" }}>
-                BEST VALUE • SAVE 35%
+                BEST VALUE
               </div>
               <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>Coach Studio Annual</h3>
-              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Billed annually at $149/year ($12.41/month)</p>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Billed annually at $200/year ($16.67/month)</p>
               <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
-                $149 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ year</span>
+                $200 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ year</span>
               </div>
               <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#334155", flex: 1 }}>
                 <li><b>All Coach Monthly Features</b></li>
-                <li>Save 35% vs monthly billing</li>
+                <li>Discounted annual billing</li>
                 <li>Priority AI routine periodization</li>
                 <li>Custom branded PDF workout exports</li>
                 <li>Dedicated coach support</li>
@@ -489,7 +489,7 @@ export default async function HomePage() {
                 href="/dashboard"
                 style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#2563eb", color: "#ffffff", fontWeight: 800, fontSize: "13px", textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
               >
-                Get Coach Annual ($149/yr)
+                Get Coach Annual ($200/yr)
               </Link>
             </div>
 

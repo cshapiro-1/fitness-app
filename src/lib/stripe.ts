@@ -15,9 +15,9 @@ export const SUBSCRIPTION_PRICES = {
     mode: "subscription" as const,
   },
   annual: {
-    amount: 14900, // $149.00 USD
+    amount: 20000, // $200.00 USD
     interval: "year" as const,
-    name: "STRKYR Coach Studio (Annual - Save 35%)",
+    name: "STRKYR Coach Studio (Annual)",
     mode: "subscription" as const,
   },
   lifetime: {

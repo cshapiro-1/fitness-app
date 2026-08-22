@@ -49,9 +49,9 @@ Alternatively, set STRIPE_SECRET_KEY in your environment variables.
       },
       {
         id: "strkyr-coach-annual",
-        name: "STRKYR Coach Studio (Annual — Save 35%)",
+        name: "STRKYR Coach Studio (Annual)",
         description: "Annual coach pass with priority AI periodization, custom PDF workout exports & dedicated support.",
-        amount: 14900, // $149.00
+        amount: 20000, // $200.00
         currency: "usd",
         interval: "year" as const,
         mode: "recurring",

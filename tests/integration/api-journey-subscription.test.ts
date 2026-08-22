@@ -20,8 +20,8 @@ describe("Direct-to-Consumer Fitness Journey & Subscription Suite", () => {
     it("should export valid Coach Studio tiers with correct amounts", () => {
       expect(PRICING_PLANS.COACH_MONTHLY.amountCents).toBe(1900);
       expect(PRICING_PLANS.COACH_MONTHLY.price).toBe("$19.00/mo");
-      expect(PRICING_PLANS.COACH_ANNUAL.amountCents).toBe(14900);
-      expect(PRICING_PLANS.COACH_ANNUAL.price).toBe("$149.00/yr");
+      expect(PRICING_PLANS.COACH_ANNUAL.amountCents).toBe(20000);
+      expect(PRICING_PLANS.COACH_ANNUAL.price).toBe("$200.00/yr");
       expect(PRICING_PLANS.STUDIO_LIFETIME.amountCents).toBe(29900);
       expect(PRICING_PLANS.STUDIO_LIFETIME.price).toBe("$299.00 one-time");
       expect(PRICING_PLANS.COACH_MONTHLY.features.length).toBeGreaterThan(4);

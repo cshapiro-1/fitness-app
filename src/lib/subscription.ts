@@ -31,14 +31,14 @@ export const PRICING_PLANS = {
   },
   COACH_ANNUAL: {
     id: "strkyr-coach-annual",
-    name: "Coach Studio Annual (Save 35%)",
-    price: "$149.00/yr",
-    amountCents: 14900,
+    name: "Coach Studio Annual",
+    price: "$200.00/yr",
+    amountCents: 20000,
     interval: "year",
     tier: "coach_pro",
     features: [
       "Everything in Monthly Plan",
-      "Save 35% vs Monthly Billing",
+      "Discounted Annual Billing ($16.67/mo)",
       "Priority AI Routine Engineering",
       "Custom Branded Workout PDF Reports",
       "Dedicated Coach Support & OTA Updates",
