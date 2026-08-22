@@ -2,9 +2,9 @@ name: CI Quality Gate
 
 on:
   push:
-    branches: [ main, staging ]
+    branches: [ main, master, staging ]
   pull_request:
-    branches: [ main, staging ]
+    branches: [ main, master, staging ]
 
 jobs:
   validate:
