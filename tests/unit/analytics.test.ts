@@ -75,6 +75,11 @@ describe("Analytics Utility", () => {
       expect(bench).toBeDefined();
       expect(bench?.maxWeight).toBe(185);
       expect(bench?.totalVolume).toBe(2275);
+
+      const chestGroup = result.muscleGroups.find((g) => g.name === "Chest");
+      expect(chestGroup).toBeDefined();
+      expect(chestGroup?.exerciseCount).toBe(1);
+      expect(chestGroup?.totalVolume).toBe(2275);
     });
   });
 });
