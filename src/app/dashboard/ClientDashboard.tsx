@@ -179,11 +179,16 @@ export function ClientDashboard({
   const [repeatingWorkoutId, setRepeatingWorkoutId] = useState<string | null>(null);
 
   const handleDeleteWorkout = async (workoutId: string) => {
-    if (!confirm("Are you sure you want to delete this workout? This cannot be undone.")) return;
+    if (!confirm("Are you sure you want to delete this workout? A deletion record will be saved.")) return;
     try {
       const res = await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
       if (res.ok) {
-        setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+        const data = await res.json();
+        if (data.workout) {
+          setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, ...data.workout } : w)));
+        } else {
+          setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+        }
       } else {
         const data = await res.json();
         alert(data.error || "Failed to delete workout.");
@@ -1001,21 +1006,53 @@ export function ClientDashboard({
                         <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteWorkout(workout.id)}
-                        className="btn-ghost-danger"
-                        title="Delete workout from history"
-                        style={{ padding: "3px 6px", borderRadius: "6px" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {!workout.deletedAt && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteWorkout(workout.id)}
+                          className="btn-ghost-danger"
+                          title="Delete workout from history"
+                          style={{ padding: "3px 6px", borderRadius: "6px" }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
 
-                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
-                        ✓ Finished
-                      </span>
+                      {workout.deletedAt ? (
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 8px", borderRadius: "8px" }}>
+                          🗑️ Deleted
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
+                          ✓ Finished
+                        </span>
+                      )}
                     </div>
                   </div>
+
+                  {workout.deletedAt && (
+                    <div
+                      style={{
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                        marginBottom: "10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        color: "#991b1b",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Trash2 size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
+                      <span>
+                        Workout deleted by <b>{workout.deletedByName || "User"}</b> on{" "}
+                        {new Date(workout.deletedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                      </span>
+                    </div>
+                  )}
 
                   {workout.notes && (
                     <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", marginBottom: "8px" }}>

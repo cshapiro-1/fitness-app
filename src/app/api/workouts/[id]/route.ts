@@ -88,8 +88,33 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       return NextResponse.json({ error: "Forbidden: You do not have permission to delete this workout" }, { status: 403 });
     }
 
-    await prisma.workoutSession.delete({ where: { id: params.id } });
-    return NextResponse.json({ success: true });
+    const shouldPurge = new URL(req.url).searchParams.get("purge") === "true";
+    if (shouldPurge && (isCoach || isAdmin)) {
+      await prisma.workoutSession.delete({ where: { id: params.id } });
+      return NextResponse.json({ success: true, purged: true });
+    }
+
+    const deleterName = session?.user?.name || (isCoach ? "Coach" : "Athlete");
+    const deleterRole = isCoach ? "TRAINER" : "CLIENT";
+    const now = new Date();
+    const formattedTimestamp = now.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+
+    const updated = await prisma.workoutSession.update({
+      where: { id: params.id },
+      data: {
+        deletedAt: now,
+        deletedByName: deleterName,
+        deletedByRole: deleterRole,
+        notes: sessionToDelete.notes
+          ? `${sessionToDelete.notes} • [Workout deleted by ${deleterName} on ${formattedTimestamp}]`
+          : `Workout deleted by ${deleterName} on ${formattedTimestamp}`,
+      },
+      include: {
+        exercises: { include: { sets: true } },
+      },
+    });
+
+    return NextResponse.json({ success: true, workout: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -532,10 +532,15 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   };
 
   const deleteWorkout = async (workoutId: string) => {
-    if (!confirm("Are you sure you want to delete this workout log?")) return;
+    if (!confirm("Are you sure you want to delete this workout log? A deletion record will be saved.")) return;
     const res = await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
     if (res.ok) {
-      setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+      const data = await res.json();
+      if (data.workout) {
+        setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, ...data.workout } : w)));
+      } else {
+        setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
+      }
     }
   };
 

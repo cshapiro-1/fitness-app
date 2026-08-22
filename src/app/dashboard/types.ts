@@ -42,6 +42,9 @@ export interface WorkoutSession {
   loggedByRole?: "TRAINER" | "CLIENT" | string | null;
   loggedById?: string | null;
   loggedByName?: string | null;
+  deletedAt?: string | null;
+  deletedByName?: string | null;
+  deletedByRole?: string | null;
   createdAt: string;
   exercises: WorkoutExercise[];
 }

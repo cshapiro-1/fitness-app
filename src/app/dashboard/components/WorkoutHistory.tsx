@@ -382,11 +382,42 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
                   <span>{copiedId === workout.id ? "Copied!" : "Copy Session"}</span>
                 </button>
 
-                <button className="btn-ghost-danger" onClick={() => onDeleteWorkout(workout.id)} title="Delete workout">
-                  <Trash2 size={13} />
-                </button>
+                {!workout.deletedAt && (
+                  <button className="btn-ghost-danger" onClick={() => onDeleteWorkout(workout.id)} title="Delete workout">
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                {workout.deletedAt && (
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 6px", borderRadius: "4px" }}>
+                    🗑️ DELETED
+                  </span>
+                )}
               </div>
             </div>
+
+            {workout.deletedAt && (
+              <div
+                style={{
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                  marginBottom: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  color: "#991b1b",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                }}
+              >
+                <Trash2 size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
+                <span>
+                  Workout deleted by <b>{workout.deletedByName || "User"}</b> on{" "}
+                  {new Date(workout.deletedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                </span>
+              </div>
+            )}
 
             {workout.notes && <div className="history-notes">{workout.notes}</div>}
 

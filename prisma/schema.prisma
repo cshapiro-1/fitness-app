@@ -158,6 +158,9 @@ model WorkoutSession {
   loggedByRole String?              @default("TRAINER") // TRAINER, CLIENT
   loggedById   String?
   loggedByName String?
+  deletedAt    DateTime?
+  deletedByName String?
+  deletedByRole String?
   createdAt    DateTime             @default(now())
   client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   loggedByUser User?                @relation("LoggedWorkouts", fields: [loggedById], references: [id], onDelete: SetNull)
