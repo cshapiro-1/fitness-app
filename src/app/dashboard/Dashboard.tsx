@@ -576,6 +576,17 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Mobility & Recovery */}
+          <Link
+            href="/mobility"
+            className="nav-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
+            title="Pre/post workout warm-ups, stretches, and recovery"
+          >
+            <span>🧘</span>
+            <span className="hide-mobile">Mobility</span>
+          </Link>
+
           {/* Nutrition & Macros Planner */}
           <Link
             href="/nutrition"
@@ -788,6 +799,24 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             <div className="placeholder">
               <Dumbbell size={40} className="placeholder-icon" />
               <p>Select a client or add a new one</p>
+              <div style={{ display: "flex", gap: "10px", marginTop: "14px", flexWrap: "wrap", justifyContent: "center" }}>
+                <Link
+                  href="/mobility"
+                  className="btn-secondary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", padding: "8px 16px" }}
+                >
+                  <span>🧘</span>
+                  <span>Open Mobility &amp; Recovery</span>
+                </Link>
+                <Link
+                  href="/nutrition"
+                  className="btn-secondary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "13px", padding: "8px 16px" }}
+                >
+                  <span>🥗</span>
+                  <span>Nutrition &amp; Macros</span>
+                </Link>
+              </div>
             </div>
           ) : (
             <>
@@ -1003,7 +1032,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                         className={`tab${tab === currentTab ? " active" : ""}`}
                         onClick={() => handleRequestTab(currentTab)}
                       >
-                        {currentTab === "mobility" ? "Mobility" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                        {currentTab === "mobility" ? "🧘 Mobility" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                       </button>
                     ))}
                   </div>

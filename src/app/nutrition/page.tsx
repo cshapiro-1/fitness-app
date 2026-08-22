@@ -424,6 +424,16 @@ export default function NutritionPage() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Link
+              href="/mobility"
+              className="nav-btn"
+              style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
+              title="Pre/post workout warm-ups, stretches, and recovery"
+            >
+              <span>🧘</span>
+              <span className="hide-mobile">Mobility</span>
+            </Link>
+
+            <Link
               href="/dashboard"
               className="nav-btn nav-btn-blue"
             >
