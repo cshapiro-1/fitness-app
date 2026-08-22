@@ -16,13 +16,23 @@ import {
   UserPlus,
   Briefcase,
   Zap,
+  Flame,
+  Award,
+  Calendar,
 } from "lucide-react";
 
 export default function OnboardingPage() {
   const { data: session, update } = useSession();
   const [step, setStep] = useState<number>(1);
-  const [selectedRole, setSelectedRole] = useState<"TRAINER" | "CLIENT">("TRAINER");
+  const [selectedPath, setSelectedPath] = useState<"INDIVIDUAL" | "TRAINER">("INDIVIDUAL");
   const [loading, setLoading] = useState(false);
+
+  // Personal Journey State
+  const [goal, setGoal] = useState("Hypertrophy & Muscle Growth");
+  const [split, setSplit] = useState("Push / Pull / Legs (PPL)");
+  const [frequency, setFrequency] = useState("4-5 Days / Week");
+  const [experience, setExperience] = useState("Intermediate (1-3 years)");
+  const [equipment, setEquipment] = useState("Full Commercial Gym");
 
   // Trainer Setup Form State
   const [coachName, setCoachName] = useState(session?.user?.name || "");
@@ -32,40 +42,52 @@ export default function OnboardingPage() {
   const [customClientName, setCustomClientName] = useState("");
   const [customClientEmail, setCustomClientEmail] = useState("");
 
-  const handleRoleChosen = (role: "TRAINER" | "CLIENT") => {
-    setSelectedRole(role);
-    if (role === "TRAINER") {
-      setStep(2); // Go to Trainer Setup Wizard
-    } else {
-      // Direct Client Setup
-      finishOnboarding("CLIENT");
-    }
+  const handlePathChosen = (path: "INDIVIDUAL" | "TRAINER") => {
+    setSelectedPath(path);
+    setStep(2);
   };
 
-  const finishOnboarding = async (role: "TRAINER" | "CLIENT") => {
+  const finishOnboarding = async () => {
     setLoading(true);
     try {
-      // 1. Update User Role
-      await fetch("/api/user/role", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
-      });
-
-      // 2. If Trainer with custom client, create that client
-      if (role === "TRAINER" && firstClientOption === "custom" && customClientName.trim()) {
-        await fetch("/api/clients", {
+      if (selectedPath === "INDIVIDUAL") {
+        // Set user role as CLIENT (Athlete / Individual)
+        await fetch("/api/user/role", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "CLIENT" }),
+        });
+
+        // Create or update personal athlete profile with fitness goals
+        await fetch("/api/user/profile", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            name: customClientName.trim(),
-            email: customClientEmail.trim() || undefined,
-            fitnessGoals: `${specialty} Athlete`,
+            fitnessGoals: `${goal} | ${split} (${frequency})`,
+            notes: `Experience: ${experience}. Equipment: ${equipment}.`,
           }),
         });
+      } else {
+        // Set user role as TRAINER
+        await fetch("/api/user/role", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "TRAINER" }),
+        });
+
+        if (firstClientOption === "custom" && customClientName.trim()) {
+          await fetch("/api/clients", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: customClientName.trim(),
+              email: customClientEmail.trim() || undefined,
+              fitnessGoals: `${specialty} Athlete`,
+            }),
+          });
+        }
       }
 
-      // 3. Force NextAuth session refresh & navigate
       if (update) await update();
       window.location.href = "/dashboard";
     } catch (err) {
@@ -96,419 +118,452 @@ export default function OnboardingPage() {
           borderRadius: "20px",
           boxShadow: "0 20px 40px -10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05)",
           border: "1px solid #e2e8f0",
-          maxWidth: "560px",
+          maxWidth: "580px",
           width: "100%",
         }}
       >
         {/* Step Indicator */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginBottom: "24px" }}>
-          {[1, 2, 3, 4].map((s) => (
+          {[1, 2, 3].map((s) => (
             <div
               key={s}
               style={{
+                width: step >= s ? "32px" : "10px",
                 height: "6px",
-                width: step === s ? "32px" : "12px",
-                background: step === s ? "#2563eb" : step > s ? "#10b981" : "#e2e8f0",
                 borderRadius: "3px",
+                background: step >= s ? "#2563eb" : "#e2e8f0",
                 transition: "all 0.3s ease",
               }}
             />
           ))}
         </div>
 
-        {/* STEP 1: Role Selection */}
+        {/* STEP 1: PATH SELECTION */}
         {step === 1 && (
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: "56px",
-                height: "56px",
-                background: "#eff6ff",
-                color: "#2563eb",
-                borderRadius: "16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 16px auto",
-              }}
-            >
-              <Sparkles size={28} />
+          <div>
+            <div style={{ textAlign: "center", marginBottom: "28px" }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  borderRadius: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                <Sparkles size={28} />
+              </div>
+              <h1 style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
+                Welcome to STRKYR
+              </h1>
+              <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
+                Choose how you want to experience your fitness journey today.
+              </p>
             </div>
 
-            <h1 style={{ fontSize: "24px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-              Welcome to FitCoach!
-            </h1>
-            <p style={{ color: "#64748b", fontSize: "14px", margin: "0 0 28px 0" }}>
-              Choose your primary role to customize your workspace experience.
-            </p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-              {/* TRAINER BUTTON */}
-              <button
-                type="button"
-                onClick={() => handleRoleChosen("TRAINER")}
-                disabled={loading}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
+              {/* Option A: Personal Fitness Journey (Hero) */}
+              <div
+                onClick={() => handlePathChosen("INDIVIDUAL")}
                 style={{
-                  padding: "24px 16px",
-                  background: "#eff6ff",
-                  border: "2px solid #3b82f6",
-                  borderRadius: "14px",
+                  border: "2px solid #2563eb",
+                  background: "#f0f7ff",
+                  borderRadius: "16px",
+                  padding: "20px",
                   cursor: "pointer",
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "16px",
+                  position: "relative",
                   transition: "all 0.15s ease",
                 }}
               >
                 <div
                   style={{
-                    width: "48px",
-                    height: "48px",
+                    position: "absolute",
+                    top: "-10px",
+                    right: "16px",
+                    background: "#2563eb",
+                    color: "#ffffff",
+                    fontSize: "10px",
+                    fontWeight: 800,
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  RECOMMENDED
+                </div>
+                <div
+                  style={{
+                    width: "44px",
+                    height: "44px",
                     background: "#2563eb",
                     color: "#ffffff",
                     borderRadius: "12px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    margin: "0 auto 12px auto",
+                    flexShrink: 0,
                   }}
                 >
-                  <Dumbbell size={24} />
+                  <Flame size={24} />
                 </div>
-                <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#1e40af", margin: "0 0 4px 0" }}>
-                  I am a Trainer
-                </h3>
-                <p style={{ fontSize: "12px", color: "#3b82f6", margin: 0, lineHeight: 1.4 }}>
-                  Manage clients, design AI routines & track PR analytics.
-                </p>
-              </button>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                    <h3 style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                      Personal Workout Journey
+                    </h3>
+                  </div>
+                  <p style={{ fontSize: "13px", color: "#475569", margin: 0, lineHeight: 1.4 }}>
+                    Design custom routines, track 1RM progressive overload, use visual plate math, and level up your physique.
+                  </p>
+                </div>
+                <ArrowRight size={20} style={{ color: "#2563eb", alignSelf: "center" }} />
+              </div>
 
-              {/* CLIENT BUTTON */}
-              <button
-                type="button"
-                onClick={() => handleRoleChosen("CLIENT")}
-                disabled={loading}
+              {/* Option B: Coach / Personal Trainer */}
+              <div
+                onClick={() => handlePathChosen("TRAINER")}
                 style={{
-                  padding: "24px 16px",
+                  border: "1px solid #e2e8f0",
                   background: "#ffffff",
-                  border: "2px solid #e2e8f0",
-                  borderRadius: "14px",
+                  borderRadius: "16px",
+                  padding: "20px",
                   cursor: "pointer",
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "16px",
                   transition: "all 0.15s ease",
                 }}
               >
                 <div
                   style={{
-                    width: "48px",
-                    height: "48px",
+                    width: "44px",
+                    height: "44px",
                     background: "#f1f5f9",
                     color: "#475569",
                     borderRadius: "12px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    margin: "0 auto 12px auto",
+                    flexShrink: 0,
                   }}
                 >
-                  <Users size={24} />
+                  <Briefcase size={22} />
                 </div>
-                <h3 style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", margin: "0 0 4px 0" }}>
-                  I am an Athlete
-                </h3>
-                <p style={{ fontSize: "12px", color: "#64748b", margin: 0, lineHeight: 1.4 }}>
-                  View assigned workouts, log sets, and access nutrition.
-                </p>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", margin: "0 0 4px 0" }}>
+                    Coach &amp; Trainer Studio
+                  </h3>
+                  <p style={{ fontSize: "13px", color: "#64748b", margin: 0, lineHeight: 1.4 }}>
+                    Manage client rosters, send 1-click athlete invite links, assign periodized routines, and monitor adherence.
+                  </p>
+                </div>
+                <ArrowRight size={20} style={{ color: "#94a3b8", alignSelf: "center" }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: PERSONAL JOURNEY SETUP */}
+        {step === 2 && selectedPath === "INDIVIDUAL" && (
+          <div>
+            <div style={{ textAlign: "center", marginBottom: "24px" }}>
+              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                Customize Your Training Path
+              </h2>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+                Tell us about your goals so we can tailor your workout experience.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px", marginBottom: "28px" }}>
+              {/* Goal */}
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "6px" }}>
+                  🎯 Primary Fitness Goal
+                </label>
+                <select
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "14px", background: "#ffffff" }}
+                >
+                  <option>Hypertrophy &amp; Muscle Growth</option>
+                  <option>Pure Strength &amp; Powerlifting</option>
+                  <option>Body Recomposition &amp; Fat Loss</option>
+                  <option>Mobility, Longevity &amp; Calisthenics</option>
+                </select>
+              </div>
+
+              {/* Split Preference */}
+              <div>
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "6px" }}>
+                  📅 Preferred Training Split
+                </label>
+                <select
+                  value={split}
+                  onChange={(e) => setSplit(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "14px", background: "#ffffff" }}
+                >
+                  <option>Push / Pull / Legs (PPL)</option>
+                  <option>Upper / Lower Split (4-Day)</option>
+                  <option>Arnold Classic Bodypart Split</option>
+                  <option>Full Body 3x per Week</option>
+                </select>
+              </div>
+
+              {/* Weekly Frequency */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "6px" }}>
+                    ⚡ Frequency
+                  </label>
+                  <select
+                    value={frequency}
+                    onChange={(e) => setFrequency(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#ffffff" }}
+                  >
+                    <option>3 Days / Week</option>
+                    <option>4-5 Days / Week</option>
+                    <option>6 Days / Week</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "6px" }}>
+                    🏋️ Equipment
+                  </label>
+                  <select
+                    value={equipment}
+                    onChange={(e) => setEquipment(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#ffffff" }}
+                  >
+                    <option>Full Commercial Gym</option>
+                    <option>Home Barbell &amp; DBs</option>
+                    <option>Bodyweight Only</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: "10px",
+                  background: "#f1f5f9",
+                  border: "1px solid #cbd5e1",
+                  color: "#475569",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  borderRadius: "10px",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  cursor: "pointer",
+                }}
+              >
+                <span>Continue to Preview</span>
+                <ArrowRight size={16} />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: Coach Profile & Business Specialization */}
-        {step === 2 && (
+        {/* STEP 3: JOURNEY ACTIVATION & PRO TRIAL */}
+        {step === 3 && selectedPath === "INDIVIDUAL" && (
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-              <Briefcase size={20} style={{ color: "#2563eb" }} />
-              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  background: "#dcfce7",
+                  color: "#16a34a",
+                  borderRadius: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                }}
+              >
+                <Award size={28} />
+              </div>
+              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                Your Fitness Journey is Ready
+              </h2>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+                14-Day Free STRKYR Pro Membership Activated
+              </p>
+            </div>
+
+            {/* Program Summary Card */}
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "14px",
+                padding: "16px",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ fontSize: "11px", fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                Personal Roadmap
+              </div>
+              <div style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a", marginBottom: "4px" }}>
+                {goal}
+              </div>
+              <div style={{ fontSize: "13px", color: "#64748b" }}>
+                {split} • {frequency} • {equipment}
+              </div>
+            </div>
+
+            {/* Pro Features Pill List */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
+              {[
+                "Unlimited Personal Workout Logging & History",
+                "AI Routine Periodization Generator",
+                "Interactive 3D Muscle Anatomy Guides",
+                "Live Rest Stopwatch & Barbell Plate Math",
+                "Strength PRs & Volume Tonnage Tracking",
+              ].map((feat, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
+                  <CheckCircle2 size={16} style={{ color: "#16a34a", flexShrink: 0 }} />
+                  <span>{feat}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={finishOnboarding}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "14px",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+                color: "#ffffff",
+                border: "none",
+                fontWeight: 800,
+                fontSize: "15px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                cursor: loading ? "not-allowed" : "pointer",
+                boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
+              }}
+            >
+              <span>{loading ? "Initializing Studio..." : "Start My Workout Journey"}</span>
+              <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* TRAINER SETUP WIZARD (If Trainer Selected) */}
+        {step === 2 && selectedPath === "TRAINER" && (
+          <div>
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
                 Coach Studio Setup
               </h2>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+                Configure your coaching profile to start managing clients.
+              </p>
             </div>
-            <p style={{ color: "#64748b", fontSize: "13px", margin: "0 0 20px 0" }}>
-              Step 2 of 4: Tell us about your training practice.
-            </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
-                  Coach / Business Name
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Coach / Studio Name
                 </label>
                 <input
                   type="text"
                   value={coachName}
                   onChange={(e) => setCoachName(e.target.value)}
-                  placeholder="e.g. Coach Jose Dildine"
-                  className="input-field"
-                  style={{ width: "100%", padding: "10px 12px" }}
+                  placeholder="e.g. Coach Collin"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "14px" }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
-                  Primary Specialty
+                <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Coaching Specialty
                 </label>
-                <select
+                <input
+                  type="text"
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
-                  className="input-field"
-                  style={{ width: "100%", padding: "10px 12px" }}
-                >
-                  <option value="Hypertrophy & Strength">Hypertrophy & Strength (Bodybuilding / Powerbuilding)</option>
-                  <option value="Powerlifting & Peak Strength">Powerlifting & 1RM Strength</option>
-                  <option value="Athletic Performance">Athletic Performance & Functional Conditioning</option>
-                  <option value="Weight Loss & Transformation">Weight Loss & Body Recomposition</option>
-                  <option value="Calisthenics & Gymnastics">Calisthenics & Bodyweight Mastery</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
-                  Coaching Experience
-                </label>
-                <select
-                  value={experienceYears}
-                  onChange={(e) => setExperienceYears(e.target.value)}
-                  className="input-field"
-                  style={{ width: "100%", padding: "10px 12px" }}
-                >
-                  <option value="1-2 years">1–2 years (Emerging Coach)</option>
-                  <option value="3-5 years">3–5 years (Experienced Trainer)</option>
-                  <option value="5+ years">5+ years (Master Coach / Gym Owner)</option>
-                </select>
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="btn-secondary"
-                  style={{ flex: 1, padding: "10px", justifyContent: "center" }}
-                >
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(3)}
-                  className="btn-primary"
-                  style={{ flex: 2, padding: "10px", justifyContent: "center", fontWeight: 700 }}
-                >
-                  Continue <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: First Client Setup */}
-        {step === 3 && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-              <UserPlus size={20} style={{ color: "#2563eb" }} />
-              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
-                Add Your First Client
-              </h2>
-            </div>
-            <p style={{ color: "#64748b", fontSize: "13px", margin: "0 0 20px 0" }}>
-              Step 3 of 4: Setup your roster or start with a sample client.
-            </p>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {[
-                {
-                  id: "sample",
-                  title: "Start with Pre-Loaded Sample Client",
-                  desc: "Includes sample routines, sets & PR tracking ready to explore.",
-                  icon: "🚀",
-                },
-                {
-                  id: "custom",
-                  title: "Add a Real Client Now",
-                  desc: "Enter their name and send them a free client portal invite link.",
-                  icon: "👤",
-                },
-                {
-                  id: "skip",
-                  title: "Skip for Now",
-                  desc: "Start with a clean studio workspace and add clients later.",
-                  icon: "✨",
-                },
-              ].map((opt) => (
-                <div
-                  key={opt.id}
-                  onClick={() => setFirstClientOption(opt.id as any)}
-                  style={{
-                    padding: "14px 16px",
-                    borderRadius: "12px",
-                    border: "2px solid",
-                    borderColor: firstClientOption === opt.id ? "#2563eb" : "#e2e8f0",
-                    background: firstClientOption === opt.id ? "#eff6ff" : "#ffffff",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "12px",
-                    transition: "all 0.15s ease",
-                  }}
-                >
-                  <span style={{ fontSize: "22px" }}>{opt.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
-                      {opt.title}
-                    </div>
-                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                      {opt.desc}
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {firstClientOption === "custom" && (
-                <div style={{ background: "#f8fafc", padding: "14px", borderRadius: "10px", border: "1px solid #e2e8f0", marginTop: "4px" }}>
-                  <div style={{ marginBottom: "10px" }}>
-                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
-                      Client Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={customClientName}
-                      onChange={(e) => setCustomClientName(e.target.value)}
-                      placeholder="e.g. Alex Morgan"
-                      className="input-field"
-                      style={{ width: "100%", padding: "8px 10px" }}
-                    />
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
-                      Client Email (Optional)
-                    </label>
-                    <input
-                      type="email"
-                      value={customClientEmail}
-                      onChange={(e) => setCustomClientEmail(e.target.value)}
-                      placeholder="alex@example.com"
-                      className="input-field"
-                      style={{ width: "100%", padding: "8px 10px" }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="btn-secondary"
-                  style={{ flex: 1, padding: "10px", justifyContent: "center" }}
-                >
-                  <ArrowLeft size={16} /> Back
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStep(4)}
-                  className="btn-primary"
-                  style={{ flex: 2, padding: "10px", justifyContent: "center", fontWeight: 700 }}
-                >
-                  Review &amp; Launch <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: Summary & Studio Launch */}
-        {step === 4 && (
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                width: "60px",
-                height: "60px",
-                background: "#f0fdf4",
-                color: "#16a34a",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 16px auto",
-              }}
-            >
-              <CheckCircle2 size={36} />
-            </div>
-
-            <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", margin: "0 0 6px 0" }}>
-              Your Studio is Ready!
-            </h2>
-            <p style={{ color: "#64748b", fontSize: "13px", margin: "0 0 20px 0" }}>
-              Here is a summary of your coach workspace configuration:
-            </p>
-
-            <div
-              style={{
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "12px",
-                padding: "16px",
-                textAlign: "left",
-                marginBottom: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "10px",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>Coach Name:</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>{coachName || "Coach"}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>Specialty:</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#2563eb" }}>{specialty}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>Experience:</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>{experienceYears}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>Starting Setup:</span>
-                <span style={{ fontSize: "13px", fontWeight: 700, color: "#16a34a" }}>
-                  {firstClientOption === "sample"
-                    ? "Sample Client Roster"
-                    : firstClientOption === "custom"
-                    ? `Client: ${customClientName || "New Client"}`
-                    : "Clean Studio"}
-                </span>
+                  placeholder="e.g. Hypertrophy, Powerlifting, Weight Loss"
+                  style={{ width: "100%", padding: "10px 12px", borderRadius: "10px", border: "1px solid #cbd5e1", fontSize: "14px" }}
+                />
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => finishOnboarding("TRAINER")}
-              disabled={loading}
-              className="btn-primary"
-              style={{
-                width: "100%",
-                padding: "14px",
-                justifyContent: "center",
-                fontSize: "15px",
-                fontWeight: 800,
-                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-              }}
-            >
-              {loading ? (
-                <>
-                  <div className="spin-inline" /> Launching Studio...
-                </>
-              ) : (
-                <>
-                  <Zap size={18} /> Launch Coach Dashboard
-                </>
-              )}
-            </button>
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                style={{
+                  padding: "12px 18px",
+                  borderRadius: "10px",
+                  background: "#f1f5f9",
+                  border: "1px solid #cbd5e1",
+                  color: "#475569",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  cursor: "pointer",
+                }}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={finishOnboarding}
+                disabled={loading}
+                style={{
+                  flex: 1,
+                  padding: "12px 20px",
+                  borderRadius: "10px",
+                  background: "#2563eb",
+                  color: "#ffffff",
+                  border: "none",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                <span>{loading ? "Setting Up..." : "Launch Coach Studio"}</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>

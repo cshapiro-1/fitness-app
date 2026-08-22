@@ -109,15 +109,15 @@ export default async function HomePage() {
           }}
         >
           <Sparkles size={14} style={{ color: "#2563eb" }} />
-          <span>Version 1.2 Released — Workout Search, Barbell Plate Math, Rest Timer &amp; Native Mobile</span>
+          <span>STRKYR 2.0 — AI Periodized Routines, 3D Anatomy Guides &amp; Barbell Math</span>
         </div>
 
         <h1 style={{ fontSize: "clamp(2rem, 5vw, 3.2rem)", fontWeight: 900, color: "#0f172a", lineHeight: 1.15, letterSpacing: "-0.03em", marginBottom: "16px" }}>
-          Professional Workout Tracking &amp; Coaching Portal
+          Your Personal Workout Journey.<br />Engineered for Relentless Progress.
         </h1>
 
         <p style={{ fontSize: "clamp(1rem, 2vw, 1.2rem)", color: "#64748b", maxWidth: "680px", margin: "0 auto 32px", lineHeight: 1.6 }}>
-          Designed for coaches, personal trainers, and athletes. Manage clients, generate AI periodized routines, calculate barbell plate math, track 1RM records, and stream workouts live.
+          Design periodized splits, track 1RM progressive overload, master 3D muscle anatomy form cues, calculate barbell plate math, and recover with guided mobility countdowns.
         </p>
 
         <div style={{ display: "flex", justifyContent: "center", gap: "12px", flexWrap: "wrap" }}>
@@ -137,11 +137,11 @@ export default async function HomePage() {
               boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
             }}
           >
-            <span>{session ? "Enter Your Studio Dashboard" : "Get Started Free"}</span>
+            <span>{session ? "Open Workout Studio" : "Start 14-Day Free Trial"}</span>
             <ArrowRight size={16} />
           </Link>
           <a
-            href="#release-notes"
+            href="#pricing"
             className="btn-secondary"
             style={{
               display: "inline-flex",
@@ -157,7 +157,7 @@ export default async function HomePage() {
               color: "#334155",
             }}
           >
-            <span>View Release Changelog</span>
+            <span>View Pro Plans ($9.99/mo)</span>
           </a>
         </div>
       </section>
@@ -389,6 +389,110 @@ export default async function HomePage() {
                 <li><b>Client Management:</b> Trainer roster management with notes, goals, and custom avatars.</li>
                 <li><b>Authentication &amp; Security:</b> Google OAuth and master service account credential authentication.</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING PLANS SECTION */}
+      <section id="pricing" style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0", padding: "64px 20px" }}>
+        <div style={{ maxWidth: "960px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "48px" }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                color: "#1e40af",
+                padding: "4px 12px",
+                borderRadius: "20px",
+                fontSize: "11px",
+                fontWeight: 700,
+                marginBottom: "10px",
+              }}
+            >
+              <CreditCard size={13} />
+              <span>Transparent Self-Guided Pricing</span>
+            </div>
+            <h2 style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.02em", margin: "0 0 8px 0" }}>
+              Unlock Your Full Strength Potential
+            </h2>
+            <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
+              Start with a 14-day full access free trial. Cancel anytime with 1 click.
+            </p>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+            {/* Free Trial */}
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>14-Day Free Pass</h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Experience all PRO features with zero commitment</p>
+              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
+                $0 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ 14 days</span>
+              </div>
+              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#475569", flex: 1 }}>
+                <li>Unlimited personal workout logging</li>
+                <li>AI Periodized routine generation</li>
+                <li>Interactive 3D muscle anatomy guides</li>
+                <li>Visual barbell plate math calculator</li>
+              </ul>
+              <Link
+                href="/auth/signin"
+                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#f1f5f9", color: "#334155", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}
+              >
+                Start Free Trial
+              </Link>
+            </div>
+
+            {/* Pro Monthly */}
+            <div style={{ background: "#ffffff", border: "2px solid #2563eb", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 8px 24px rgba(37,99,235,0.12)" }}>
+              <div style={{ position: "absolute", top: "-10px", right: "20px", background: "#2563eb", color: "#ffffff", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "10px" }}>
+                MOST POPULAR
+              </div>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Monthly</h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Flexible month-to-month muscle &amp; strength tracking</p>
+              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
+                $9.99 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ month</span>
+              </div>
+              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#334155", flex: 1 }}>
+                <li><b>Everything in Free Pass</b></li>
+                <li>Unlimited workout history retention</li>
+                <li>1RM Estimated Max &amp; Strength curves</li>
+                <li>Rest timer with gym audio alerts</li>
+                <li>Nutrition &amp; daily macro tracking</li>
+              </ul>
+              <Link
+                href="/dashboard"
+                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#2563eb", color: "#ffffff", fontWeight: 800, fontSize: "14px", textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
+              >
+                Join Pro Monthly
+              </Link>
+            </div>
+
+            {/* Pro Annual */}
+            <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "inline-block", background: "#dcfce7", color: "#15803d", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "8px", width: "fit-content", marginBottom: "6px" }}>
+                SAVE 33% (2 MONTHS FREE)
+              </div>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Annual</h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Commit to a year of relentless physique progress</p>
+              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
+                $79.99 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ year</span>
+              </div>
+              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#475569", flex: 1 }}>
+                <li><b>All Pro Monthly Features</b></li>
+                <li>2 Months completely free</li>
+                <li>Priority AI routine periodization</li>
+                <li>Early access to native mobile features</li>
+              </ul>
+              <Link
+                href="/dashboard"
+                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#0f172a", color: "#ffffff", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}
+              >
+                Join Pro Annual
+              </Link>
             </div>
           </div>
         </div>
