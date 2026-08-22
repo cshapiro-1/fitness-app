@@ -60,8 +60,10 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // If new trainer with no client records, automatically ensure self-profile "My Workouts"
-    if (clients.length === 0 && trainerId) {
+    // Check if trainer has a self-profile ("My Workouts")
+    let hasSelfProfile = clients.some((c: any) => c.name === "My Workouts");
+
+    if (!hasSelfProfile && trainerId) {
       try {
         const selfClient = await prisma.client.create({
           data: {
@@ -86,7 +88,7 @@ export async function GET(req: Request) {
             _count: { select: { workoutSessions: true } },
           },
         });
-        clients = [selfClient];
+        clients.unshift(selfClient);
       } catch (e) {
         console.error("Auto self client creation error:", e);
       }
@@ -100,12 +102,12 @@ export async function GET(req: Request) {
       return {
         id: c.id,
         userId: c.userId,
-        name: c.name || (isSelfProfile ? c.user?.name : "Client"),
+        name: isSelfProfile ? "My Workouts (Personal)" : (c.name || "Client"),
         image: isSelfProfile ? (c.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
-        email: isSelfProfile ? (c.email || c.user?.email || null) : (c.email || c.loginUser?.email || null),
-        phone: isSelfProfile ? (c.phone || c.user?.phone || null) : (c.phone || c.loginUser?.phone || null),
-        notes: isSelfProfile ? (c.notes || c.user?.notes || null) : (c.notes || null),
-        fitnessGoals: isSelfProfile ? (c.fitnessGoals || c.user?.fitnessGoals || null) : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
+        email: isSelfProfile ? null : (c.email || c.loginUser?.email || null),
+        phone: isSelfProfile ? null : (c.phone || c.loginUser?.phone || null),
+        notes: isSelfProfile ? (c.notes || "Personal workout tracking") : (c.notes || null),
+        fitnessGoals: isSelfProfile ? (c.fitnessGoals || "Personal Performance") : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
         emailNotifications: c.emailNotifications !== false,
         inviteStatus: isSelfProfile ? "ACCEPTED" : (c.inviteStatus || "NOT_SENT"),
         inviteToken: c.inviteToken || null,
@@ -114,7 +116,15 @@ export async function GET(req: Request) {
         workouts: c.workouts || [],
         workoutSessions: c.workoutSessions || [],
         _count: c._count || { workoutSessions: 0 },
+        isSelf: isSelfProfile,
       };
+    });
+
+    // Pin "My Workouts (Personal)" to the very top of the list
+    formattedClients.sort((a, b) => {
+      if (a.isSelf) return -1;
+      if (b.isSelf) return 1;
+      return 0;
     });
 
     return NextResponse.json(formattedClients);

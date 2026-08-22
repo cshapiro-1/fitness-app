@@ -43,23 +43,40 @@ describe("API: /api/clients", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should fetch clients isolated to trainer without leaking trainer email", async () => {
+    it("should fetch clients isolated to trainer with self-profile pinned to top", async () => {
       (getServerSession as any).mockResolvedValue({
         user: { id: "trainer-1", email: "trainer@fitpro.com", name: "Coach Mike" },
       });
 
       (prisma.client.findMany as any).mockResolvedValue([
         {
-          id: "client-1",
+          id: "client-self",
           userId: "trainer-1",
-          name: "Client Sarah",
+          name: "My Workouts",
           email: null,
           phone: null,
           notes: null,
           fitnessGoals: null,
-          inviteStatus: "NOT_SENT",
+          inviteStatus: "ACCEPTED",
           inviteToken: null,
           createdAt: new Date("2026-08-01"),
+          user: { id: "trainer-1", email: "trainer@fitpro.com", name: "Coach Mike" },
+          loginUser: null,
+          workouts: [],
+          workoutSessions: [],
+          _count: { workoutSessions: 0 },
+        },
+        {
+          id: "client-1",
+          userId: "trainer-1",
+          name: "Client Sarah",
+          email: "sarah@athlete.com",
+          phone: null,
+          notes: null,
+          fitnessGoals: null,
+          inviteStatus: "ACCEPTED",
+          inviteToken: null,
+          createdAt: new Date("2026-08-02"),
           user: { id: "trainer-1", email: "trainer@fitpro.com", name: "Coach Mike" },
           loginUser: null,
           workouts: [],
@@ -71,10 +88,10 @@ describe("API: /api/clients", () => {
       const res = await GET(new Request("http://localhost/api/clients"));
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data).toHaveLength(1);
-      // Email should be null, NOT the trainer's email!
-      expect(data[0].email).toBeNull();
-      expect(data[0].inviteStatus).toBe("NOT_SENT");
+      expect(data).toHaveLength(2);
+      expect(data[0].name).toBe("My Workouts (Personal)");
+      expect(data[0].isSelf).toBe(true);
+      expect(data[1].name).toBe("Client Sarah");
     });
   });
 

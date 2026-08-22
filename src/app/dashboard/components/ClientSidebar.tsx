@@ -61,7 +61,7 @@ export function ClientSidebar({
         )}
 
         {clients.map((client) => {
-          const isSelfProfile = client.name === "My Workouts";
+          const isSelfProfile = (client as any).isSelf || client.name.includes("My Workouts");
           const isAccepted = client.inviteStatus === "ACCEPTED";
           const isPending = client.inviteStatus === "PENDING";
 
@@ -69,6 +69,7 @@ export function ClientSidebar({
             <div
               key={client.id}
               className={`client-item${selected?.id === client.id ? " active" : ""}`}
+              style={isSelfProfile ? { borderLeft: selected?.id === client.id ? "3px solid #2563eb" : "3px solid #60a5fa", background: selected?.id === client.id ? undefined : "#f8faff" } : undefined}
               onClick={() => onSelectClient(client)}
             >
               {/* Client Avatar Thumbnail */}
@@ -91,8 +92,8 @@ export function ClientSidebar({
                       width: "36px",
                       height: "36px",
                       borderRadius: "50%",
-                      background: isSelfProfile ? "#eff6ff" : "#f1f5f9",
-                      color: isSelfProfile ? "#2563eb" : "#64748b",
+                      background: isSelfProfile ? "#dbeafe" : "#f1f5f9",
+                      color: isSelfProfile ? "#1d4ed8" : "#64748b",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -101,18 +102,32 @@ export function ClientSidebar({
                       border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #e2e8f0",
                     }}
                   >
-                    {client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />}
+                    {isSelfProfile ? "👤" : (client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />)}
                   </div>
                 )}
               </div>
 
               <div className="client-item-main">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span className="client-name">
+                  <span className="client-name" style={isSelfProfile ? { fontWeight: 700, color: "#1e3a8a" } : undefined}>
                     {client.name}
-                    {isSelfProfile ? " — Self" : ""}
                   </span>
-                  {!isSelfProfile && (
+                  {isSelfProfile ? (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        border: "1px solid #bfdbfe",
+                        padding: "1px 6px",
+                        borderRadius: "10px",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      Myself
+                    </span>
+                  ) : (
                     <span
                       className={`client-status-badge ${
                         isAccepted
@@ -128,8 +143,8 @@ export function ClientSidebar({
                 </div>
 
                 <div className="client-meta">
-                  <span>{client._count?.workoutSessions ?? 0} workouts</span>
-                  {client.email && (
+                  <span>{client._count?.workoutSessions ?? 0} workouts logged</span>
+                  {client.email && !isSelfProfile && (
                     <span className="client-meta-extra" title={client.email}>
                       • {client.email}
                     </span>
@@ -138,31 +153,28 @@ export function ClientSidebar({
               </div>
 
               <div className="client-item-actions">
+                <button
+                  className="client-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenEditClient(client);
+                  }}
+                  title="Edit Profile"
+                >
+                  <Edit3 size={13} />
+                </button>
                 {!isSelfProfile && (
-                  <>
-                    <button
-                      className="btn-ghost-edit"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onOpenEditClient(client);
-                      }}
-                      title="Edit Client"
-                    >
-                      <Edit3 size={13} />
-                    </button>
-                    <button
-                      className="btn-ghost-danger"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onDeleteClient(client.id);
-                      }}
-                      title="Delete Client"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </>
+                  <button
+                    className="client-action-btn delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteClient(client.id);
+                    }}
+                    title="Delete Client"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 )}
-                <ChevronRight size={14} className="client-arrow" />
               </div>
             </div>
           );
