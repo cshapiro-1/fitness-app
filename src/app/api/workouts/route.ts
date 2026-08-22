@@ -9,53 +9,86 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
-    if (!userId && session?.user?.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const userEmail = session?.user?.email?.toLowerCase().trim();
+
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findFirst({
+        where: { email: { equals: userEmail, mode: "insensitive" } },
+      });
       userId = dbUser?.id;
     }
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const urlClientId = new URL(req.url).searchParams.get("clientId");
     let targetClientIds: string[] = [];
+    let isSelfQuery = false;
 
-    if (urlClientId) {
+    if (urlClientId && urlClientId !== "all") {
       targetClientIds = [urlClientId];
+      const targetClient = await prisma.client.findUnique({
+        where: { id: urlClientId },
+        select: { name: true, userId: true },
+      });
+      if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
+        isSelfQuery = true;
+        const otherSelfClients = await prisma.client.findMany({
+          where: {
+            userId: targetClient.userId,
+            name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)"] },
+          },
+          select: { id: true },
+        });
+        otherSelfClients.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
+      }
     } else {
-      // Find client IDs associated with current user
-      const userEmail = session?.user?.email;
-      const dbUser = userEmail ? await prisma.user.findUnique({ where: { email: userEmail } }) : null;
-      if (dbUser?.clientProfileId) targetClientIds.push(dbUser.clientProfileId);
+      // Find all client IDs associated with current trainer/user
       if (userEmail) {
         const matching = await prisma.client.findMany({
           where: { email: { equals: userEmail, mode: "insensitive" } },
           select: { id: true },
         });
-        matching.forEach(c => { if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id); });
+        matching.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
       }
       if (userId) {
         const selfClients = await prisma.client.findMany({
           where: { userId },
           select: { id: true },
         });
-        selfClients.forEach(c => { if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id); });
+        selfClients.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
       }
     }
 
-    if (targetClientIds.length === 0) {
+    if (targetClientIds.length === 0 && !userId) {
       return NextResponse.json([]);
     }
 
     // Fetch real WorkoutSessions
     const sessions = await prisma.workoutSession.findMany({
-      where: { clientId: { in: targetClientIds } },
+      where: {
+        OR: [
+          ...(targetClientIds.length > 0 ? [{ clientId: { in: targetClientIds } }] : []),
+          ...(isSelfQuery && userId ? [{ loggedById: userId }] : []),
+        ],
+      },
       include: {
-        exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } }
+        exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } },
       },
       orderBy: { createdAt: "desc" },
     });
 
     // Fetch legacy seeded Workouts and dynamically group them
-    const legacyWorkouts = await prisma.workout.findMany({ where: { clientId: { in: targetClientIds } }, orderBy: { createdAt: "desc" } });
+    const legacyWorkouts = targetClientIds.length > 0
+      ? await prisma.workout.findMany({
+          where: { clientId: { in: targetClientIds } },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
     const sessionMap = new Map();
     for (const w of legacyWorkouts) {
        const sessionKey = w.date || (w.createdAt ? new Date(w.createdAt).toISOString() : "unknown");
