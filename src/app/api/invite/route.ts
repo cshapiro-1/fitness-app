@@ -12,7 +12,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { clientId } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const clientId = body.clientId || body.id;
     if (!clientId) {
       return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
     }
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
         inviteToken: token,
         inviteStatus: "PENDING",
         invitedAt: new Date(),
+      },
+      include: {
+        user: true,
+        loginUser: true,
       },
     });
 
@@ -40,7 +45,10 @@ export async function POST(req: NextRequest) {
       inviteUrl,
       token,
       inviteToken: token,
-      client: updatedClient,
+      client: {
+        ...updatedClient,
+        inviteUrl,
+      },
     });
   } catch (error: any) {
     console.error("Invite generation error:", error);

@@ -1,7 +1,6 @@
 "use client";
 
-import React from "react";
-import { Users, UserPlus, ChevronRight, Trash2, Edit3, User } from "lucide-react";
+import { Users, UserPlus, ChevronRight, Trash2, Edit3, User, Link2 } from "lucide-react";
 import { Client } from "../types";
 
 interface ClientSidebarProps {
@@ -12,6 +11,7 @@ interface ClientSidebarProps {
   onOpenAddClient: () => void;
   onOpenEditClient: (client: Client) => void;
   onDeleteClient: (id: string) => void;
+  onQuickInvite?: (client: Client) => void;
 }
 
 export function ClientSidebar({
@@ -22,6 +22,7 @@ export function ClientSidebar({
   onOpenAddClient,
   onOpenEditClient,
   onDeleteClient,
+  onQuickInvite,
 }: ClientSidebarProps) {
   return (
     <aside className="sidebar hide-mobile-sidebar">
@@ -153,6 +154,19 @@ export function ClientSidebar({
               </div>
 
               <div className="client-item-actions">
+                {!isSelfProfile && onQuickInvite && (
+                  <button
+                    className="client-action-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onQuickInvite(client);
+                    }}
+                    title="Copy Athlete Invite Link"
+                    style={{ color: "#2563eb" }}
+                  >
+                    <Link2 size={13} />
+                  </button>
+                )}
                 <button
                   className="client-action-btn"
                   onClick={(e) => {

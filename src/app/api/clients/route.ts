@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import crypto from "crypto";
 
 // GET /api/clients - STRICTLY ISOLATED to authenticated trainer
 export async function GET(req: Request) {
@@ -253,6 +254,15 @@ export async function POST(req: Request) {
       }
     }
 
+    const inviteToken = crypto.randomBytes(32).toString("hex");
+
+    const rawHost = req.headers.get("x-forwarded-host") || req.headers.get("host") || "strkyr.fit";
+    const host = rawHost.split(",")[0].trim();
+    const rawProto = req.headers.get("x-forwarded-proto") || (host.includes("localhost") ? "http" : "https");
+    const proto = rawProto.split(",")[0].trim();
+    const baseUrl = `${proto}://${host}`;
+    const inviteUrl = `${baseUrl}/invite/${inviteToken}`;
+
     // Create Client record linked to this trainer (userId: trainerId)
     const client = await prisma.client.create({
       data: {
@@ -263,7 +273,7 @@ export async function POST(req: Request) {
         phone: phone ? sanitizeText(phone, 30) : null,
         notes: notes ? sanitizeText(notes, 1000) : null,
         fitnessGoals: fitnessGoals ? sanitizeText(fitnessGoals, 500) : null,
-        inviteToken: null,
+        inviteToken,
         inviteStatus: "NOT_SENT",
       },
       include: {
@@ -293,8 +303,8 @@ export async function POST(req: Request) {
       notes: client.notes,
       fitnessGoals: client.fitnessGoals,
       inviteStatus: client.inviteStatus,
-      inviteToken: null,
-      inviteUrl: null,
+      inviteToken: client.inviteToken,
+      inviteUrl,
       createdAt: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
       workouts: client.workouts || [],
       workoutSessions: client.workoutSessions || [],

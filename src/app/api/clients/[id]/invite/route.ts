@@ -11,11 +11,15 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: "Client ID is required" }, { status: 400 });
+    }
+
     const inviteToken = crypto.randomBytes(32).toString("hex");
 
     const updatedClient = await prisma.client.update({
@@ -24,6 +28,10 @@ export async function POST(
         inviteToken,
         inviteStatus: "PENDING",
         invitedAt: new Date(),
+      },
+      include: {
+        user: true,
+        loginUser: true,
       },
     });
 
@@ -39,7 +47,10 @@ export async function POST(
       token: inviteToken,
       inviteToken,
       inviteUrl,
-      client: updatedClient,
+      client: {
+        ...updatedClient,
+        inviteUrl,
+      },
     });
   } catch (error: any) {
     console.error("POST /api/clients/[id]/invite Error:", error);

@@ -148,7 +148,7 @@ describe("API: /api/clients", () => {
       const data = await res.json();
       expect(data.name).toBe("Arnold S.");
       expect(data.inviteStatus).toBe("NOT_SENT");
-      expect(data.inviteToken).toBeNull();
+      expect(data.inviteUrl).toBeTruthy();
     });
 
     it("should gracefully update and return existing client if re-adding with same email under same trainer", async () => {

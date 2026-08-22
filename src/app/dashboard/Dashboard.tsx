@@ -189,8 +189,15 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
     if (res.ok) {
       const created = await res.json();
-      setClients((prev) => [created, ...prev]);
+      setClients((prev) => {
+        const selfClient = prev.find((c: any) => c.name.includes("My Workouts") || (c as any).isSelf);
+        const others = prev.filter((c: any) => c.id !== created.id && c.id !== selfClient?.id);
+        return selfClient ? [selfClient, created, ...others] : [created, ...others];
+      });
       setSelected(created);
+      try {
+        localStorage.setItem("fitcoach_last_selected_client_id", created.id);
+      } catch {}
       fetchSubscription();
       return;
     }
@@ -750,6 +757,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           onOpenAddClient={() => setIsAddModalOpen(true)}
           onOpenEditClient={(client) => setEditingClient(client)}
           onDeleteClient={deleteClient}
+          onQuickInvite={handleQuickGenerateInvite}
         />
 
         <main className="main">
@@ -916,14 +924,33 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                       <h2 className="client-heading" style={{ margin: 0 }}>{selected.name}</h2>
                       {selected.name !== "My Workouts" && (
-                        <button
-                          onClick={() => setEditingClient(selected)}
-                          className="btn-edit-client"
-                          title="Edit client profile and goals"
-                        >
-                          <Edit3 size={13} />
-                          <span>Edit Profile</span>
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickGenerateInvite(selected)}
+                            disabled={generatingQuickInvite}
+                            className="btn-edit-client"
+                            style={{
+                              background: copiedLink ? "#f0fdf4" : "#eff6ff",
+                              color: copiedLink ? "#16a34a" : "#2563eb",
+                              borderColor: copiedLink ? "#bbf7d0" : "#bfdbfe",
+                              fontWeight: 600,
+                            }}
+                            title="Generate and copy athlete invite link"
+                          >
+                            <Link2 size={13} />
+                            <span>{copiedLink ? "Link Copied! ✓" : "Copy Invite Link"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingClient(selected)}
+                            className="btn-edit-client"
+                            title="Edit client profile and goals"
+                          >
+                            <Edit3 size={13} />
+                            <span>Edit Profile</span>
+                          </button>
+                        </>
                       )}
 
                       {/* Weekly Adherence Streak Badge */}
