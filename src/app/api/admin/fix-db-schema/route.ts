@@ -25,11 +25,18 @@ export async function GET() {
     results.push("Synchronized User columns");
 
     // 3. Workout & Wellness columns
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedById" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByRole" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "sessionType" TEXT DEFAULT 'WORKOUT';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedById" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutExercise" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'STRENGTH';`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "distance" DOUBLE PRECISION;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "durationSeconds" INTEGER;`);
-    results.push("Synchronized Workout & Wellness columns");
+    results.push("Synchronized Workout & Wellness columns (including deletedAt & attribution)");
 
     // 4. Create NutritionPlan table if not exists
     await prisma.$executeRawUnsafe(`

@@ -6,6 +6,16 @@ export async function GET() {
   try {
     const targetEmail = "collin.shapiro1@gmail.com";
 
+    // 0. Ensure all columns exist in PostgreSQL
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedById" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByRole" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "sessionType" TEXT DEFAULT 'WORKOUT';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedById" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
+
     // 1. Find or create Collin's User record
     let user = await prisma.user.findFirst({
       where: { email: { equals: targetEmail, mode: "insensitive" } },
