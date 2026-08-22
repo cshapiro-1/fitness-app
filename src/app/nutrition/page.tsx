@@ -424,13 +424,13 @@ export default function NutritionPage() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Link
-              href="/mobility"
+              href="/recovery"
               className="nav-btn"
               style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
-              title="Pre/post workout warm-ups, stretches, and recovery"
+              title="Pre/post workout warm-ups, stretches, sauna, and recovery"
             >
               <span>🧘</span>
-              <span className="hide-mobile">Mobility</span>
+              <span className="hide-mobile">Recovery</span>
             </Link>
 
             <Link

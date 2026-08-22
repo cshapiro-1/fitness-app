@@ -326,8 +326,8 @@ export function MobilityTab({ recentWorkoutExercises }: MobilityTabProps) {
     <div style={{ padding: "24px", maxWidth: "1200px", margin: "0 auto" }}>
       {/* Header Section */}
       <div style={{ marginBottom: "32px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginBottom: "8px" }}>Mobility & Recovery</h1>
-        <p style={{ color: "#64748b", fontSize: "16px" }}>Warm-ups, stretches, cool-downs, and wellness routines</p>
+        <h1 style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginBottom: "8px" }}>Recovery &amp; Warm-Up</h1>
+        <p style={{ color: "#64748b", fontSize: "16px" }}>Warm-ups, stretches, cool-downs, sauna, and wellness protocols</p>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
