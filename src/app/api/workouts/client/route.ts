@@ -8,17 +8,21 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
-    let userEmail = session?.user?.email;
+    let userEmail = session?.user?.email?.toLowerCase().trim();
 
     if (!userId && userEmail) {
-      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      const dbUser = await prisma.user.findFirst({
+        where: { email: { equals: userEmail, mode: "insensitive" } },
+      });
       userId = dbUser?.id;
     }
     if (!userId && !userEmail) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = userEmail ? await prisma.user.findUnique({ where: { email: userEmail } }) : null;
+    const dbUser = userEmail
+      ? await prisma.user.findFirst({ where: { email: { equals: userEmail, mode: "insensitive" } } })
+      : null;
     
     let clientIds: string[] = [];
     if (dbUser?.clientProfileId) {
@@ -35,13 +39,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    if (clientIds.length === 0) {
-      return NextResponse.json([]);
+    if (userId) {
+      const selfClients = await prisma.client.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      selfClients.forEach((c) => {
+        if (!clientIds.includes(c.id)) clientIds.push(c.id);
+      });
     }
 
-    // Fetch real WorkoutSessions for all matched client IDs
+    // Fetch real WorkoutSessions for all matched client IDs or logged by user
     const sessions = await prisma.workoutSession.findMany({
-      where: { clientId: { in: clientIds } },
+      where: {
+        OR: [
+          ...(clientIds.length > 0 ? [{ clientId: { in: clientIds } }] : []),
+          ...(userId ? [{ loggedById: userId }] : []),
+        ],
+      },
       include: {
         exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } },
         client: { select: { id: true, name: true, email: true } },
@@ -50,10 +65,12 @@ export async function GET(req: NextRequest) {
     });
 
     // Fetch legacy seeded Workouts and dynamically group them
-    const legacyWorkouts = await prisma.workout.findMany({
-      where: { clientId: { in: clientIds } },
-      orderBy: { createdAt: "desc" },
-    });
+    const legacyWorkouts = clientIds.length > 0
+      ? await prisma.workout.findMany({
+          where: { clientId: { in: clientIds } },
+          orderBy: { createdAt: "desc" },
+        })
+      : [];
 
     const sessionMap = new Map();
     for (const w of legacyWorkouts) {

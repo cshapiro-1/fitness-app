@@ -122,10 +122,32 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     if (res.ok) {
       const data = await res.json();
       setClients(data);
-      if (data.length && !selected) setSelected(data[0]);
+      if (data.length) {
+        let candidate = data[0];
+        try {
+          const savedId = localStorage.getItem("fitcoach_last_selected_client_id");
+          if (savedId) {
+            const found = data.find((c: any) => c.id === savedId);
+            if (found) candidate = found;
+          } else {
+            // Prefer client with recorded workouts if available
+            const withWorkouts = data.find(
+              (c: any) => (c._count?.workoutSessions || 0) > 0 || (c.workouts?.length || 0) > 0
+            );
+            if (withWorkouts) candidate = withWorkouts;
+          }
+        } catch {}
+        setSelected((prev) => {
+          if (prev) {
+            const found = data.find((c: any) => c.id === prev.id);
+            return found || prev;
+          }
+          return candidate;
+        });
+      }
     }
     setLoadingClients(false);
-  }, [selected]);
+  }, []);
 
   const fetchWorkouts = useCallback(async (clientId: string) => {
     setLoadingWorkouts(true);
@@ -382,6 +404,9 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   };
 
   const handleRequestSelectClient = (targetClient: Client) => {
+    try {
+      localStorage.setItem("fitcoach_last_selected_client_id", targetClient.id);
+    } catch {}
     if (selected && selected.id !== targetClient.id && hasUnsavedWorkout) {
       setPendingNavigation({ type: "client", targetClient });
     } else {
