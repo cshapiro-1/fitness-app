@@ -1,0 +1,21 @@
+meta {
+  name: Generate Client Athlete Invite Link
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/invite
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "clientId": "test-client-id"
+  }
+}
+
+assert {
+  res.status: in [200, 400, 401, 404]
+}

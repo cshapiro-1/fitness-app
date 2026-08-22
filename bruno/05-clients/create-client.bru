@@ -1,0 +1,25 @@
+meta {
+  name: Create Client Profile
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/clients
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "name": "Alex Mercer",
+    "email": "alex.mercer@testfit.com",
+    "phone": "555-0199",
+    "fitnessGoals": "Increase squat 1RM by 20lbs",
+    "notes": "Prefers morning training"
+  }
+}
+
+assert {
+  res.status: in [200, 401]
+}
