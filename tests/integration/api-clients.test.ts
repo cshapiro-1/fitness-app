@@ -18,10 +18,12 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
       findFirst: vi.fn(),
+      create: vi.fn(),
     },
     client: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -130,6 +132,87 @@ describe("API: /api/clients", () => {
       expect(data.name).toBe("Arnold S.");
       expect(data.inviteStatus).toBe("NOT_SENT");
       expect(data.inviteToken).toBeNull();
+    });
+
+    it("should gracefully update and return existing client if re-adding with same email under same trainer", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@fitpro.com" },
+      });
+
+      (prisma.user.findFirst as any).mockResolvedValue({ id: "trainer-1", email: "trainer@fitpro.com" });
+
+      (prisma.client.findFirst as any).mockResolvedValue({
+        id: "client-existing-1",
+        userId: "trainer-1",
+        name: "Arnold S. (Old)",
+        email: "arnold@goldgym.com",
+        phone: null,
+        notes: null,
+        fitnessGoals: null,
+        inviteStatus: "NOT_SENT",
+      });
+
+      (prisma.client.update as any).mockResolvedValue({
+        id: "client-existing-1",
+        userId: "trainer-1",
+        name: "Arnold S. (Updated)",
+        email: "arnold@goldgym.com",
+        phone: "555-9999",
+        notes: "Updated goals",
+        fitnessGoals: "Massive Bulk",
+        inviteStatus: "NOT_SENT",
+        createdAt: new Date(),
+        workouts: [],
+        workoutSessions: [],
+        _count: { workoutSessions: 0 },
+      });
+
+      const req = new Request("http://localhost/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Arnold S. (Updated)",
+          email: "arnold@goldgym.com",
+          phone: "555-9999",
+          notes: "Updated goals",
+          fitnessGoals: "Massive Bulk",
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.name).toBe("Arnold S. (Updated)");
+      expect(data.id).toBe("client-existing-1");
+    });
+
+    it("should return 409 conflict if email belongs to another trainer", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@fitpro.com" },
+      });
+
+      (prisma.user.findFirst as any).mockResolvedValue({ id: "trainer-1", email: "trainer@fitpro.com" });
+
+      (prisma.client.findFirst as any).mockResolvedValue({
+        id: "client-other-trainer",
+        userId: "trainer-2-different",
+        name: "Arnold S.",
+        email: "arnold@goldgym.com",
+      });
+
+      const req = new Request("http://localhost/api/clients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Arnold S.",
+          email: "arnold@goldgym.com",
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(409);
+      const data = await res.json();
+      expect(data.error).toContain("already exists in the system");
     });
   });
 

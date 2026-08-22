@@ -96,4 +96,29 @@ describe("ClientModal Component", () => {
       expect(onCloseMock).toHaveBeenCalled();
     });
   });
+
+  it("should display error message and keep modal open if onSave fails", async () => {
+    const onSaveMock = vi.fn().mockRejectedValue(new Error("A client with this email address already exists."));
+    const onCloseMock = vi.fn();
+
+    render(
+      <ClientModal
+        isOpen={true}
+        mode="add"
+        onClose={onCloseMock}
+        onSave={onSaveMock}
+      />
+    );
+
+    const nameInput = screen.getByPlaceholderText("e.g. Sarah Connor");
+    fireEvent.change(nameInput, { target: { value: "John Connor" } });
+
+    const submitBtn = screen.getByRole("button", { name: /Add Client/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText("A client with this email address already exists.")).toBeInTheDocument();
+      expect(onCloseMock).not.toHaveBeenCalled();
+    });
+  });
 });

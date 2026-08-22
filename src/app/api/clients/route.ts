@@ -124,6 +124,8 @@ export async function GET(req: Request) {
   }
 }
 
+import { sanitizeText } from "@/lib/sanitize";
+
 // POST /api/clients - Create Client Profile
 export async function POST(req: Request) {
   try {
@@ -132,39 +134,125 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let trainerId: string | null = null;
-    let trainerEmail = session.user.email?.toLowerCase().trim() || null;
+    let trainerId: string | null = (session.user as any)?.id || null;
+    const trainerEmail = session.user.email?.toLowerCase().trim() || null;
 
-    if (trainerEmail) {
-      const dbUser = await prisma.user.findUnique({ where: { email: trainerEmail } });
+    if (!trainerId && trainerEmail) {
+      const dbUser = await prisma.user.findFirst({
+        where: { email: { equals: trainerEmail, mode: "insensitive" } },
+      });
       if (dbUser) {
         trainerId = dbUser.id;
+      } else if (prisma.user?.create) {
+        try {
+          const createdUser = await prisma.user.create({
+            data: {
+              email: trainerEmail,
+              name: session.user.name || "Trainer",
+              role: "TRAINER",
+            },
+          });
+          if (createdUser?.id) {
+            trainerId = createdUser.id;
+          }
+        } catch (e) {
+          console.error("Trainer auto-create error:", e);
+        }
       }
-    }
-
-    if (!trainerId) {
-      trainerId = (session.user as any).id || null;
     }
 
     if (!trainerId) {
       return NextResponse.json({ error: "Trainer user profile not found" }, { status: 400 });
     }
 
-    const { name, image, email, phone, notes, fitnessGoals } = await req.json();
-    if (!name?.trim()) {
+    const body = await req.json().catch(() => ({}));
+    const { name, image, email, phone, notes, fitnessGoals } = body;
+
+    const cleanName = sanitizeText(name, 100);
+    if (!cleanName) {
       return NextResponse.json({ error: "Client name is required" }, { status: 400 });
+    }
+
+    const cleanEmail = email && typeof email === "string" && email.trim().length > 0
+      ? email.trim().toLowerCase()
+      : null;
+
+    // Check if client with this email already exists
+    if (cleanEmail) {
+      const existingClient = await prisma.client.findFirst({
+        where: { email: cleanEmail },
+        include: {
+          user: true,
+          loginUser: true,
+          workouts: true,
+          workoutSessions: {
+            include: { exercises: { include: { sets: true } } },
+            orderBy: { startedAt: "desc" },
+          },
+          _count: { select: { workoutSessions: true } },
+        },
+      });
+
+      if (existingClient) {
+        if (existingClient.userId === trainerId) {
+          // Re-update and return this client profile for the trainer
+          const updated = await prisma.client.update({
+            where: { id: existingClient.id },
+            data: {
+              name: cleanName,
+              image: image?.trim() || existingClient.image,
+              phone: phone ? sanitizeText(phone, 30) : existingClient.phone,
+              notes: notes ? sanitizeText(notes, 1000) : existingClient.notes,
+              fitnessGoals: fitnessGoals ? sanitizeText(fitnessGoals, 500) : existingClient.fitnessGoals,
+            },
+            include: {
+              user: true,
+              loginUser: true,
+              workouts: true,
+              workoutSessions: {
+                include: { exercises: { include: { sets: true } } },
+                orderBy: { startedAt: "desc" },
+              },
+              _count: { select: { workoutSessions: true } },
+            },
+          });
+
+          return NextResponse.json({
+            id: updated.id,
+            userId: updated.userId,
+            name: updated.name,
+            image: updated.image,
+            email: updated.email,
+            phone: updated.phone,
+            notes: updated.notes,
+            fitnessGoals: updated.fitnessGoals,
+            inviteStatus: updated.inviteStatus,
+            inviteToken: updated.inviteToken,
+            inviteUrl: updated.inviteToken ? `/invite/${updated.inviteToken}` : null,
+            createdAt: updated.createdAt ? new Date(updated.createdAt).toISOString() : new Date().toISOString(),
+            workouts: updated.workouts || [],
+            workoutSessions: updated.workoutSessions || [],
+            _count: updated._count || { workoutSessions: 0 },
+          });
+        } else {
+          return NextResponse.json(
+            { error: `A client with the email "${cleanEmail}" already exists in the system.` },
+            { status: 409 }
+          );
+        }
+      }
     }
 
     // Create Client record linked to this trainer (userId: trainerId)
     const client = await prisma.client.create({
       data: {
         userId: trainerId,
-        name: name.trim(),
+        name: cleanName,
         image: image?.trim() || null,
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
-        notes: notes?.trim() || null,
-        fitnessGoals: fitnessGoals?.trim() || null,
+        email: cleanEmail,
+        phone: phone ? sanitizeText(phone, 30) : null,
+        notes: notes ? sanitizeText(notes, 1000) : null,
+        fitnessGoals: fitnessGoals ? sanitizeText(fitnessGoals, 500) : null,
         inviteToken: null,
         inviteStatus: "NOT_SENT",
       },
@@ -197,15 +285,18 @@ export async function POST(req: Request) {
       inviteStatus: client.inviteStatus,
       inviteToken: null,
       inviteUrl: null,
-      createdAt: client.createdAt.toISOString(),
+      createdAt: client.createdAt ? new Date(client.createdAt).toISOString() : new Date().toISOString(),
       workouts: client.workouts || [],
       workoutSessions: client.workoutSessions || [],
       _count: client._count || { workoutSessions: 0 },
     };
 
     return NextResponse.json(formattedClient);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Create client error:", error);
-    return NextResponse.json({ error: "Failed to create client" }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || "Failed to create client" },
+      { status: 500 }
+    );
   }
 }
