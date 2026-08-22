@@ -8,16 +8,20 @@ import { useSearchParams } from "next/navigation";
 import { Shield, Key, ArrowRight, UserCheck, AlertCircle, Sparkles } from "lucide-react";
 
 function getCleanCallbackUrl(raw: string | null): string {
-  if (!raw) return "/dashboard";
+  if (!raw || typeof raw !== "string") return "/dashboard";
   let decoded = raw;
   try {
     decoded = decodeURIComponent(raw);
   } catch {}
   if (decoded.startsWith("/")) return decoded;
   try {
-    const parsed = new URL(decoded);
-    if (parsed.pathname) return parsed.pathname + parsed.search;
-  } catch {}
+    const parsed = new URL(decoded, "https://strkyr.fit");
+    if (parsed.pathname && parsed.pathname.startsWith("/")) {
+      return parsed.pathname + (parsed.search || "");
+    }
+  } catch {
+    return "/dashboard";
+  }
   return "/dashboard";
 }
 

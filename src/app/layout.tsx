@@ -3,6 +3,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://strkyr.fit"),
   title: {
     default: "STRKYR Fitness — Professional Workout & Coaching Portal",
     template: "%s | STRKYR Fitness",
