@@ -424,15 +424,15 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "24px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginBottom: "48px" }}>
             {/* Free Trial */}
-            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column" }}>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>14-Day Free Pass</h3>
-              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Experience all PRO features with zero commitment</p>
-              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
-                $0 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ 14 days</span>
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>14-Day Free Pass</h3>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Full PRO features with zero commitment</p>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
+                $0 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ 14 days</span>
               </div>
-              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#475569", flex: 1 }}>
+              <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#475569", flex: 1 }}>
                 <li>Unlimited personal workout logging</li>
                 <li>AI Periodized routine generation</li>
                 <li>Interactive 3D muscle anatomy guides</li>
@@ -440,60 +440,157 @@ export default async function HomePage() {
               </ul>
               <Link
                 href="/auth/signin"
-                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#f1f5f9", color: "#334155", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}
+                style={{ textAlign: "center", padding: "10px", borderRadius: "8px", background: "#f1f5f9", color: "#334155", fontWeight: 700, fontSize: "13px", textDecoration: "none" }}
               >
                 Start Free Trial
               </Link>
             </div>
 
             {/* Pro Monthly */}
-            <div style={{ background: "#ffffff", border: "2px solid #2563eb", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 8px 24px rgba(37,99,235,0.12)" }}>
-              <div style={{ position: "absolute", top: "-10px", right: "20px", background: "#2563eb", color: "#ffffff", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "10px" }}>
-                MOST POPULAR
+            <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Monthly</h3>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Flexible month-to-month muscle &amp; strength tracking</p>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
+                $4.99 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ month</span>
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Monthly</h3>
-              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Flexible month-to-month muscle &amp; strength tracking</p>
-              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
-                $9.99 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ month</span>
-              </div>
-              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#334155", flex: 1 }}>
+              <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#475569", flex: 1 }}>
                 <li><b>Everything in Free Pass</b></li>
                 <li>Unlimited workout history retention</li>
                 <li>1RM Estimated Max &amp; Strength curves</li>
-                <li>Rest timer with gym audio alerts</li>
+                <li>Rest stopwatch with audio alerts</li>
                 <li>Nutrition &amp; daily macro tracking</li>
               </ul>
               <Link
                 href="/dashboard"
-                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#2563eb", color: "#ffffff", fontWeight: 800, fontSize: "14px", textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
+                style={{ textAlign: "center", padding: "10px", borderRadius: "8px", background: "#f1f5f9", color: "#1e293b", fontWeight: 700, fontSize: "13px", textDecoration: "none" }}
               >
-                Join Pro Monthly
+                Get Monthly ($4.99)
               </Link>
             </div>
 
-            {/* Pro Annual */}
-            <div style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "16px", padding: "28px", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "inline-block", background: "#dcfce7", color: "#15803d", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "8px", width: "fit-content", marginBottom: "6px" }}>
-                SAVE 33% (2 MONTHS FREE)
+            {/* Pro Annual (Flagship Disruptor) */}
+            <div style={{ background: "#ffffff", border: "2px solid #2563eb", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column", position: "relative", boxShadow: "0 8px 24px rgba(37,99,235,0.12)" }}>
+              <div style={{ position: "absolute", top: "-10px", right: "16px", background: "#2563eb", color: "#ffffff", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "10px" }}>
+                BEST VALUE • $2.49/MO
               </div>
-              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Annual</h3>
-              <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 16px 0" }}>Commit to a year of relentless physique progress</p>
-              <div style={{ fontSize: "32px", fontWeight: 900, color: "#0f172a", marginBottom: "20px" }}>
-                $79.99 <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ year</span>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>STRKYR Pro Annual</h3>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Save 50% vs monthly ($2.49/month billed annually)</p>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
+                $29.99 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ year</span>
               </div>
-              <ul style={{ margin: "0 0 24px 0", paddingLeft: "18px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", color: "#475569", flex: 1 }}>
+              <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#334155", flex: 1 }}>
                 <li><b>All Pro Monthly Features</b></li>
-                <li>2 Months completely free</li>
+                <li>Save 50% vs monthly billing</li>
                 <li>Priority AI routine periodization</li>
-                <li>Early access to native mobile features</li>
+                <li>Full 3D anatomy technique library</li>
+                <li>Early access to native mobile updates</li>
               </ul>
               <Link
                 href="/dashboard"
-                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#0f172a", color: "#ffffff", fontWeight: 700, fontSize: "14px", textDecoration: "none" }}
+                style={{ textAlign: "center", padding: "12px", borderRadius: "10px", background: "#2563eb", color: "#ffffff", fontWeight: 800, fontSize: "13px", textDecoration: "none", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}
               >
-                Join Pro Annual
+                Get Pro Annual ($29.99/yr)
               </Link>
             </div>
+
+            {/* Founder Lifetime Pass */}
+            <div style={{ background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)", border: "1px solid #fbbf24", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column", position: "relative" }}>
+              <div style={{ display: "inline-block", background: "#fef3c7", color: "#b45309", fontSize: "10px", fontWeight: 800, padding: "2px 8px", borderRadius: "8px", width: "fit-content", marginBottom: "6px" }}>
+                FOUNDER VIP • LIMITED TO 500
+              </div>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>Lifetime Founder Pass</h3>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Pay once, own all future STRKYR updates forever</p>
+              <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
+                $79.99 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>one-time</span>
+              </div>
+              <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#475569", flex: 1 }}>
+                <li><b>Never pay a monthly subscription again</b></li>
+                <li>All future AI algorithms &amp; features</li>
+                <li>Exclusive Founder badge on profile</li>
+                <li>Direct feature request voting rights</li>
+              </ul>
+              <Link
+                href="/dashboard"
+                style={{ textAlign: "center", padding: "10px", borderRadius: "8px", background: "#0f172a", color: "#ffffff", fontWeight: 700, fontSize: "13px", textDecoration: "none" }}
+              >
+                Claim Lifetime Pass ($79.99)
+              </Link>
+            </div>
+          </div>
+
+          {/* COMPETITOR COMPARISON MATRIX */}
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "24px", overflowX: "auto" }}>
+            <div style={{ textAlign: "center", marginBottom: "18px" }}>
+              <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
+                Why STRKYR Crushes the Competition
+              </h3>
+              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+                Feature-by-feature comparison against industry leaders.
+              </p>
+            </div>
+
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+              <thead>
+                <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
+                  <th style={{ padding: "10px 12px", color: "#64748b", fontWeight: 600 }}>Feature</th>
+                  <th style={{ padding: "10px 12px", color: "#2563eb", fontWeight: 800, background: "#eff6ff", borderRadius: "8px 8px 0 0" }}>STRKYR Pro</th>
+                  <th style={{ padding: "10px 12px", color: "#64748b", fontWeight: 600 }}>Fitbod</th>
+                  <th style={{ padding: "10px 12px", color: "#64748b", fontWeight: 600 }}>RP Hypertrophy</th>
+                  <th style={{ padding: "10px 12px", color: "#64748b", fontWeight: 600 }}>Strong Pro</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>Annual Price</td>
+                  <td style={{ padding: "10px 12px", fontWeight: 800, color: "#16a34a", background: "#eff6ff" }}>$29.99/yr ($2.49/mo)</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$79.99/yr</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$249.99/yr</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$29.99/yr</td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>Monthly Price</td>
+                  <td style={{ padding: "10px 12px", fontWeight: 800, color: "#16a34a", background: "#eff6ff" }}>$4.99/mo</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$12.99/mo</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$29.99/mo</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$4.99/mo</td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>AI Periodized Splits</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a", fontWeight: 800, background: "#eff6ff" }}>✅ Yes</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a" }}>✅ Yes</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a" }}>✅ Yes</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>3D Muscle Anatomy Guides</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a", fontWeight: 800, background: "#eff6ff" }}>✅ Yes (Interactive)</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ 2D Only</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ Video Only</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ Basic 2D</td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>Visual Barbell Plate Math</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a", fontWeight: 800, background: "#eff6ff" }}>✅ Built-in SVG</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a" }}>✅ Basic</td>
+                </tr>
+                <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>Nutrition &amp; Supplements</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a", fontWeight: 800, background: "#eff6ff" }}>✅ Included</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ No</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: "10px 12px", fontWeight: 600 }}>Lifetime Pass Option</td>
+                  <td style={{ padding: "10px 12px", color: "#16a34a", fontWeight: 800, background: "#eff6ff" }}>✅ $79.99 (Founder)</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ None</td>
+                  <td style={{ padding: "10px 12px", color: "#dc2626" }}>❌ None</td>
+                  <td style={{ padding: "10px 12px", color: "#64748b" }}>$99.99</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
