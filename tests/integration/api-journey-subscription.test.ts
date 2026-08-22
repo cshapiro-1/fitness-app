@@ -17,15 +17,14 @@ describe("Direct-to-Consumer Fitness Journey & Subscription Suite", () => {
   });
 
   describe("PRICING_PLANS Model", () => {
-    it("should export valid consumer tiers and coach tier with correct amounts", () => {
-      expect(PRICING_PLANS.INDIVIDUAL_MONTHLY.amountCents).toBe(499);
-      expect(PRICING_PLANS.INDIVIDUAL_MONTHLY.price).toBe("$4.99/mo");
-      expect(PRICING_PLANS.INDIVIDUAL_ANNUAL.amountCents).toBe(2999);
-      expect(PRICING_PLANS.INDIVIDUAL_ANNUAL.price).toBe("$29.99/yr");
-      expect(PRICING_PLANS.LIFETIME_FOUNDER.amountCents).toBe(7999);
-      expect(PRICING_PLANS.LIFETIME_FOUNDER.price).toBe("$79.99 one-time");
-      expect(PRICING_PLANS.COACH_PRO.amountCents).toBe(1900);
-      expect(PRICING_PLANS.INDIVIDUAL_MONTHLY.features.length).toBeGreaterThan(3);
+    it("should export valid Coach Studio tiers with correct amounts", () => {
+      expect(PRICING_PLANS.COACH_MONTHLY.amountCents).toBe(1900);
+      expect(PRICING_PLANS.COACH_MONTHLY.price).toBe("$19.00/mo");
+      expect(PRICING_PLANS.COACH_ANNUAL.amountCents).toBe(14900);
+      expect(PRICING_PLANS.COACH_ANNUAL.price).toBe("$149.00/yr");
+      expect(PRICING_PLANS.STUDIO_LIFETIME.amountCents).toBe(29900);
+      expect(PRICING_PLANS.STUDIO_LIFETIME.price).toBe("$299.00 one-time");
+      expect(PRICING_PLANS.COACH_MONTHLY.features.length).toBeGreaterThan(4);
     });
   });
 

@@ -6,7 +6,7 @@ import OnboardingPage from "@/app/onboarding/page";
 // Mock NextAuth session and router
 vi.mock("next-auth/react", () => ({
   useSession: vi.fn().mockReturnValue({
-    data: { user: { id: "test-user-id", name: "Collin Shapiro", email: "collin@fit.com" } },
+    data: { user: { id: "test-coach-id", name: "Collin Shapiro", email: "coach@fit.com" } },
     update: vi.fn().mockResolvedValue(true),
   }),
 }));
@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-describe("Onboarding Workflow Component & Journey Tests", () => {
+describe("Coach Studio Onboarding Workflow Component Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue({
@@ -26,47 +26,47 @@ describe("Onboarding Workflow Component & Journey Tests", () => {
     } as any);
   });
 
-  it("should render Step 1 path selection options initially with Personal Workout Journey recommended", () => {
+  it("should render Step 1 coach profile setup form with prefilled name", () => {
     render(<OnboardingPage />);
-    expect(screen.getByText("Welcome to STRKYR")).toBeInTheDocument();
-    expect(screen.getByText("Personal Workout Journey")).toBeInTheDocument();
-    expect(screen.getByText("Coach & Trainer Studio")).toBeInTheDocument();
-    expect(screen.getByText("RECOMMENDED")).toBeInTheDocument();
+    expect(screen.getByText("Coach Studio Setup")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Collin Shapiro")).toBeInTheDocument();
+    expect(screen.getByText("Primary Specialty")).toBeInTheDocument();
+    expect(screen.getByText("Continue to Client Roster")).toBeInTheDocument();
   });
 
-  it("should transition from Step 1 to Step 2 when Personal Workout Journey is selected", () => {
+  it("should transition to Step 2 and configure custom client", () => {
     render(<OnboardingPage />);
-    const journeyBtn = screen.getByText("Personal Workout Journey");
-    fireEvent.click(journeyBtn);
+    const continueBtn = screen.getByText("Continue to Client Roster");
+    fireEvent.click(continueBtn);
 
-    expect(screen.getByText("Customize Your Training Path")).toBeInTheDocument();
-    expect(screen.getByText("🎯 Primary Fitness Goal")).toBeInTheDocument();
-    expect(screen.getByText("📅 Preferred Training Split")).toBeInTheDocument();
+    expect(screen.getByText("Add Your First Client")).toBeInTheDocument();
+    expect(screen.getByText("Start with Sample Athletes")).toBeInTheDocument();
+    expect(screen.getByText("Add Real Client Now")).toBeInTheDocument();
   });
 
-  it("should navigate through the entire consumer journey wizard and initialize athlete profile", async () => {
+  it("should complete coach onboarding and set role as TRAINER with coach profile", async () => {
     render(<OnboardingPage />);
 
-    // Step 1: Select Personal Journey
-    fireEvent.click(screen.getByText("Personal Workout Journey"));
+    // Step 1 -> Step 2
+    fireEvent.click(screen.getByText("Continue to Client Roster"));
 
-    // Step 2: Click Continue to Preview
-    fireEvent.click(screen.getByText("Continue to Preview"));
+    // Step 2 -> Step 3
+    fireEvent.click(screen.getByText("Continue to Summary"));
 
-    // Step 3: Verify Pro Trial and Summary
-    expect(screen.getByText("Your Fitness Journey is Ready")).toBeInTheDocument();
-    expect(screen.getByText("14-Day Free STRKYR Pro Membership Activated")).toBeInTheDocument();
+    // Step 3: Summary card
+    expect(screen.getByText("Your Coach Studio is Ready!")).toBeInTheDocument();
+    expect(screen.getByText("30-Day Full Access Coach Pass Activated")).toBeInTheDocument();
 
-    // Click Start My Workout Journey
-    const startBtn = screen.getByText("Start My Workout Journey");
-    fireEvent.click(startBtn);
+    // Click Launch Coach Studio
+    const launchBtn = screen.getByText("Launch Coach Studio");
+    fireEvent.click(launchBtn);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         "/api/user/role",
         expect.objectContaining({
           method: "POST",
-          body: JSON.stringify({ role: "CLIENT" }),
+          body: JSON.stringify({ role: "TRAINER" }),
         })
       );
       expect(global.fetch).toHaveBeenCalledWith(
