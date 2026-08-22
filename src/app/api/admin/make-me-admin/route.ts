@@ -1,10 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminAccess } from "@/lib/adminGuard";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
     const targetEmail = "collin.shapiro1@gmail.com";
 
     const revoked = await prisma.user.updateMany({

@@ -84,8 +84,16 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { checkRateLimit, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
+import { sanitizeText, validateNumericBounds } from "@/lib/sanitize";
+
 export async function POST(req: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(req, RATE_LIMIT_PRESETS.MUTATION);
+    if (rateCheck.limited && rateCheck.response) {
+      return rateCheck.response;
+    }
+
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
     let trainerName = session?.user?.name || "Your Coach";
@@ -104,24 +112,33 @@ export async function POST(req: NextRequest) {
     
     if (!clientId || !exercises) return NextResponse.json({ error: "Missing data" }, { status: 400 });
 
+    const cleanNotes = sanitizeText(notes, 1000);
+
     const created = await prisma.workoutSession.create({
       data: {
         clientId,
         status: status || "COMPLETED",
         startedAt: startedAt ? new Date(startedAt) : null,
         completedAt: completedAt ? new Date(completedAt) : null,
-        notes: notes || null,
+        notes: cleanNotes || null,
         loggedByRole: userRole,
         loggedById: userId,
-        loggedByName: trainerName,
+        loggedByName: sanitizeText(trainerName, 100),
         exercises: {
           create: exercises.map((ex: any, i: number) => ({
-            name: ex.name,
+            name: sanitizeText(ex.name, 150),
             order: i,
             category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
-            sets: { create: ex.sets.map((s: any, j: number) => ({ order: j, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, notes: s.notes || null })) }
-          }))
-        }
+            sets: {
+              create: (ex.sets || []).map((s: any, j: number) => ({
+                order: j,
+                weight: validateNumericBounds(s.weight, 0, 2500, 0),
+                reps: validateNumericBounds(s.reps, 0, 1000, 0),
+                notes: sanitizeText(s.notes, 250) || null,
+              })),
+            },
+          })),
+        },
       },
       include: { exercises: { include: { sets: true } } }
     });

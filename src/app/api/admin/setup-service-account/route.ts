@@ -1,9 +1,15 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminAccess } from "@/lib/adminGuard";
 
 export async function GET(req: Request) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
     const serviceEmail = "service@fitcoach.pro";
 
     // 1. Ensure master service account exists with Trainer + Admin privileges & active subscription

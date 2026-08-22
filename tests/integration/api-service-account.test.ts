@@ -2,6 +2,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET as setupServiceAccountGet } from "@/app/api/admin/setup-service-account/route";
 import { prisma } from "@/lib/prisma";
 
+vi.mock("next-auth", () => ({
+  getServerSession: vi.fn().mockResolvedValue({
+    user: { id: "admin-user", email: "admin@fitcoach.pro", isAdmin: true },
+  }),
+}));
+
+vi.mock("@/lib/auth", () => ({
+  authOptions: {},
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
@@ -52,7 +62,11 @@ describe("Service Account & Client Account Separation", () => {
       clientProfileId: "client-collin-1",
     });
 
-    const res = await setupServiceAccountGet(new Request("http://localhost/api/admin/setup-service-account"));
+    const res = await setupServiceAccountGet(
+      new Request("http://localhost/api/admin/setup-service-account", {
+        headers: { "x-admin-secret": "FitCoachAdmin2026!" },
+      })
+    );
     const data = await res.json();
 
     expect(res.status).toBe(200);

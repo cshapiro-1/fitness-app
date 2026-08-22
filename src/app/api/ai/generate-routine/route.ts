@@ -69,8 +69,15 @@ const TEMPLATES: Record<string, Record<string, GeneratedExercise[]>> = {
   }
 };
 
+import { checkRateLimit, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
+
 export async function POST(req: NextRequest) {
   try {
+    const rateCheck = checkRateLimit(req, RATE_LIMIT_PRESETS.AI);
+    if (rateCheck.limited && rateCheck.response) {
+      return rateCheck.response;
+    }
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
