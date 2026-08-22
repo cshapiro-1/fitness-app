@@ -9,13 +9,20 @@ export const stripe = process.env.STRIPE_SECRET_KEY
 
 export const SUBSCRIPTION_PRICES = {
   monthly: {
-    amount: 2000, // $20.00 USD
+    amount: 1900, // $19.00 USD
     interval: "month" as const,
-    name: "Trainer Pro (Monthly - Unlimited Clients)",
+    name: "STRKYR Coach Studio (Monthly - Unlimited Clients)",
+    mode: "subscription" as const,
   },
   annual: {
-    amount: 20000, // $200.00 USD ($40 discount)
+    amount: 14900, // $149.00 USD
     interval: "year" as const,
-    name: "Trainer Pro (Annual - Unlimited Clients)",
+    name: "STRKYR Coach Studio (Annual - Save 35%)",
+    mode: "subscription" as const,
+  },
+  lifetime: {
+    amount: 29900, // $299.00 USD
+    name: "STRKYR Founder Coach Lifetime VIP Pass",
+    mode: "payment" as const,
   },
 };

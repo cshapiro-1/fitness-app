@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const plan = (body.plan === "annual" ? "annual" : "monthly") as "monthly" | "annual";
+    const rawPlan = body.plan;
+    const plan = (rawPlan === "annual" ? "annual" : rawPlan === "lifetime" ? "lifetime" : "monthly") as "monthly" | "annual" | "lifetime";
     const selectedPlan = SUBSCRIPTION_PRICES[plan];
 
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "strkyr.fit";
@@ -25,40 +26,50 @@ export async function POST(req: NextRequest) {
     if (stripe) {
       logger.info(`Creating real Stripe Checkout Session for user: ${session.user.id} (${plan})`);
 
-      const checkoutSession = await stripe.checkout.sessions.create({
+      const lineItemPriceData: any = {
+        currency: "usd",
+        product_data: {
+          name: selectedPlan.name,
+          description: "Unlimited clients, workout builder, client portal, nutrition tracking & analytics.",
+        },
+        unit_amount: selectedPlan.amount,
+      };
+
+      if (selectedPlan.mode === "subscription" && "interval" in selectedPlan) {
+        lineItemPriceData.recurring = {
+          interval: selectedPlan.interval,
+        };
+      }
+
+      const sessionPayload: any = {
         payment_method_types: ["card"],
-        mode: "subscription",
+        mode: selectedPlan.mode,
         customer_email: session.user.email || undefined,
         client_reference_id: session.user.id,
         line_items: [
           {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: selectedPlan.name,
-                description: "Unlimited clients, workout builder, client portal, nutrition tracking & analytics.",
-              },
-              unit_amount: selectedPlan.amount,
-              recurring: {
-                interval: selectedPlan.interval,
-              },
-            },
+            price_data: lineItemPriceData,
             quantity: 1,
           },
         ],
-        subscription_data: {
-          metadata: {
-            userId: session.user.id,
-            plan,
-          },
-        },
         metadata: {
           userId: session.user.id,
           plan,
         },
         success_url: `${appBaseUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}&subscribed=true`,
         cancel_url: `${appBaseUrl}/dashboard?canceled=true`,
-      });
+      };
+
+      if (selectedPlan.mode === "subscription") {
+        sessionPayload.subscription_data = {
+          metadata: {
+            userId: session.user.id,
+            plan,
+          },
+        };
+      }
+
+      const checkoutSession = await stripe.checkout.sessions.create(sessionPayload);
 
       return NextResponse.json({
         success: true,
@@ -72,6 +83,8 @@ export async function POST(req: NextRequest) {
     const subscribedUntil = new Date(now);
     if (plan === "annual") {
       subscribedUntil.setFullYear(subscribedUntil.getFullYear() + 1);
+    } else if (plan === "lifetime") {
+      subscribedUntil.setFullYear(subscribedUntil.getFullYear() + 75);
     } else {
       subscribedUntil.setMonth(subscribedUntil.getMonth() + 1);
     }

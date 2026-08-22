@@ -67,6 +67,27 @@ describe("Stripe Payment Processing & Webhooks", () => {
         })
       );
     });
+    it("should process fallback simulated checkout for lifetime plan", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "trainer-founder", email: "founder@gym.com" },
+      });
+
+      (prisma.user.update as any).mockResolvedValue({
+        id: "trainer-founder",
+        subscriptionStatus: "active",
+      });
+
+      const req = new Request("http://localhost/api/stripe/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan: "lifetime" }),
+      });
+
+      const res = await checkoutRoute(req as any);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
   });
 
   describe("POST /api/stripe/webhook", () => {
@@ -101,6 +122,39 @@ describe("Stripe Payment Processing & Webhooks", () => {
             subscriptionStatus: "active",
             subscriptionProvider: "stripe",
             subscriptionId: "sub_12345",
+          }),
+        })
+      );
+    });
+
+    it("should activate lifetime access on checkout.session.completed event for lifetime plan", async () => {
+      (prisma.user.update as any).mockResolvedValue({ id: "user-vip", subscriptionStatus: "active" });
+
+      const payload = {
+        type: "checkout.session.completed",
+        data: {
+          object: {
+            client_reference_id: "user-vip",
+            metadata: { plan: "lifetime" },
+          },
+        },
+      };
+
+      const req = new Request("http://localhost/api/stripe/webhook", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      const res = await webhookRoute(req as any);
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.received).toBe(true);
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "user-vip" },
+          data: expect.objectContaining({
+            subscriptionStatus: "active",
           }),
         })
       );

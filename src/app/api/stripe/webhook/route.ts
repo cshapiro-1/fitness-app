@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
           const subscribedUntil = new Date(now);
           if (plan === "annual") {
             subscribedUntil.setFullYear(subscribedUntil.getFullYear() + 1);
+          } else if (plan === "lifetime") {
+            subscribedUntil.setFullYear(subscribedUntil.getFullYear() + 75);
           } else {
             subscribedUntil.setMonth(subscribedUntil.getMonth() + 1);
           }
