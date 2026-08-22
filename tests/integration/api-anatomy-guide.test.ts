@@ -16,6 +16,9 @@ describe("AI 3D Anatomy Visual Guide API", () => {
     expect(data.chart.title).toBe("Barbell Back Squat");
     expect(data.chart.image).toBe("/anatomy/squat.jpg");
     expect(data.chart.primaryMuscles).toContain("Quadriceps Femoris (Rectus Femoris, Vastus Lateralis/Medialis)");
+    expect(data.chart.steps.length).toBeGreaterThan(0);
+    expect(data.chart.commonMistakes.length).toBeGreaterThan(0);
+    expect(data.chart.breathingPattern).toBeDefined();
   });
 
   it("should return bench press anatomical chart for Incline Dumbbell Press", async () => {
