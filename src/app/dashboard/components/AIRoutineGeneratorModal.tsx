@@ -13,6 +13,7 @@ export function AIRoutineGeneratorModal({
   onClose,
   onImportRoutine,
 }: AIRoutineGeneratorModalProps) {
+  const [prompt, setPrompt] = useState<string>("");
   const [goal, setGoal] = useState<string>("HYPERTROPHY");
   const [split, setSplit] = useState<string>("Push / Chest & Shoulders");
   const [level, setLevel] = useState<string>("Intermediate");
@@ -20,13 +21,24 @@ export function AIRoutineGeneratorModal({
   const [generating, setGenerating] = useState(false);
   const [generatedResult, setGeneratedResult] = useState<GeneratedRoutine | null>(null);
 
-  const handleGenerate = async () => {
+  const QUICK_PROMPTS = [
+    "45 min intense dumbbell chest & triceps burnout",
+    "Heavy leg day with squats, RDLs & hip thrusts",
+    "Back, lats & biceps hypertrophy with pull-ups",
+    "30-min quick full body hotel dumbbell workout",
+    "Calisthenics pull & push with 6-pack core finish",
+    "Explosive athletic power cleans & plyometrics",
+  ];
+
+  const handleGenerate = async (overridePrompt?: string) => {
+    const activePrompt = overridePrompt !== undefined ? overridePrompt : prompt;
     setGenerating(true);
     try {
       const res = await fetch("/api/ai/generate-routine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          prompt: activePrompt,
           goal,
           split,
           experienceLevel: level,
@@ -57,10 +69,10 @@ export function AIRoutineGeneratorModal({
           <div className="client-modal-header-info">
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Sparkles size={20} style={{ color: "#2563eb" }} />
-              <h2 className="client-modal-title">AI Workout Program Generator</h2>
+              <h2 className="client-modal-title">AI Custom Workout Generator</h2>
             </div>
             <p className="client-modal-subtitle">
-              Instant periodized workout design with biomechanical cues & warmups.
+              Describe what kind of workout you want and AI builds it on the fly.
             </p>
           </div>
           <button className="client-modal-close" onClick={onClose}>
@@ -71,74 +83,63 @@ export function AIRoutineGeneratorModal({
         <div style={{ padding: "20px 24px", maxHeight: "75vh", overflowY: "auto" }}>
           {!generatedResult ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-              {/* Primary Goal */}
+              {/* Free-Text Prompt Input */}
               <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
-                  Primary Objective
-                </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
-                  {[
-                    { id: "HYPERTROPHY", label: "Hypertrophy", desc: "Muscle growth & volume" },
-                    { id: "STRENGTH", label: "Pure Strength", desc: "Maximal neurological force" },
-                    { id: "BODYWEIGHT", label: "Calisthenics", desc: "Bodyweight & gymnastics" },
-                  ].map((g) => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => {
-                        setGoal(g.id);
-                        if (g.id === "STRENGTH") setSplit("Upper Body Push");
-                        else if (g.id === "BODYWEIGHT") setSplit("Calisthenics & Core");
-                        else setSplit("Push / Chest & Shoulders");
-                      }}
-                      style={{
-                        padding: "10px 12px",
-                        textAlign: "left",
-                        borderRadius: "8px",
-                        border: "1px solid",
-                        borderColor: goal === g.id ? "#2563eb" : "#e2e8f0",
-                        background: goal === g.id ? "#eff6ff" : "#ffffff",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: goal === g.id ? "#1d4ed8" : "#0f172a" }}>{g.label}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>{g.desc}</div>
-                    </button>
-                  ))}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ fontSize: "12px", fontWeight: 700, color: "#1e293b", textTransform: "uppercase" }}>
+                    What kind of workout do you want?
+                  </label>
+                  <span style={{ fontSize: "11px", color: "#64748b" }}>Builds on the fly</span>
+                </div>
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder="e.g. 45 min intense dumbbell chest and triceps burnout, heavy leg day with squats and RDLs, calisthenics pull workout with core finish, quick 30 min full body hotel gym routine..."
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  style={{
+                    width: "100%",
+                    fontSize: "13px",
+                    lineHeight: "1.4",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    resize: "vertical",
+                  }}
+                />
+
+                {/* Quick Inspiration Chips */}
+                <div style={{ marginTop: "8px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: 600, color: "#64748b", marginBottom: "6px" }}>
+                    Quick Inspiration:
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {QUICK_PROMPTS.map((qp, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setPrompt(qp)}
+                        style={{
+                          fontSize: "11px",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          border: "1px solid",
+                          borderColor: prompt === qp ? "#2563eb" : "#e2e8f0",
+                          background: prompt === qp ? "#eff6ff" : "#f8fafc",
+                          color: prompt === qp ? "#1d4ed8" : "#334155",
+                          cursor: "pointer",
+                          transition: "all 0.1s ease",
+                        }}
+                      >
+                        {qp}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Split Focus */}
-              <div>
-                <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
-                  Target Split Focus
-                </label>
-                <select
-                  value={split}
-                  onChange={(e) => setSplit(e.target.value)}
-                  className="input-field"
-                  style={{ width: "100%", padding: "10px 12px" }}
-                >
-                  {goal === "STRENGTH" && (
-                    <>
-                      <option value="Upper Body Push">Upper Body Push (Bench / OHP Focus)</option>
-                      <option value="Lower Body Heavy">Lower Body Heavy (Squat / RDL Focus)</option>
-                    </>
-                  )}
-                  {goal === "HYPERTROPHY" && (
-                    <>
-                      <option value="Push / Chest & Shoulders">Push / Chest, Shoulders & Triceps</option>
-                      <option value="Pull / Back & Biceps">Pull / Back, Rear Delts & Biceps</option>
-                    </>
-                  )}
-                  {goal === "BODYWEIGHT" && (
-                    <option value="Calisthenics & Core">Calisthenics Mastery & Core Stability</option>
-                  )}
-                </select>
-              </div>
-
               {/* Experience Level & Session Time */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", paddingTop: "4px" }}>
                 <div>
                   <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
                     Athlete Level
@@ -146,8 +147,8 @@ export function AIRoutineGeneratorModal({
                   <select
                     value={level}
                     onChange={(e) => setLevel(e.target.value)}
-                    className="input-field"
-                    style={{ width: "100%", padding: "8px 10px" }}
+                    className="input"
+                    style={{ width: "100%", padding: "8px 10px", fontSize: "12px" }}
                   >
                     <option value="Beginner">Beginner (Foundational)</option>
                     <option value="Intermediate">Intermediate (Progressive Overload)</option>
@@ -157,14 +158,15 @@ export function AIRoutineGeneratorModal({
 
                 <div>
                   <label style={{ fontSize: "12px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "8px" }}>
-                    Session Duration
+                    Target Duration
                   </label>
                   <select
                     value={timeMinutes}
                     onChange={(e) => setTimeMinutes(Number(e.target.value))}
-                    className="input-field"
-                    style={{ width: "100%", padding: "8px 10px" }}
+                    className="input"
+                    style={{ width: "100%", padding: "8px 10px", fontSize: "12px" }}
                   >
+                    <option value={30}>30 Minutes (Express HIIT)</option>
                     <option value={45}>45 Minutes (Express)</option>
                     <option value={60}>60 Minutes (Standard)</option>
                     <option value={75}>75 Minutes (High Volume)</option>
@@ -177,17 +179,17 @@ export function AIRoutineGeneratorModal({
                 <button
                   type="button"
                   className="btn-primary"
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate()}
                   disabled={generating}
                   style={{ width: "100%", padding: "12px", justifyContent: "center", fontSize: "14px", fontWeight: 700 }}
                 >
                   {generating ? (
                     <>
-                      <div className="spin-inline" /> Generating AI Periodized Routine...
+                      <div className="spin-inline" /> Building Custom Workout on the Fly...
                     </>
                   ) : (
                     <>
-                      <Sparkles size={16} /> Generate AI Program
+                      <Sparkles size={16} /> Generate Workout on the Fly
                     </>
                   )}
                 </button>

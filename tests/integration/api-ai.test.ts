@@ -70,4 +70,45 @@ describe("AI Workout Generator API", () => {
     const totalSec = json.routine.movements.reduce((sum: number, m: any) => sum + m.duration, 0);
     expect(totalSec).toBe(600); // exactly 10 minutes (600s)
   });
+
+  it("should dynamically build a 45-min dumbbell chest & triceps routine on the fly from free-text prompt", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/generate-routine", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt: "45 min intense dumbbell chest and triceps burnout",
+        experienceLevel: "Intermediate",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.routine.estimatedDurationMinutes).toBe(45);
+    expect(json.routine.routineName).toContain("Dumbbell Chest");
+    const exNames = json.routine.exercises.map((e: any) => e.name.toLowerCase());
+    expect(exNames.some((n: string) => n.includes("dumbbell") || n.includes("press") || n.includes("fly"))).toBe(true);
+    expect(exNames.some((n: string) => n.includes("tricep") || n.includes("kickback") || n.includes("extension"))).toBe(true);
+  });
+
+  it("should dynamically build a heavy leg day routine on the fly with squats and RDLs", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/generate-routine", {
+      method: "POST",
+      body: JSON.stringify({
+        prompt: "heavy leg day with squats and RDLs",
+        experienceLevel: "Advanced",
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.routine.goal).toBe("STRENGTH");
+    const exNames = json.routine.exercises.map((e: any) => e.name.toLowerCase());
+    expect(exNames.some((n: string) => n.includes("squat"))).toBe(true);
+    expect(exNames.some((n: string) => n.includes("rdl") || n.includes("deadlift"))).toBe(true);
+  });
 });
