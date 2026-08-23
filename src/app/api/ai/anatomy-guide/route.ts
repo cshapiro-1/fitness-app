@@ -16,8 +16,178 @@ export interface AnatomyGuideData {
   breathingPattern: string;
 }
 
-// Map of known movements to high-res 3D anatomical charts with how-to steps
+// Map of known movements to high-res 3D anatomical charts with precise kinesiology
 const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
+  hammer_curl: {
+    image: "/anatomy/bench.jpg", // fallback graphic
+    title: "Dumbbell Hammer Curl",
+    primaryMuscles: ["Brachialis", "Brachioradialis", "Biceps Brachii (Long Head)"],
+    secondaryMuscles: ["Pronator Teres", "Flexor Carpi Radialis", "Anterior Deltoid (isometric stabilizer)"],
+    biomechanicsCue: "Maintain strict neutral grip (palms facing each other). Keep elbows pinned against your ribcage to isolate elbow flexion without anterior shoulder elevation.",
+    steps: [
+      "Set Up: Stand tall or sit upright with dumbbells at your sides, neutral grip (palms facing inwards towards thighs), shoulders depressed and retracted.",
+      "Execution: Without moving your upper arms, flex the elbows to curl the dumbbells upward toward shoulder height.",
+      "Peak Contraction: Squeeze the brachialis and brachioradialis hard at the top of the contraction for 1 count.",
+      "Eccentric Lowering: Lower the weights under strict 2-3 second control until your arms are fully extended at the bottom.",
+    ],
+    commonMistakes: [
+      "Swinging elbows forward / shoulder flexion — keep upper arms perpendicular to the floor.",
+      "Leaning back or using hip momentum — reduce weight to keep tension strictly on the elbow flexors.",
+      "Flaring elbows outward — keep elbows tucked tight to your flanks.",
+    ],
+    breathingPattern: "Exhale on elbow flexion as you curl up → Inhale during the controlled eccentric lowering.",
+  },
+  bicep_curl: {
+    image: "/anatomy/bench.jpg",
+    title: "Bicep Curl (Barbell / Dumbbell / Cable)",
+    primaryMuscles: ["Biceps Brachii (Short Head & Long Head)", "Brachialis"],
+    secondaryMuscles: ["Brachioradialis", "Forearm Flexor Complex", "Anterior Deltoid"],
+    biomechanicsCue: "Supinate wrists actively as you curl upward. Keep elbows stationary beside your torso to maximize peak tension on both heads of the biceps.",
+    steps: [
+      "Set Up: Hold barbell or dumbbells with an underhand (supinated) grip, shoulder-width apart.",
+      "Lift: Contract your biceps to curl the load toward upper chest while keeping upper arms glued to your sides.",
+      "Peak: Flex and squeeze biceps forcefully at top of range without letting elbows drift forward.",
+      "Lower: Slowly descend the weight over 3 seconds to full extension, flexing triceps at the bottom.",
+    ],
+    commonMistakes: [
+      "Letting elbows rise forward into shoulder flexion, taking tension off the biceps.",
+      "Shortening the bottom range — always achieve full elbow extension for maximum muscle stretch.",
+      "Wrist curl compensation — keep wrists neutral and rigid throughout the pull.",
+    ],
+    breathingPattern: "Inhale at the bottom → Exhale forcefully on the curl → Inhale as you lower.",
+  },
+  tricep_pushdown: {
+    image: "/anatomy/overhead_press.jpg",
+    title: "Tricep Pushdown & Extensions",
+    primaryMuscles: ["Triceps Brachii (Lateral Head, Long Head, Medial Head)"],
+    secondaryMuscles: ["Anconeus", "Pectoralis Major (deep stabilizer)", "Wrist Extensors"],
+    biomechanicsCue: "Hinge slightly at hips. Lock elbows firmly at your side flanks, using pure elbow extension to drive the load down without shoulder movement.",
+    steps: [
+      "Set Up: Attach straight bar or rope to high cable. Grasp with overhand/neutral grip, elbows bent at 90° against ribs.",
+      "Extension: Contract triceps to drive the attachment downward until elbows are locked out completely.",
+      "Spreading (Rope): If using rope, flare the ends outward slightly at full extension to peak the lateral head.",
+      "Return: Resist the cable upward under control until forearms reach parallel (90° elbow flexion).",
+    ],
+    commonMistakes: [
+      "Letting elbows drift forward and backward like a pendulum — pin them strictly in place.",
+      "Rounding the upper back — keep chest proud and scapulae set down and back.",
+      "Stopping short of full lockout — triceps achieve maximum recruitment at the terminal extension point.",
+    ],
+    breathingPattern: "Inhale as cable rises → Exhale forcefully as you lock out triceps at the bottom.",
+  },
+  lateral_raise: {
+    image: "/anatomy/overhead_press.jpg",
+    title: "Dumbbell & Cable Lateral Raise",
+    primaryMuscles: ["Lateral Deltoid (Middle Deltoid)"],
+    secondaryMuscles: ["Supraspinatus", "Anterior Deltoid", "Upper Trapezius", "Serratus Anterior"],
+    biomechanicsCue: "Raise arms in the scapular plane (~15–30° forward of torso). Lead with your elbows and maintain a slight forward torso lean to isolate side delts.",
+    steps: [
+      "Set Up: Stand with feet hip-width apart, holding dumbbells with slight forward torso pitch (10–15°).",
+      "Raise: Sweep weights outward and upward in a wide arc, leading with elbows rather than wrists.",
+      "Apex: Stop at parallel (shoulder height). Keep thumbs slightly lower than pinkies or neutral.",
+      "Descent: Lower weights slowly over 2-3 seconds, stopping just before weights touch thighs to maintain constant tension.",
+    ],
+    commonMistakes: [
+      "Shrugging traps to initiate movement — depress shoulder blades before beginning the raise.",
+      "Raising higher than shoulder level — causes excessive upper trap recruitment and subacromial impingement.",
+      "Using torso momentum/swinging — pause briefly at the bottom of every rep.",
+    ],
+    breathingPattern: "Inhale at bottom → Exhale as arms reach shoulder height → Inhale on controlled descent.",
+  },
+  lat_pulldown: {
+    image: "/anatomy/deadlift.jpg",
+    title: "Lat Pulldown & Pull-Up",
+    primaryMuscles: ["Latissimus Dorsi", "Teres Major"],
+    secondaryMuscles: ["Biceps Brachii", "Brachialis", "Rhomboids", "Middle & Lower Trapezius", "Posterior Deltoid"],
+    biomechanicsCue: "Initiate pull by depressing shoulder blades down away from ears. Drive elbows down and back toward your hip pockets.",
+    steps: [
+      "Set Up: Grip wide bar just outside shoulder width with palms forward. Sit tall with thighs locked securely under pads.",
+      "Scapular Pull: Depress scapulae downward before bending elbows.",
+      "Pull: Drive elbows straight down, pulling bar to upper clavicle/nipple level while keeping chest lifted toward the bar.",
+      "Return: Extend arms smoothly back up to a full dead-hang stretch at the top without shrugging shoulders up.",
+    ],
+    commonMistakes: [
+      "Pulling behind the neck — causes severe rotator cuff and cervical spine stress.",
+      "Excessive backward lean (>30°) turning the movement into a row.",
+      "Rounding upper back at bottom — keep thoracic spine extended and proud.",
+    ],
+    breathingPattern: "Inhale during top overhead stretch → Exhale as you pull bar down to upper chest.",
+  },
+  barbell_row: {
+    image: "/anatomy/deadlift.jpg",
+    title: "Bent-Over Barbell & Dumbbell Row",
+    primaryMuscles: ["Latissimus Dorsi", "Rhomboids", "Middle & Lower Trapezius", "Posterior Deltoids"],
+    secondaryMuscles: ["Erector Spinae", "Biceps Brachii", "Brachialis", "Forearm Flexors", "Hamstrings (isometric)"],
+    biomechanicsCue: "Hinge at hips to a 45–60° torso angle. Pull bar toward lower ribcage / belly button while driving elbows past the torso.",
+    steps: [
+      "Set Up: Stand with feet hip-width, grip bar slightly wider than knees. Hinge hips back with a flat neutral spine.",
+      "Pull: Row the bar smoothly toward lower sternum/umbilicus, pinching shoulder blades together at apex.",
+      "Hold: Squeeze the mid-back musculature for 1 count.",
+      "Descent: Lower bar under control until arms are fully extended and lats are stretched.",
+    ],
+    commonMistakes: [
+      "Rounding lumbar spine — maintain stiff abdominal brace and hip hinge throughout.",
+      "Jerking torso upright to heave the weight — keep torso angle constant.",
+      "Pulling to upper chest instead of lower belly — flares elbows and shifts tension away from lats.",
+    ],
+    breathingPattern: "Inhale at the bottom stretch → Exhale forcefully on the row contraction.",
+  },
+  rdl: {
+    image: "/anatomy/deadlift.jpg",
+    title: "Romanian Deadlift (RDL)",
+    primaryMuscles: ["Hamstrings (Biceps Femoris, Semitendinosus, Semimembranosus)", "Gluteus Maximus"],
+    secondaryMuscles: ["Erector Spinae", "Adductor Magnus", "Latissimus Dorsi (bracing)", "Forearm Flexors"],
+    biomechanicsCue: "Maintain soft knees (15° bend). Drive hips backward like closing a car door with your butt until deep hamstring stretch is felt.",
+    steps: [
+      "Set Up: Stand tall with bar or dumbbells against thighs, feet hip-width apart, lats engaged.",
+      "Hinge: Keeping shins vertical, push hips backward and slide the load down close along the thighs.",
+      "Depth: Stop once hips cannot travel further backward (typically just below knees) with a flat spine.",
+      "Drive: Squeeze glutes and hamstrings to drive hips forward back into an upright standing position.",
+    ],
+    commonMistakes: [
+      "Squatting down / bending knees excessively — keeps tension off hamstrings.",
+      "Letting bar drift away from shins — keep bar sliding directly against legs.",
+      "Rounding lower back at the bottom of the stretch.",
+    ],
+    breathingPattern: "Inhale & brace at the top → Hold breath through descent → Exhale as you drive hips forward to lockout.",
+  },
+  hip_thrust: {
+    image: "/anatomy/squat.jpg",
+    title: "Barbell & Dumbbell Hip Thrust",
+    primaryMuscles: ["Gluteus Maximus (Upper & Lower Fibers)"],
+    secondaryMuscles: ["Hamstring Complex", "Quadriceps", "Adductor Magnus", "Erector Spinae"],
+    biomechanicsCue: "Rest lower edge of shoulder blades across bench edge. Keep chin tucked and achieve full posterior pelvic tilt at top lockout.",
+    steps: [
+      "Set Up: Sit on floor with upper back against bench edge, padded barbell resting across hip crease. Feet flat, shoulder-width.",
+      "Drive: Drive through heels, lifting hips toward ceiling until thighs and torso form a straight horizontal table.",
+      "Lockout: Squeeze glutes maximally at the top, ensuring knees are at 90° and shins are vertical.",
+      "Lower: Hinge hips down under control to hover just above floor before the next rep.",
+    ],
+    commonMistakes: [
+      "Hyperextending lumbar spine at top — tuck chin toward chest to lock pelvis in posterior tilt.",
+      "Feet too far forward (causes hamstring cramping) or too far back (causes knee stress).",
+      "Failing to reach full hip extension at top.",
+    ],
+    breathingPattern: "Inhale at the bottom → Exhale forcefully as you drive hips up to parallel lockout.",
+  },
+  plank: {
+    image: "/anatomy/cat_cow.jpg",
+    title: "Plank & Core Anti-Extension",
+    primaryMuscles: ["Rectus Abdominis", "Transverse Abdominis", "Internal & External Obliques"],
+    secondaryMuscles: ["Serratus Anterior", "Gluteal Complex", "Quadriceps", "Erector Spinae"],
+    biomechanicsCue: "Tuck pelvis into posterior tilt. Pull elbows towards toes isometrically to create active 360° abdominal tension.",
+    steps: [
+      "Set Up: Place forearms on floor with elbows directly under shoulders, legs extended back on toes.",
+      "Brace: Squeeze glutes together, tighten quads, and draw belly button in toward spine.",
+      "Hold: Maintain rigid, unwavering straight line from crown of head to heels for target duration.",
+    ],
+    commonMistakes: [
+      "Sagging hips / lumbar hyperextension — puts shearing force on lower back.",
+      "Piking hips up toward ceiling — reduces abdominal recruitment.",
+      "Holding breath — practice steady rhythmic diaphragmatic breathing.",
+    ],
+    breathingPattern: "Short, controlled shallow breaths maintaining tight abdominal brace.",
+  },
   squat: {
     image: "/anatomy/squat.jpg",
     title: "Barbell Back Squat",
@@ -162,31 +332,72 @@ export async function POST(req: NextRequest) {
     const exerciseName = sanitizeText(body.exerciseName || "Squat", 150);
     const norm = exerciseName.toLowerCase();
 
-    // Match best anatomical visual chart
-    let matchedKey = "squat";
-    if (norm.includes("squat") || norm.includes("lunge") || norm.includes("leg press") || norm.includes("quad") || norm.includes("hack squat")) {
-      matchedKey = "squat";
-    } else if (norm.includes("bench") || norm.includes("push up") || norm.includes("chest press") || norm.includes("fly") || norm.includes("dip")) {
+    // High-precision anatomical movement categorization
+    let matchedKey: string | null = null;
+
+    // 1. Hammer Curl / Forearms / Biceps
+    if (norm.includes("hammer")) {
+      matchedKey = "hammer_curl";
+    } else if (norm.includes("bicep") || norm.includes("preacher") || norm.includes("concentration curl") || (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))) {
+      matchedKey = "bicep_curl";
+    }
+    // 2. Triceps
+    else if (norm.includes("tricep") || norm.includes("pushdown") || norm.includes("skull crusher") || norm.includes("skullcrusher") || norm.includes("overhead extension")) {
+      matchedKey = "tricep_pushdown";
+    }
+    // 3. Lateral / Rear Delts
+    else if (norm.includes("lateral raise") || norm.includes("side raise") || norm.includes("front raise") || norm.includes("rear delt") || norm.includes("face pull") || norm.includes("upright row")) {
+      matchedKey = "lateral_raise";
+    }
+    // 4. Back / Rows / Pulls
+    else if (norm.includes("pulldown") || norm.includes("pull up") || norm.includes("pull-up") || norm.includes("chin up") || norm.includes("chin-up") || norm.includes("lat pull")) {
+      matchedKey = "lat_pulldown";
+    } else if (norm.includes("row") || norm.includes("t-bar") || norm.includes("pendlay") || norm.includes("shrug")) {
+      matchedKey = "barbell_row";
+    }
+    // 5. Hamstrings & Glutes (RDL / Hip Thrust / Leg Curl)
+    else if (norm.includes("rdl") || norm.includes("romanian") || norm.includes("leg curl") || norm.includes("hamstring") || norm.includes("good morning")) {
+      matchedKey = "rdl";
+    } else if (norm.includes("hip thrust") || norm.includes("glute bridge") || norm.includes("kickback") || norm.includes("abductor")) {
+      matchedKey = "hip_thrust";
+    }
+    // 6. Chest / Bench / Flyes / Dips
+    else if (norm.includes("bench") || norm.includes("push up") || norm.includes("push-up") || norm.includes("chest press") || norm.includes("fly") || norm.includes("dip") || norm.includes("pec deck") || norm.includes("landmine press")) {
       matchedKey = "bench";
-    } else if (norm.includes("pigeon") || norm.includes("glute stretch") || norm.includes("hip stretch") || norm.includes("figure 4") || norm.includes("piriformis")) {
+    }
+    // 7. Shoulders / Overhead Press
+    else if (norm.includes("overhead") || norm.includes("shoulder press") || norm.includes("arnold press") || norm.includes("military press") || norm.includes("push press")) {
+      matchedKey = "press";
+    }
+    // 8. Stretches & Mobility
+    else if (norm.includes("pigeon") || norm.includes("glute stretch") || norm.includes("hip stretch") || norm.includes("figure 4") || norm.includes("piriformis")) {
       matchedKey = "pigeon";
     } else if (norm.includes("doorway") || norm.includes("pec stretch") || norm.includes("chest stretch") || norm.includes("wall slide")) {
       matchedKey = "chest_stretch";
-    } else if (norm.includes("cat") || norm.includes("cow") || norm.includes("spine") || norm.includes("twist") || norm.includes("mobility") || norm.includes("warm") || norm.includes("cool")) {
+    } else if (norm.includes("cat") || norm.includes("cow") || norm.includes("spine") || norm.includes("mobility") || norm.includes("warm") || norm.includes("cool")) {
       matchedKey = "cat_cow";
-    } else if (norm.includes("deadlift") || norm.includes("pull up") || norm.includes("row") || norm.includes("pulldown") || norm.includes("shrug") || norm.includes("back extension") || norm.includes("lat ")) {
+    }
+    // 9. Core / Planks
+    else if (norm.includes("plank") || norm.includes("ab") || norm.includes("crunch") || norm.includes("leg raise") || norm.includes("hollow body") || norm.includes("deadbug")) {
+      matchedKey = "plank";
+    }
+    // 10. Quads / Squats
+    else if (norm.includes("squat") || norm.includes("lunge") || norm.includes("leg press") || norm.includes("hack squat") || norm.includes("step up") || norm.includes("quad") || norm.includes("split squat") || norm.includes("leg extension")) {
+      matchedKey = "squat";
+    }
+    // 11. Deadlift
+    else if (norm.includes("deadlift") || norm.includes("rack pull")) {
       matchedKey = "deadlift";
-    } else if (norm.includes("press") || norm.includes("overhead") || norm.includes("shoulder") || norm.includes("lateral raise") || norm.includes("delt")) {
-      matchedKey = "press";
     }
 
-    const chart = ANATOMY_CHARTS[matchedKey] || ANATOMY_CHARTS.squat;
+    const chart = (matchedKey && ANATOMY_CHARTS[matchedKey]) || ANATOMY_CHARTS.squat;
 
     return NextResponse.json({
       success: true,
       exerciseName,
       chart: {
         ...chart,
+        title: chart.title.includes(exerciseName) ? chart.title : `${exerciseName} — Visual Anatomy Guide`,
         queryName: exerciseName,
       },
     });
