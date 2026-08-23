@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { POST as anatomyGuidePost } from "@/app/api/ai/anatomy-guide/route";
+import { resetRateLimitStore } from "@/lib/rateLimit";
 import { NextRequest } from "next/server";
 
 describe("AI 3D Anatomy Visual Guide API", () => {
+  beforeEach(() => {
+    resetRateLimitStore();
+  });
+
   it("should return squat anatomical chart and quadriceps/glutes for Barbell Squat", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
@@ -165,5 +170,31 @@ describe("AI 3D Anatomy Visual Guide API", () => {
     const data = await res.json();
     expect(data.chart.image).toBe("/anatomy/lateral_raise.jpg");
     expect(data.chart.primaryMuscles).toContain("Lateral Deltoid (Middle Deltoid)");
+  });
+
+  it("should exhaustively resolve every single exercise in the entire 120+ EXERCISE_LIBRARY to a verified anatomical guide", async () => {
+    const { EXERCISE_LIBRARY } = await import("@/app/dashboard/utils/exerciseLibrary");
+    expect(EXERCISE_LIBRARY.length).toBeGreaterThan(100);
+
+    for (const ex of EXERCISE_LIBRARY) {
+      resetRateLimitStore();
+      const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+        method: "POST",
+        body: JSON.stringify({ exerciseName: ex.name }),
+      });
+
+      const res = await anatomyGuidePost(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.chart).toBeDefined();
+      expect(data.chart.image).toMatch(/^\/anatomy\/.+\.jpg$/);
+      expect(data.chart.primaryMuscles.length).toBeGreaterThan(0);
+      expect(data.chart.secondaryMuscles.length).toBeGreaterThan(0);
+      expect(data.chart.steps.length).toBeGreaterThan(0);
+      expect(data.chart.commonMistakes.length).toBeGreaterThan(0);
+      expect(data.chart.biomechanicsCue).toBeTruthy();
+      expect(data.chart.breathingPattern).toBeTruthy();
+    }
   });
 });

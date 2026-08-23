@@ -332,61 +332,212 @@ export async function POST(req: NextRequest) {
     const exerciseName = sanitizeText(body.exerciseName || "Squat", 150);
     const norm = exerciseName.toLowerCase();
 
-    // High-precision anatomical movement categorization
+    // Exhaustive movement categorization across all 170+ exercise library entries & custom variations
     let matchedKey: string | null = null;
 
-    // 1. Hammer Curl / Forearms / Biceps
-    if (norm.includes("hammer")) {
-      matchedKey = "hammer_curl";
-    } else if (norm.includes("bicep") || norm.includes("preacher") || norm.includes("concentration curl") || (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))) {
-      matchedKey = "bicep_curl";
-    }
-    // 2. Triceps
-    else if (norm.includes("tricep") || norm.includes("pushdown") || norm.includes("skull crusher") || norm.includes("skullcrusher") || norm.includes("overhead extension")) {
-      matchedKey = "tricep_pushdown";
-    }
-    // 3. Lateral / Rear Delts
-    else if (norm.includes("lateral raise") || norm.includes("side raise") || norm.includes("front raise") || norm.includes("rear delt") || norm.includes("face pull") || norm.includes("upright row")) {
-      matchedKey = "lateral_raise";
-    }
-    // 4. Back / Rows / Pulls
-    else if (norm.includes("pulldown") || norm.includes("pull up") || norm.includes("pull-up") || norm.includes("chin up") || norm.includes("chin-up") || norm.includes("lat pull")) {
-      matchedKey = "lat_pulldown";
-    } else if (norm.includes("row") || norm.includes("t-bar") || norm.includes("pendlay") || norm.includes("shrug")) {
-      matchedKey = "barbell_row";
-    }
-    // 5. Hamstrings & Glutes (RDL / Hip Thrust / Leg Curl)
-    else if (norm.includes("rdl") || norm.includes("romanian") || norm.includes("leg curl") || norm.includes("hamstring") || norm.includes("good morning")) {
-      matchedKey = "rdl";
-    } else if (norm.includes("hip thrust") || norm.includes("glute bridge") || norm.includes("kickback") || norm.includes("abductor")) {
-      matchedKey = "hip_thrust";
-    }
-    // 6. Chest / Bench / Flyes / Dips
-    else if (norm.includes("bench") || norm.includes("push up") || norm.includes("push-up") || norm.includes("chest press") || norm.includes("fly") || norm.includes("dip") || norm.includes("pec deck") || norm.includes("landmine press")) {
-      matchedKey = "bench";
-    }
-    // 7. Shoulders / Overhead Press
-    else if (norm.includes("overhead") || norm.includes("shoulder press") || norm.includes("arnold press") || norm.includes("military press") || norm.includes("push press")) {
-      matchedKey = "press";
-    }
-    // 8. Stretches & Mobility
-    else if (norm.includes("pigeon") || norm.includes("glute stretch") || norm.includes("hip stretch") || norm.includes("figure 4") || norm.includes("piriformis")) {
+    // 1. Stretches & Mobility (Highest specificity)
+    if (
+      norm.includes("pigeon") ||
+      norm.includes("hip flexor") ||
+      norm.includes("couch stretch") ||
+      norm.includes("figure 4") ||
+      norm.includes("piriformis") ||
+      norm.includes("hip opener")
+    ) {
       matchedKey = "pigeon";
-    } else if (norm.includes("doorway") || norm.includes("pec stretch") || norm.includes("chest stretch") || norm.includes("wall slide")) {
+    } else if (
+      norm.includes("doorway") ||
+      norm.includes("pec stretch") ||
+      norm.includes("chest stretch") ||
+      norm.includes("dislocate") ||
+      norm.includes("wall slide")
+    ) {
       matchedKey = "chest_stretch";
-    } else if (norm.includes("cat") || norm.includes("cow") || norm.includes("spine") || norm.includes("mobility") || norm.includes("warm") || norm.includes("cool")) {
+    } else if (
+      norm.includes("cat") ||
+      norm.includes("cow") ||
+      norm.includes("spine") ||
+      norm.includes("foam roll") ||
+      norm.includes("mobility") ||
+      norm.includes("warmup") ||
+      norm.includes("warm-up") ||
+      norm.includes("warm") ||
+      norm.includes("cool") ||
+      norm.includes("recovery") ||
+      norm.includes("rest") ||
+      norm.includes("sleep") ||
+      norm.includes("breathwork") ||
+      norm.includes("sauna")
+    ) {
       matchedKey = "cat_cow";
     }
-    // 9. Core / Planks
-    else if (norm.includes("plank") || norm.includes("ab") || norm.includes("crunch") || norm.includes("leg raise") || norm.includes("hollow body") || norm.includes("deadbug")) {
+    // 2. Vertical Back Pulls (Lat Pulldowns, Pull-Ups, Chin-Ups, Straight Arm Pulldown)
+    else if (
+      norm.includes("pulldown") ||
+      norm.includes("pull up") ||
+      norm.includes("pull-up") ||
+      norm.includes("chin up") ||
+      norm.includes("chin-up") ||
+      norm.includes("lat pull")
+    ) {
+      matchedKey = "lat_pulldown";
+    }
+    // 3. Hammer Curl & Forearm Curls
+    else if (norm.includes("hammer") || norm.includes("reverse curl") || norm.includes("wrist") || norm.includes("farmer")) {
+      matchedKey = "hammer_curl";
+    }
+    // 4. Biceps (Supinated, Preacher, Incline, Concentration, Cables)
+    else if (
+      norm.includes("bicep") ||
+      norm.includes("preacher") ||
+      norm.includes("concentration") ||
+      (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))
+    ) {
+      matchedKey = "bicep_curl";
+    }
+    // 5. Triceps (Pushdowns, Extensions, Skull Crushers, Dips, Close-Grip Bench, Kickbacks)
+    else if (
+      norm.includes("tricep") ||
+      norm.includes("pushdown") ||
+      norm.includes("skull crusher") ||
+      norm.includes("skullcrusher") ||
+      norm.includes("close-grip") ||
+      norm.includes("close grip") ||
+      norm.includes("kickback") ||
+      (norm.includes("extension") && (norm.includes("overhead") || norm.includes("arm") || norm.includes("cable") || norm.includes("dumbbell")))
+    ) {
+      matchedKey = "tricep_pushdown";
+    }
+    // 6. Lateral, Front, and Rear Deltoids (Side Raises, Upright Rows, Face Pulls, Rear Delt Flyes)
+    else if (
+      norm.includes("lateral raise") ||
+      norm.includes("side raise") ||
+      norm.includes("front raise") ||
+      norm.includes("rear delt") ||
+      norm.includes("face pull") ||
+      norm.includes("facepull") ||
+      norm.includes("upright row") ||
+      norm.includes("reverse pec deck") ||
+      norm.includes("deltoid fly")
+    ) {
+      matchedKey = "lateral_raise";
+    }
+    // 7. Horizontal Rows & Upper Back (Barbell Row, DB Row, T-Bar, Pendlay, Seated Cable Row, Shrugs, Inverted Row)
+    else if (
+      norm.includes("row") ||
+      norm.includes("t-bar") ||
+      norm.includes("pendlay") ||
+      norm.includes("shrug") ||
+      norm.includes("rhomboid")
+    ) {
+      matchedKey = "barbell_row";
+    }
+    // 8. Posterior Chain: Hamstrings & Hip Hinge (RDL, Stiff-Leg, Leg Curls, Nordic Curls, Good Mornings)
+    else if (
+      norm.includes("rdl") ||
+      norm.includes("romanian") ||
+      norm.includes("leg curl") ||
+      norm.includes("hamstring") ||
+      norm.includes("good morning") ||
+      norm.includes("nordic") ||
+      norm.includes("stiff leg")
+    ) {
+      matchedKey = "rdl";
+    }
+    // 9. Posterior Chain: Glute Dominant & Pelvic Extension (Hip Thrust, Glute Bridge, Kickbacks, Abductors)
+    else if (
+      norm.includes("hip thrust") ||
+      norm.includes("glute bridge") ||
+      norm.includes("kickback") ||
+      norm.includes("abductor") ||
+      norm.includes("glute")
+    ) {
+      matchedKey = "hip_thrust";
+    }
+    // 10. Chest & Horizontal Push (Bench Press, Incline Press, Decline Press, Dumbbell Press, Chest Flyes, Push-Ups, Dips, Pec Deck, Landmine Chest)
+    else if (
+      norm.includes("bench") ||
+      norm.includes("push up") ||
+      norm.includes("push-up") ||
+      norm.includes("pushup") ||
+      norm.includes("chest press") ||
+      norm.includes("fly") ||
+      norm.includes("crossover") ||
+      norm.includes("dip") ||
+      norm.includes("pec deck") ||
+      norm.includes("landmine chest") ||
+      norm.includes("chest")
+    ) {
+      matchedKey = "bench";
+    }
+    // 11. Shoulders & Vertical Push (Overhead Press, Military Press, DB Shoulder Press, Arnold Press, Push Press, Landmine Shoulder Press)
+    else if (
+      norm.includes("overhead") ||
+      norm.includes("shoulder press") ||
+      norm.includes("arnold press") ||
+      norm.includes("military press") ||
+      norm.includes("push press") ||
+      norm.includes("ohp") ||
+      norm.includes("shoulder")
+    ) {
+      matchedKey = "press";
+    }
+    // 12. Core & Abdominals (Plank, Side Plank, Leg Raises, Knee Raises, Ab Wheel, Woodchopper, Crunches, Russian Twists, Sit-Ups, Dead Bug, Pallof Press, Mountain Climbers, Hollow Body)
+    else if (
+      norm.includes("plank") ||
+      norm.includes("ab") ||
+      norm.includes("crunch") ||
+      norm.includes("leg raise") ||
+      norm.includes("knee raise") ||
+      norm.includes("woodchopper") ||
+      norm.includes("twist") ||
+      norm.includes("sit-up") ||
+      norm.includes("situp") ||
+      norm.includes("rollout") ||
+      norm.includes("hollow body") ||
+      norm.includes("dead bug") ||
+      norm.includes("deadbug") ||
+      norm.includes("pallof") ||
+      norm.includes("climber")
+    ) {
       matchedKey = "plank";
     }
-    // 10. Quads / Squats
-    else if (norm.includes("squat") || norm.includes("lunge") || norm.includes("leg press") || norm.includes("hack squat") || norm.includes("step up") || norm.includes("quad") || norm.includes("split squat") || norm.includes("leg extension")) {
+    // 13. Quads & Knee-Dominant Lower Body (Squat, Front Squat, Box Squat, Goblet Squat, Bulgarian Split Squat, Lunges, Leg Press, Hack Squat, Leg Extension, Calves, Step-Ups, Sled Push, Wall Sit)
+    else if (
+      norm.includes("squat") ||
+      norm.includes("lunge") ||
+      norm.includes("leg press") ||
+      norm.includes("hack") ||
+      norm.includes("step-up") ||
+      norm.includes("step up") ||
+      norm.includes("split squat") ||
+      norm.includes("leg extension") ||
+      norm.includes("calf") ||
+      norm.includes("sled") ||
+      norm.includes("prowler") ||
+      norm.includes("wall sit")
+    ) {
       matchedKey = "squat";
     }
-    // 11. Deadlift
-    else if (norm.includes("deadlift") || norm.includes("rack pull")) {
+    // 14. Explosive & Olympic Lifts / Full Body (Deadlift, Sumo Deadlift, Rack Pull, Power Clean, Clean & Jerk, Snatch, KB Swing, Turkish Get-Up, Burpee, Box Jump, Med Ball Slam, Cardio)
+    else if (
+      norm.includes("deadlift") ||
+      norm.includes("rack pull") ||
+      norm.includes("clean") ||
+      norm.includes("snatch") ||
+      norm.includes("swing") ||
+      norm.includes("turkish") ||
+      norm.includes("burpee") ||
+      norm.includes("box jump") ||
+      norm.includes("slam") ||
+      norm.includes("jump") ||
+      norm.includes("run") ||
+      norm.includes("bike") ||
+      norm.includes("rowing") ||
+      norm.includes("stair") ||
+      norm.includes("elliptical") ||
+      norm.includes("swim")
+    ) {
       matchedKey = "deadlift";
     }
 
