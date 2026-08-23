@@ -43,11 +43,11 @@ export function generateWorkoutSummary(workout: DraftWorkout | null | undefined)
     est1RM: number;
   } | null = null;
 
-  workout.exercises.forEach((ex: DraftExercise) => {
+  for (const ex of workout.exercises) {
     const mg = getMuscleGroup(ex.name);
     muscleGroupCounts[mg] = (muscleGroupCounts[mg] || 0) + 1;
 
-    ex.sets.forEach((set: DraftSet) => {
+    for (const set of ex.sets) {
       const weight = parseFloat(set.weight) || 0;
       const reps = parseInt(set.reps, 10) || 0;
 
@@ -67,8 +67,8 @@ export function generateWorkoutSummary(workout: DraftWorkout | null | undefined)
           };
         }
       }
-    });
-  });
+    }
+  }
 
   const muscleGroups = Object.keys(muscleGroupCounts).filter((mg) => mg !== "Other");
   const focusLabel = muscleGroups.length > 0 ? muscleGroups.join(" & ") : "Full Body";

@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, UserPlus, ChevronRight, Trash2, Edit3, User, Link2 } from "lucide-react";
+import { Users, UserPlus, ChevronRight, Trash2, Edit3, User, Link2, Dumbbell } from "lucide-react";
 import { Client } from "../types";
 
 interface ClientSidebarProps {
