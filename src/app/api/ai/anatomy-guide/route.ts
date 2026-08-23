@@ -19,7 +19,7 @@ export interface AnatomyGuideData {
 // Map of known movements to high-res 3D anatomical charts with precise kinesiology
 const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
   hammer_curl: {
-    image: "/anatomy/bench.jpg", // fallback graphic
+    image: "/anatomy/hammer_curl.jpg",
     title: "Dumbbell Hammer Curl",
     primaryMuscles: ["Brachialis", "Brachioradialis", "Biceps Brachii (Long Head)"],
     secondaryMuscles: ["Pronator Teres", "Flexor Carpi Radialis", "Anterior Deltoid (isometric stabilizer)"],
@@ -38,7 +38,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Exhale on elbow flexion as you curl up → Inhale during the controlled eccentric lowering.",
   },
   bicep_curl: {
-    image: "/anatomy/bench.jpg",
+    image: "/anatomy/bicep_curl.jpg",
     title: "Bicep Curl (Barbell / Dumbbell / Cable)",
     primaryMuscles: ["Biceps Brachii (Short Head & Long Head)", "Brachialis"],
     secondaryMuscles: ["Brachioradialis", "Forearm Flexor Complex", "Anterior Deltoid"],
@@ -57,7 +57,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale at the bottom → Exhale forcefully on the curl → Inhale as you lower.",
   },
   tricep_pushdown: {
-    image: "/anatomy/overhead_press.jpg",
+    image: "/anatomy/tricep_pushdown.jpg",
     title: "Tricep Pushdown & Extensions",
     primaryMuscles: ["Triceps Brachii (Lateral Head, Long Head, Medial Head)"],
     secondaryMuscles: ["Anconeus", "Pectoralis Major (deep stabilizer)", "Wrist Extensors"],
@@ -76,7 +76,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale as cable rises → Exhale forcefully as you lock out triceps at the bottom.",
   },
   lateral_raise: {
-    image: "/anatomy/overhead_press.jpg",
+    image: "/anatomy/lateral_raise.jpg",
     title: "Dumbbell & Cable Lateral Raise",
     primaryMuscles: ["Lateral Deltoid (Middle Deltoid)"],
     secondaryMuscles: ["Supraspinatus", "Anterior Deltoid", "Upper Trapezius", "Serratus Anterior"],
@@ -95,7 +95,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale at bottom → Exhale as arms reach shoulder height → Inhale on controlled descent.",
   },
   lat_pulldown: {
-    image: "/anatomy/deadlift.jpg",
+    image: "/anatomy/lat_pulldown.jpg",
     title: "Lat Pulldown & Pull-Up",
     primaryMuscles: ["Latissimus Dorsi", "Teres Major"],
     secondaryMuscles: ["Biceps Brachii", "Brachialis", "Rhomboids", "Middle & Lower Trapezius", "Posterior Deltoid"],
@@ -114,7 +114,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale during top overhead stretch → Exhale as you pull bar down to upper chest.",
   },
   barbell_row: {
-    image: "/anatomy/deadlift.jpg",
+    image: "/anatomy/lat_pulldown.jpg",
     title: "Bent-Over Barbell & Dumbbell Row",
     primaryMuscles: ["Latissimus Dorsi", "Rhomboids", "Middle & Lower Trapezius", "Posterior Deltoids"],
     secondaryMuscles: ["Erector Spinae", "Biceps Brachii", "Brachialis", "Forearm Flexors", "Hamstrings (isometric)"],
@@ -133,7 +133,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale at the bottom stretch → Exhale forcefully on the row contraction.",
   },
   rdl: {
-    image: "/anatomy/deadlift.jpg",
+    image: "/anatomy/rdl.jpg",
     title: "Romanian Deadlift (RDL)",
     primaryMuscles: ["Hamstrings (Biceps Femoris, Semitendinosus, Semimembranosus)", "Gluteus Maximus"],
     secondaryMuscles: ["Erector Spinae", "Adductor Magnus", "Latissimus Dorsi (bracing)", "Forearm Flexors"],

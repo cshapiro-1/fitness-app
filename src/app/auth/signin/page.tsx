@@ -32,6 +32,7 @@ function SignInContent() {
   const isInviteFlow = callbackUrl.includes("/invite/");
 
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingApple, setLoadingApple] = useState(false);
   const [loadingService, setLoadingService] = useState(false);
   const [showServiceLogin, setShowServiceLogin] = useState(false);
   const [serviceEmail, setServiceEmail] = useState("service@fitcoach.pro");
@@ -41,6 +42,11 @@ function SignInContent() {
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
     await signIn("google", { callbackUrl });
+  };
+
+  const handleAppleSignIn = async () => {
+    setLoadingApple(true);
+    await signIn("apple", { callbackUrl });
   };
 
   const handleServiceSignIn = async (e: React.FormEvent) => {
@@ -145,11 +151,12 @@ function SignInContent() {
           </div>
         )}
 
-        {/* Google Sign In Button (Hero) */}
-        <div style={{ marginBottom: "1.5rem" }}>
+        {/* IdP OAuth Buttons (Google & Apple) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "1.5rem" }}>
+          {/* Google Sign In Button */}
           <button
             onClick={handleGoogleSignIn}
-            disabled={loadingGoogle || loadingService}
+            disabled={loadingGoogle || loadingApple || loadingService}
             style={{
               width: "100%",
               display: "flex",
@@ -189,8 +196,37 @@ function SignInContent() {
             </svg>
             <span>{loadingGoogle ? "Connecting..." : "Continue with Google"}</span>
           </button>
-          <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "8px", marginBottom: 0 }}>
-            {isInviteFlow ? "Instant 1-click free client portal access" : "Recommended for athlete and client accounts."}
+
+          {/* Apple Sign In Button */}
+          <button
+            onClick={handleAppleSignIn}
+            disabled={loadingGoogle || loadingApple || loadingService}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "12px",
+              borderRadius: "12px",
+              border: "1px solid #0f172a",
+              backgroundColor: "#0f172a",
+              padding: "12px 16px",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              color: "#ffffff",
+              cursor: loadingApple ? "not-allowed" : "pointer",
+              opacity: loadingApple ? 0.7 : 1,
+              boxShadow: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 170 170" fill="currentColor" style={{ width: "18px", height: "18px", flexShrink: 0 }}>
+              <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.05-7.66-7.79-11.89-14.23-6.73-10.23-12.18-21.98-16.34-35.25-4.16-13.28-6.24-25.75-6.24-37.42 0-14.68 3.73-27.17 11.2-37.46 7.46-10.3 17.06-15.54 28.79-15.75 4.8 0 10.1 1.25 15.9 3.74 5.8 2.5 9.7 3.84 11.71 4.02 1.62-.24 5.66-1.63 12.12-4.18 6.47-2.55 11.95-3.69 16.46-3.41 12.28.6 22.25 5.25 29.9 13.96-10.74 6.53-15.99 15.53-15.75 27 0 9.87 3.81 18.23 11.44 25.07 7.62 6.84 16.63 10.63 27.02 11.36-2.12 6.22-4.53 12.38-7.24 18.49zM119.22 33.64c0-7.35 2.65-14.24 7.96-20.67 5.3-6.43 11.87-10.75 19.7-12.97.22 1.5.33 2.78.33 3.84 0 7.37-2.78 14.52-8.35 21.46-5.56 6.94-12.3 11.19-20.21 12.75-.44-1.49-.66-2.96-.66-4.41z"/>
+            </svg>
+            <span>{loadingApple ? "Connecting..." : "Continue with Apple"}</span>
+          </button>
+          <p style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px", marginBottom: 0 }}>
+            {isInviteFlow ? "Instant 1-click free client portal access" : "Secure passwordless authentication via Google & Apple ID."}
           </p>
         </div>
 

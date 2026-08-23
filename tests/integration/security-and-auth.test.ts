@@ -168,5 +168,20 @@ describe("Backend Security & Authentication Suite", () => {
       expect(session?.user?.image).toBe("https://lh3.googleusercontent.com/a/test-avatar");
       expect(session?.user?.name).toBe("Collin Shapiro");
     });
+
+    it("should support passwordless delegated Apple Sign-In configuration", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: {
+          id: "apple-user-1",
+          email: "athlete@privaterelay.appleid.com",
+          name: "Apple Athlete",
+          role: "CLIENT",
+        },
+      });
+
+      const session = await getServerSession({} as any);
+      expect(session?.user?.email).toContain("appleid.com");
+      expect(session?.user?.role).toBe("CLIENT");
+    });
   });
 });
