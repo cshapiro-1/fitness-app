@@ -428,8 +428,7 @@ export default function NutritionPage() {
               style={{ display: "inline-flex", alignItems: "center", gap: "5px", color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", fontWeight: 600 }}
               title="Pre/post workout warm-ups, stretches, sauna, and recovery"
             >
-              <span>🧘</span>
-              <span className="hide-mobile">Recovery</span>
+              <span>Recovery</span>
             </Link>
 
             <Link

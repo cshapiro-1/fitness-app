@@ -1117,7 +1117,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                         className={`tab${tab === currentTab ? " active" : ""}`}
                         onClick={() => handleRequestTab(currentTab)}
                       >
-                        {currentTab === "mobility" ? "🧘 Recovery" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                        {currentTab === "mobility" ? "Recovery" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                       </button>
                     ))}
                   </div>

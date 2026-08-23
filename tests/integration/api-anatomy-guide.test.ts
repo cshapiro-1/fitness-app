@@ -98,5 +98,72 @@ describe("AI 3D Anatomy Visual Guide API", () => {
     const data = await res.json();
     expect(data.chart.primaryMuscles).toContain("Hamstrings (Biceps Femoris, Semitendinosus, Semimembranosus)");
     expect(data.chart.primaryMuscles).toContain("Gluteus Maximus");
+    expect(data.chart.image).toBe("/anatomy/rdl.jpg");
+  });
+
+  it("should return hip thrust anatomy chart and glute focus for Hip Thrust", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Barbell Hip Thrust" }),
+    });
+
+    const res = await anatomyGuidePost(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.chart.image).toBe("/anatomy/hip_thrust.jpg");
+    expect(data.chart.primaryMuscles).toContain("Gluteus Maximus (Upper & Lower Fibers)");
+  });
+
+  it("should return plank anatomy chart and core musculature for Plank", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Forearm Plank Core Hold" }),
+    });
+
+    const res = await anatomyGuidePost(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.chart.image).toBe("/anatomy/plank.jpg");
+    expect(data.chart.primaryMuscles).toContain("Rectus Abdominis");
+    expect(data.chart.primaryMuscles).toContain("Transverse Abdominis");
+  });
+
+  it("should return chest stretch chart for Doorway Pec Stretch", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Doorway Chest & Pec Stretch" }),
+    });
+
+    const res = await anatomyGuidePost(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.chart.image).toBe("/anatomy/chest_stretch.jpg");
+    expect(data.chart.primaryMuscles).toContain("Pectoralis Major (Sternal & Clavicular fibers)");
+  });
+
+  it("should return cat-cow spine chart for Cat-Cow Mobilization", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Cat-Cow Spine Flow" }),
+    });
+
+    const res = await anatomyGuidePost(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.chart.image).toBe("/anatomy/cat_cow.jpg");
+    expect(data.chart.primaryMuscles).toContain("Erector Spinae");
+  });
+
+  it("should return lateral raise shoulder chart for Dumbbell Lateral Raise", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Dumbbell Lateral Raise" }),
+    });
+
+    const res = await anatomyGuidePost(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.chart.image).toBe("/anatomy/lateral_raise.jpg");
+    expect(data.chart.primaryMuscles).toContain("Lateral Deltoid (Middle Deltoid)");
   });
 });

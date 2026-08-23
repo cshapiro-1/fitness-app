@@ -690,7 +690,7 @@ export function ClientDashboard({
             Progress &amp; PRs
           </button>
           <button className={`tab${tab === "mobility" ? " active" : ""}`} onClick={() => setTab("mobility")}>
-            🧘 Recovery
+            Recovery
           </button>
         </div>
 

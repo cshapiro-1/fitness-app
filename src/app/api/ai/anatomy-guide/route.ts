@@ -152,7 +152,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale & brace at the top → Hold breath through descent → Exhale as you drive hips forward to lockout.",
   },
   hip_thrust: {
-    image: "/anatomy/squat.jpg",
+    image: "/anatomy/hip_thrust.jpg",
     title: "Barbell & Dumbbell Hip Thrust",
     primaryMuscles: ["Gluteus Maximus (Upper & Lower Fibers)"],
     secondaryMuscles: ["Hamstring Complex", "Quadriceps", "Adductor Magnus", "Erector Spinae"],
@@ -171,7 +171,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale at the bottom → Exhale forcefully as you drive hips up to parallel lockout.",
   },
   plank: {
-    image: "/anatomy/cat_cow.jpg",
+    image: "/anatomy/plank.jpg",
     title: "Plank & Core Anti-Extension",
     primaryMuscles: ["Rectus Abdominis", "Transverse Abdominis", "Internal & External Obliques"],
     secondaryMuscles: ["Serratus Anterior", "Gluteal Complex", "Quadriceps", "Erector Spinae"],
