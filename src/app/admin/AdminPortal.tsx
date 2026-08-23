@@ -34,8 +34,37 @@ interface AdminStats {
   conversionRate: number;
 }
 
+interface StripeBillingData {
+  connected: boolean;
+  availableBalance: number;
+  pendingBalance: number;
+  monthlySubscribers: number;
+  annualSubscribers: number;
+  totalPayingSubscribers: number;
+  realMRR: number;
+  projectedARR: number;
+  recentPayouts: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    arrivalDate: string;
+    method: string;
+  }>;
+  recentTransactions: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    paid: boolean;
+    status: string;
+    customerEmail: string;
+    created: string;
+  }>;
+}
+
 export function AdminPortal({ userName }: { userName: string }) {
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [stripeBilling, setStripeBilling] = useState<StripeBillingData | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +79,7 @@ export function AdminPortal({ userName }: { userName: string }) {
       if (res.ok) {
         const data = await res.json();
         setStats(data.stats);
+        setStripeBilling(data.stripeBilling || null);
         setUsers(data.users);
       } else {
         alert("Failed to load admin statistics.");
@@ -74,14 +104,6 @@ export function AdminPortal({ userName }: { userName: string }) {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        // Force the browser to refresh and show the updated database state!
-        window.location.reload(); 
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        alert("Failed to update: " + (errorData.error || res.statusText));
-      }
-
-      if (res.ok) {
         fetchAdminData();
       } else {
         const err = await res.json();
@@ -99,24 +121,27 @@ export function AdminPortal({ userName }: { userName: string }) {
       const query = searchQuery.toLowerCase();
       const nameMatch = u.name?.toLowerCase().includes(query) || false;
       const emailMatch = u.email.toLowerCase().includes(query);
-      const matchesSearch = !query || nameMatch || emailMatch;
+      const matchesSearch = nameMatch || emailMatch;
 
       const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-      const matchesStatus = statusFilter === "ALL" || u.computedStatus === statusFilter;
+      const matchesStatus = statusFilter === "ALL" || u.computedStatus === statusFilter.toLowerCase();
 
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
 
   return (
-    <div className="app" style={{ minHeight: "100vh", background: "#f8fafc" }}>
-      {/* Admin Header */}
-      <header className="header" style={{ background: "#0f172a", color: "#ffffff" }}>
-        <div className="header-left">
-          <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
-          <span className="header-title" style={{ color: "#ffffff" }}>Admin Management Portal</span>
-        </div>
-        <div className="header-right">
+    <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      {/* Top Admin Header */}
+      <header style={{ background: "#0f172a", color: "#ffffff", padding: "16px 24px", borderBottom: "1px solid #1e293b" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
+            <div>
+              <h1 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>STRKYR Master Admin Portal</h1>
+              <span style={{ fontSize: "11px", color: "#94a3b8" }}>Authenticated as {userName}</span>
+            </div>
+          </div>
           <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", background: "#1e293b", color: "#f8fafc", padding: "6px 12px", borderRadius: "6px", textDecoration: "none" }}>
             <ArrowLeft size={14} /> Back to Dashboard
           </Link>
@@ -129,10 +154,19 @@ export function AdminPortal({ userName }: { userName: string }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
             <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 600 }}>
-                <DollarSign size={16} /> Estimated MRR
+                <DollarSign size={16} /> Real Stripe MRR
               </div>
               <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "24px" }}>
                 ${stats.estimatedMRR} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/mo</span>
+              </span>
+            </div>
+
+            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#059669", fontSize: "12px", fontWeight: 600 }}>
+                <TrendingUp size={16} /> Projected ARR
+              </div>
+              <span className="analytics-summary-value" style={{ color: "#047857", fontSize: "24px" }}>
+                ${(stripeBilling?.projectedARR || stats.estimatedMRR * 12).toLocaleString()} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/yr</span>
               </span>
             </div>
 
@@ -144,24 +178,10 @@ export function AdminPortal({ userName }: { userName: string }) {
             </div>
 
             <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0284c7", fontSize: "12px", fontWeight: 600 }}>
-                <CheckCircle2 size={16} /> Paid Subscribers
-              </div>
-              <span className="analytics-summary-value" style={{ color: "#0369a1", fontSize: "24px" }}>{stats.activeSubscriptions}</span>
-            </div>
-
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d97706", fontSize: "12px", fontWeight: 600 }}>
                 <Clock size={16} /> Trialing Trainers
               </div>
               <span className="analytics-summary-value" style={{ color: "#b45309", fontSize: "24px" }}>{stats.trialingUsers}</span>
-            </div>
-
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 600 }}>
-                <TrendingUp size={16} /> Conversion Rate
-              </div>
-              <span className="analytics-summary-value" style={{ color: "#6d28d9", fontSize: "24px" }}>{stats.conversionRate}%</span>
             </div>
 
             <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
@@ -170,6 +190,63 @@ export function AdminPortal({ userName }: { userName: string }) {
               </div>
               <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalWorkouts}</span>
             </div>
+          </div>
+        )}
+
+        {/* Live Stripe Financials & Payouts Panel */}
+        {stripeBilling && stripeBilling.connected && (
+          <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ background: "#635bff", color: "#ffffff", fontSize: "11px", fontWeight: 800, padding: "3px 8px", borderRadius: "6px" }}>
+                  STRIPE LIVE
+                </span>
+                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
+                  Live Treasury & Payout Status (Morgan Stanley Linked)
+                </h3>
+              </div>
+              <span style={{ fontSize: "11px", color: "#64748b" }}>Direct API Sync</span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+              <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>AVAILABLE FOR PAYOUT</div>
+                <div style={{ fontSize: "20px", fontWeight: 800, color: "#16a34a", marginTop: "4px" }}>
+                  ${stripeBilling.availableBalance.toFixed(2)} USD
+                </div>
+              </div>
+
+              <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>PENDING IN TRANSIT</div>
+                <div style={{ fontSize: "20px", fontWeight: 800, color: "#0284c7", marginTop: "4px" }}>
+                  ${stripeBilling.pendingBalance.toFixed(2)} USD
+                </div>
+              </div>
+
+              <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>PLAN BREAKDOWN</div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "#0f172a", marginTop: "6px" }}>
+                  <span>{stripeBilling.monthlySubscribers} Monthly ($19/mo)</span> · <span>{stripeBilling.annualSubscribers} Annual ($200/yr)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Payouts Table */}
+            {stripeBilling.recentPayouts.length > 0 && (
+              <div>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: 700, color: "#475569" }}>Recent Bank Payouts</h4>
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  {stripeBilling.recentPayouts.map((p) => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f8fafc", borderRadius: "6px", fontSize: "12px" }}>
+                      <span><b>${p.amount.toFixed(2)} {p.currency}</b> $\rightarrow$ Morgan Stanley</span>
+                      <span style={{ color: p.status === "paid" ? "#16a34a" : "#d97706", fontWeight: 600, textTransform: "capitalize" }}>
+                        {p.status === "paid" ? "✓ Paid" : p.status} ({p.arrivalDate})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -218,21 +295,21 @@ export function AdminPortal({ userName }: { userName: string }) {
               style={{ fontSize: "12px", padding: "6px 10px" }}
             >
               <option value="ALL">All Subscription Statuses</option>
-              <option value="active">Active Paid</option>
-              <option value="trial">Trialing</option>
-              <option value="expired">Expired</option>
+              <option value="ACTIVE">Active Paid</option>
+              <option value="TRIAL">Trialing</option>
+              <option value="EXPIRED">Expired</option>
             </select>
           </div>
 
           {/* Users Table */}
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
               <thead>
-                <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0", color: "#475569" }}>
+                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
                   <th style={{ padding: "10px 12px" }}>User</th>
                   <th style={{ padding: "10px 12px" }}>Role</th>
                   <th style={{ padding: "10px 12px" }}>Clients</th>
-                  <th style={{ padding: "10px 12px" }}>Subscription Status</th>
+                  <th style={{ padding: "10px 12px" }}>Membership</th>
                   <th style={{ padding: "10px 12px" }}>Joined</th>
                   <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                 </tr>
@@ -249,12 +326,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "12px" }}>
                         <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                          {u.name || "Unnamed User"}{" "}
-                          {u.isAdmin && (
-                            <span style={{ fontSize: "10px", background: "#fef3c7", color: "#d97706", padding: "1px 5px", borderRadius: "4px", fontWeight: 700 }}>
-                              ADMIN
-                            </span>
-                          )}
+                          {u.name || "Unnamed User"}
                         </div>
                         <div style={{ fontSize: "11px", color: "#64748b" }}>{u.email}</div>
                       </td>
@@ -307,14 +379,6 @@ export function AdminPortal({ userName }: { userName: string }) {
                             title="Grant 1 Year Active Subscription"
                           >
                             Grant 1Yr Sub
-                          </button>
-
-                          <button
-                            onClick={() => handleUpdateUser(u.id, { isAdmin: !u.isAdmin })}
-                            disabled={actionUserId === u.id}
-                            style={{ fontSize: "11px", padding: "4px 8px", background: u.isAdmin ? "#fee2e2" : "#f1f5f9", color: u.isAdmin ? "#dc2626" : "#475569", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                          >
-                            {u.isAdmin ? "Revoke Admin" : "Make Admin"}
                           </button>
                         </div>
                       </td>

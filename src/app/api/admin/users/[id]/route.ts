@@ -27,7 +27,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await req.json();
-    const { extendTrialDays, grantSubscriptionDays, subscriptionStatus, isAdmin, role } = body;
+    const { extendTrialDays, grantSubscriptionDays, subscriptionStatus, role } = body;
 
     const targetUser = await prisma.user.findUnique({ where: { id } });
     if (!targetUser) {
@@ -35,10 +35,6 @@ export async function PATCH(
     }
 
     const updateData: any = {};
-
-    if (typeof isAdmin === "boolean") {
-      updateData.isAdmin = isAdmin;
-    }
 
     if (role !== undefined && role !== null) {
       updateData.role = parseRole(role);
