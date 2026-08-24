@@ -13,13 +13,10 @@ import {
   BarChart2,
   PieChart,
   Target,
-  Scale,
-  Sparkles,
   ChevronRight,
   Info,
 } from "lucide-react";
 import { DashboardAnalytics, ExerciseTrendPoint, ExerciseAnalytics } from "../utils/analytics";
-import { generateAnalyticsInsights, AIAnalyticsInsightsResult } from "../utils/aiAnalyticsInsights";
 
 interface AnalyticsViewProps {
   analytics: DashboardAnalytics;
@@ -307,69 +304,13 @@ export function AnalyticsView({ analytics }: AnalyticsViewProps) {
     })).sort((a, b) => b.volume - a.volume);
   }, [analytics.muscleGroups, analytics.overall.totalVolume]);
 
-  // State for AI Insights
-  const [loadingInsights, setLoadingInsights] = useState(false);
-  const [aiInsights, setAiInsights] = useState<AIAnalyticsInsightsResult | null>(null);
-  const [showInsightsPanel, setShowInsightsPanel] = useState(true);
-
-  const handleGenerateInsights = async () => {
-    setLoadingInsights(true);
-    try {
-      const res = await fetch("/api/ai/analytics-insights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analytics }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.insights) {
-          setAiInsights(data.insights);
-          setShowInsightsPanel(true);
-          setLoadingInsights(false);
-          return;
-        }
-      }
-    } catch (err) {
-      console.error("AI Insights API Error:", err);
-    }
-    // Instant fallback
-    const localInsights = generateAnalyticsInsights(analytics);
-    setAiInsights(localInsights);
-    setShowInsightsPanel(true);
-    setLoadingInsights(false);
-  };
-
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Header with Title, AI Insights Button, and Muscle Group Tabs */}
+      {/* Header with Title and Muscle Group Tabs */}
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <TrendingUp size={22} style={{ color: "#2563eb" }} />
-            <h3 className="section-title" style={{ margin: 0, fontSize: "18px" }}>Performance Analytics &amp; Strength Intelligence</h3>
-          </div>
-
-          {/* AI Insights Action Button */}
-          <button
-            onClick={handleGenerateInsights}
-            disabled={loadingInsights || !analytics.workouts.length}
-            className="btn-primary"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "6px 14px",
-              fontSize: "12px",
-              fontWeight: 700,
-              borderRadius: "8px",
-              background: loadingInsights ? "#93c5fd" : "linear-gradient(135deg, #2563eb, #1d4ed8)",
-              boxShadow: "0 2px 6px rgba(37,99,235,0.25)",
-              cursor: loadingInsights || !analytics.workouts.length ? "not-allowed" : "pointer",
-            }}
-          >
-            <Sparkles size={14} className={loadingInsights ? "animate-spin" : ""} />
-            <span>{loadingInsights ? "Analyzing Data..." : "✨ AI Insights"}</span>
-          </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <TrendingUp size={22} style={{ color: "#2563eb" }} />
+          <h3 className="section-title" style={{ margin: 0, fontSize: "18px" }}>Performance Analytics &amp; Strength Progression</h3>
         </div>
 
         {/* Muscle Group Filter Pills */}
@@ -400,137 +341,6 @@ export function AnalyticsView({ analytics }: AnalyticsViewProps) {
           ))}
         </div>
       </div>
-
-      {/* AI Performance Intelligence Card (Rendered when Generated) */}
-      {aiInsights && showInsightsPanel && (
-        <div
-          style={{
-            background: "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)",
-            border: "1px solid #bfdbfe",
-            borderRadius: "14px",
-            padding: "20px",
-            boxShadow: "0 4px 14px rgba(37,99,235,0.08)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  borderRadius: "8px",
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Sparkles size={18} />
-              </div>
-              <div>
-                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#1e3a8a" }}>
-                  AI Performance Intelligence &amp; Kinematics
-                </h4>
-                <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>
-                  Neural Training Analysis • Score: <b>{aiInsights.trainingScore}/100</b> ({aiInsights.frequencyRating})
-                </span>
-              </div>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <button
-                onClick={handleGenerateInsights}
-                disabled={loadingInsights}
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: "#2563eb",
-                  background: "#ffffff",
-                  border: "1px solid #cbd5e1",
-                  borderRadius: "6px",
-                  padding: "4px 10px",
-                  cursor: "pointer",
-                }}
-              >
-                Refresh
-              </button>
-              <button
-                onClick={() => setShowInsightsPanel(false)}
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "#64748b",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-
-          {/* Executive Summary */}
-          <div style={{ background: "#ffffff", padding: "12px 14px", borderRadius: "10px", border: "1px solid #e2e8f0", fontSize: "13px", color: "#334155", lineHeight: "1.5" }}>
-            {aiInsights.executiveSummary}
-          </div>
-
-          {/* 3-Column Highlights Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "12px" }}>
-            {/* Progressive Overload Highlights */}
-            <div style={{ background: "#ffffff", padding: "14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "#16a34a", marginBottom: "8px" }}>
-                <Award size={14} /> Progressive Overload Breakthroughs
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {aiInsights.progressiveOverloadHighlights.map((h, i) => (
-                  <div key={i} style={{ fontSize: "12px", borderLeft: "3px solid #16a34a", paddingLeft: "8px" }}>
-                    <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", justifyContent: "space-between" }}>
-                      <span>{h.title}</span>
-                      <span style={{ color: "#16a34a" }}>{h.gain}</span>
-                    </div>
-                    <div style={{ fontSize: "11px", color: "#64748b" }}>{h.description}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Symmetry & Structural Assessment */}
-            <div style={{ background: "#ffffff", padding: "14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "#2563eb", marginBottom: "8px" }}>
-                <Scale size={14} /> Muscular Symmetry ({aiInsights.symmetryAnalysis.pushPullRatio}:1.0)
-              </div>
-              <div style={{ fontSize: "12px", color: "#334155", lineHeight: "1.4", marginBottom: "6px" }}>
-                {aiInsights.symmetryAnalysis.assessment}
-              </div>
-              <div style={{ fontSize: "11px", color: "#1e40af", background: "#eff6ff", padding: "6px 8px", borderRadius: "6px" }}>
-                <b>Recommendation:</b> {aiInsights.symmetryAnalysis.recommendation}
-              </div>
-            </div>
-
-            {/* Periodization Next-Steps */}
-            <div style={{ background: "#ffffff", padding: "14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "#d97706", marginBottom: "8px" }}>
-                <Zap size={14} /> Next-Block Periodization
-              </div>
-              <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "12px", color: "#334155", display: "flex", flexDirection: "column", gap: "6px" }}>
-                {aiInsights.periodizationRecommendations.map((rec, i) => (
-                  <li key={i}>{rec}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Recovery & Nutrition Note */}
-          <div style={{ fontSize: "11px", color: "#64748b", background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-            <b>Recovery &amp; Fueling Advisory:</b> {aiInsights.recoveryAndNutritionAdvice}
-          </div>
-        </div>
-      )}
 
       {!analytics.workouts.length ? (
         <div className="empty-state">Log workouts to unlock progress graphs, muscle group charts, and strength analytics.</div>

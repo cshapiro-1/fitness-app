@@ -50,6 +50,7 @@ import { CoachWalkthroughModal } from "./components/CoachWalkthroughModal";
 import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
+import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 import { Compass, Menu } from "lucide-react";
@@ -658,175 +659,49 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             <Menu size={18} />
           </button>
 
-          {/* AI Performance Assistant */}
+          {/* AI Performance Assistant Primary CTA */}
           <button
             type="button"
             onClick={() => setIsAIChatOpen(true)}
             className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#1e40af",
+              fontWeight: 700,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              cursor: "pointer",
+              padding: "6px 12px",
+              borderRadius: "8px",
+            }}
             title="Ask AI about Athlete Logs, History & Analytics"
           >
-            <Sparkles size={14} style={{ color: "#2563eb" }} />
-            <span className="hide-mobile">AI Assistant</span>
+            <Sparkles size={15} style={{ color: "#2563eb" }} />
+            <span>Ask AI</span>
           </button>
 
-          {/* Dashboard Graphical Tour */}
-          <button
-            type="button"
-            onClick={() => setIsTourOpen(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#0f172a", fontWeight: 700, cursor: "pointer" }}
-            title="Take Graphical Dashboard Tour"
-          >
-            <Compass size={14} style={{ color: "#2563eb" }} />
-            <span className="hide-mobile">Tour</span>
-          </button>
-
-          {/* Coach-Governed AI Walkthrough / Guide */}
-          <button
-            type="button"
-            onClick={() => setIsCoachWalkthroughOpen(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
-            title="Review Coach-Governed AI Philosophy & Features"
-          >
-            <ShieldCheck size={14} style={{ color: "#2563eb" }} />
-            <span className="hide-mobile">Coach AI Guide</span>
-          </button>
-
-          {/* Recovery */}
-          <Link
-            href="/recovery"
-            className="nav-btn"
-            style={{ fontWeight: 600 }}
-            title="Pre/post workout warm-ups, stretches, and recovery"
-          >
-            <span className="hide-mobile">Recovery</span>
-          </Link>
-
-          {/* Nutrition & Macros Planner */}
-          <Link
-            href="/nutrition"
-            className="nav-btn"
-            style={{ fontWeight: 600 }}
-            title="Nutrition plans and macro tracker"
-          >
-            <span className="hide-mobile">Nutrition &amp; Macros</span>
-          </Link>
-
-          {/* What's New / Release Notes */}
-          <button
-            type="button"
-            onClick={() => setIsReleaseNotesOpen(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
-            title="What's New in STRKYR"
-          >
-            <Sparkles size={14} />
-            <span className="hide-mobile">What&apos;s New</span>
-          </button>
-
-          {/* Switch Role Button */}
-          <Link
-            href="/onboarding"
-            className="nav-btn"
-          >
-            <span className="hide-mobile">Switch Role</span>
-          </Link>
-
-          {/* Quick Client Portal Switch for Admins & Service Accounts */}
-          {(isAdmin || subInfo?.isAdmin) && (
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/user/role", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ role: "CLIENT" }),
-                });
-                window.location.href = "/dashboard";
-              }}
-              className="nav-btn"
-              style={{ background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0", cursor: "pointer" }}
-              title="Preview Athlete / Client Portal"
-            >
-              <UserCheck size={14} />
-              <span className="hide-mobile">Client View</span>
-            </button>
-          )}
-
-          {/* Admin Portal Button */}
-          {subInfo?.isAdmin && (
-            <Link
-              href="/admin"
-              className="nav-btn nav-btn-dark"
-            >
-              <ShieldCheck size={14} />
-              <span>Admin</span>
-            </Link>
-          )}
-
-          {/* Profile & Billing Action Button */}
-          <button
-            type="button"
-            onClick={() => setIsProfileModalOpen(true)}
-            className="btn-primary"
-            style={{ padding: "6px 12px", fontSize: "12px" }}
-          >
-            <CreditCard size={14} />
-            <span className="hide-mobile">Profile &amp; Billing</span>
-          </button>
-
-          {/* Trainer Avatar & Name */}
-          <div
-            onClick={() => setIsProfileModalOpen(true)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              cursor: "pointer",
-              padding: "3px 8px",
-              borderRadius: "20px",
-              background: "rgba(0,0,0,0.04)",
-              border: "1px solid #e2e8f0",
+          {/* Unified Studio Menu & Profile */}
+          <AppHeaderMenu
+            role="TRAINER"
+            userName={currentTrainerName || userName || "Trainer"}
+            userImage={currentTrainerImage || userImage || session?.user?.image}
+            isAdmin={isAdmin || subInfo?.isAdmin}
+            onOpenTour={() => setIsTourOpen(true)}
+            onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}
+            onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
+            onOpenProfile={() => setIsProfileModalOpen(true)}
+            onOpenPlateCalculator={() => setIsPlateModalOpen(true)}
+            onSwitchToClientView={async () => {
+              await fetch("/api/user/role", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: "CLIENT" }),
+              });
+              window.location.href = "/dashboard";
             }}
-            title="Click to view Trainer Profile & Billing"
-          >
-            {currentTrainerImage ? (
-              <img
-                src={currentTrainerImage}
-                className="avatar"
-                alt={currentTrainerName}
-                referrerPolicy="no-referrer"
-                style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                }}
-              >
-                {currentTrainerName ? currentTrainerName.charAt(0).toUpperCase() : <User size={14} />}
-              </div>
-            )}
-            <span className="header-name" style={{ fontWeight: 600, fontSize: "13px", color: "#0f172a" }}>
-              {currentTrainerName}
-            </span>
-          </div>
-
-          {/* Sign Out */}
-          <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
-            <LogOut size={16} />
-          </button>
+          />
         </div>
       </header>
 

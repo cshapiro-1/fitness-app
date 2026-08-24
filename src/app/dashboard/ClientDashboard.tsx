@@ -35,6 +35,7 @@ import { MobilityTab } from "./components/MobilityTab";
 import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
+import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { Compass, Menu } from "lucide-react";
 
@@ -413,162 +414,48 @@ export function ClientDashboard({
             <Menu size={18} />
           </button>
 
-          {/* AI Performance Assistant */}
+          {/* AI Performance Assistant Primary CTA */}
           <button
             type="button"
             onClick={() => setShowAIChatModal(true)}
             className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
-            title="Ask AI about Your Workout Logs, PRs & Science"
-          >
-            <Sparkles size={14} style={{ color: "#2563eb" }} />
-            <span className="hide-mobile">AI Assistant</span>
-          </button>
-
-          {/* Athlete Graphical Tour */}
-          <button
-            type="button"
-            onClick={() => setShowTourModal(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#0f172a", fontWeight: 700, cursor: "pointer" }}
-            title="Take Graphical Athlete Portal Tour"
-          >
-            <Compass size={14} style={{ color: "#2563eb" }} />
-            <span className="hide-mobile">Tour</span>
-          </button>
-
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className="nav-btn nav-btn-dark"
-            >
-              <ShieldCheck size={14} />
-              <span className="hide-mobile">Admin</span>
-            </Link>
-          )}
-
-          {/* Release Notes / What's New */}
-          <button
-            type="button"
-            onClick={() => setShowReleaseModal(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
-            title="What's New in STRKYR"
-          >
-            <Sparkles size={14} />
-            <span className="hide-mobile">What&apos;s New</span>
-          </button>
-
-          {/* Recovery */}
-          <Link
-            href="/recovery"
-            className="nav-btn"
-            style={{ fontWeight: 600 }}
-            title="Pre/post workout warm-ups, stretches, and recovery"
-          >
-            <span className="hide-mobile">Recovery</span>
-          </Link>
-
-          {/* Nutrition & Macros */}
-          <Link
-            href="/nutrition"
-            className="nav-btn"
-            style={{ fontWeight: 600 }}
-            title="Nutrition & Macros"
-          >
-            <span className="hide-mobile">Nutrition &amp; Macros</span>
-          </Link>
-
-          {/* Admin Coach View Switcher */}
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={async () => {
-                await fetch("/api/user/role", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ role: "TRAINER" }),
-                });
-                window.location.href = "/dashboard";
-              }}
-              className="nav-btn nav-btn-dark"
-              style={{ background: "#1e293b", color: "#f8fafc", cursor: "pointer" }}
-              title="Switch to Coach / Trainer Dashboard"
-            >
-              <Dumbbell size={14} />
-              <span className="hide-mobile">Coach View</span>
-            </button>
-          )}
-
-          {/* Plate Calculator Button */}
-          <button
-            type="button"
-            onClick={() => setShowPlateModal(true)}
-            className="nav-btn"
-            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#2563eb", fontWeight: 600 }}
-            title="Open Barbell Plate Calculator"
-          >
-            <Dumbbell size={14} />
-            <span className="hide-mobile">Plate Math</span>
-          </button>
-
-          {/* Role Switcher */}
-          <Link
-            href="/onboarding"
-            className="nav-btn"
-            style={{ fontSize: "11px", fontWeight: 600, color: "#475569" }}
-            title="Switch Persona / Role"
-          >
-            Switch Role
-          </Link>
-
-          {/* Avatar with Clickable Change Modal */}
-          <div
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
               gap: "6px",
+              color: "#1e40af",
+              fontWeight: 700,
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
               cursor: "pointer",
-              padding: "3px 8px",
-              borderRadius: "20px",
-              background: "rgba(0,0,0,0.04)",
-              border: "1px solid #e2e8f0",
+              padding: "6px 12px",
+              borderRadius: "8px",
             }}
-            onClick={() => setShowPhotoModal(true)}
-            title="Click to update photo"
+            title="Ask AI about Your Workout Logs, PRs & Science"
           >
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={userName}
-                className="avatar"
-                referrerPolicy="no-referrer"
-                style={{ width: "28px", height: "28px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
-              />
-            ) : (
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                }}
-              >
-                {userName ? userName.charAt(0).toUpperCase() : <User size={14} />}
-              </div>
-            )}
-            <span className="header-name hide-mobile" style={{ fontSize: "12px", fontWeight: 600, color: "#0f172a" }}>{userName}</span>
-          </div>
-
-          <button className="signout-btn" onClick={() => signOut({ callbackUrl: "/auth/signin" })} title="Sign out">
-            <LogOut size={16} />
+            <Sparkles size={15} style={{ color: "#2563eb" }} />
+            <span>Ask AI</span>
           </button>
+
+          {/* Unified Athlete Studio Menu & Profile */}
+          <AppHeaderMenu
+            role="CLIENT"
+            userName={userName || "Athlete"}
+            userImage={currentImage || userImage || session?.user?.image}
+            isAdmin={isAdmin}
+            onOpenTour={() => setShowTourModal(true)}
+            onOpenReleaseNotes={() => setShowReleaseModal(true)}
+            onOpenProfile={() => setShowPhotoModal(true)}
+            onOpenPlateCalculator={() => setShowPlateModal(true)}
+            onSwitchToClientView={isAdmin ? async () => {
+              await fetch("/api/user/role", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role: "TRAINER" }),
+              });
+              window.location.href = "/dashboard";
+            } : undefined}
+          />
         </div>
       </header>
 
