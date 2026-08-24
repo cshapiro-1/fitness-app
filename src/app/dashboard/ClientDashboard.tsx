@@ -33,6 +33,7 @@ import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
 import { DashboardTourModal } from "./components/DashboardTourModal";
+import { AIChatDrawer } from "./components/AIChatDrawer";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { Compass } from "lucide-react";
 
@@ -66,6 +67,7 @@ export function ClientDashboard({
   const [showPlateModal, setShowPlateModal] = useState(false);
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
+  const [showAIChatModal, setShowAIChatModal] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
 
   // Auto-launch athlete tour on first join
@@ -399,6 +401,18 @@ export function ClientDashboard({
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* AI Performance Assistant */}
+          <button
+            type="button"
+            onClick={() => setShowAIChatModal(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
+            title="Ask AI about Your Workout Logs, PRs & Science"
+          >
+            <Sparkles size={14} style={{ color: "#2563eb" }} />
+            <span className="hide-mobile">AI Assistant</span>
+          </button>
+
           {/* Athlete Graphical Tour */}
           <button
             type="button"
@@ -1299,6 +1313,13 @@ export function ClientDashboard({
         role="CLIENT"
         isOpen={showTourModal}
         onClose={() => setShowTourModal(false)}
+      />
+
+      {/* Athlete AI Performance Assistant Drawer */}
+      <AIChatDrawer
+        role="CLIENT"
+        isOpen={showAIChatModal}
+        onClose={() => setShowAIChatModal(false)}
       />
     </div>
   );

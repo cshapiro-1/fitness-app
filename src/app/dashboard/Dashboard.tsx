@@ -48,6 +48,7 @@ import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
 import { CoachWalkthroughModal } from "./components/CoachWalkthroughModal";
 import { DashboardTourModal } from "./components/DashboardTourModal";
+import { AIChatDrawer } from "./components/AIChatDrawer";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 import { Compass } from "lucide-react";
@@ -74,6 +75,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [isCoachWalkthroughOpen, setIsCoachWalkthroughOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Auto-launch tour on first join
@@ -644,6 +646,18 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* AI Performance Assistant */}
+          <button
+            type="button"
+            onClick={() => setIsAIChatOpen(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
+            title="Ask AI about Athlete Logs, History & Analytics"
+          >
+            <Sparkles size={14} style={{ color: "#2563eb" }} />
+            <span className="hide-mobile">AI Assistant</span>
+          </button>
+
           {/* Dashboard Graphical Tour */}
           <button
             type="button"
@@ -1500,6 +1514,16 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         role="TRAINER"
         isOpen={isTourOpen}
         onClose={() => setIsTourOpen(false)}
+      />
+
+      {/* AI Performance Assistant Chat Drawer */}
+      <AIChatDrawer
+        role="TRAINER"
+        isOpen={isAIChatOpen}
+        onClose={() => setIsAIChatOpen(false)}
+        clients={clients}
+        selectedClient={selected}
+        onSelectClient={handleRequestSelectClient}
       />
     </div>
   );
