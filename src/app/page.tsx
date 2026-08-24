@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
 import {
   Dumbbell,
   Sparkles,
@@ -42,24 +43,10 @@ export default async function HomePage() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-              color: "#ffffff",
-              borderRadius: "10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 2px 8px rgba(37,99,235,0.3)",
-            }}
-          >
-            <Dumbbell size={20} />
-          </div>
+          <StrkyrLogo size={36} />
           <div>
-            <span style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>STRKYR Fitness</span>
-            <span style={{ fontSize: "10px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "6px", marginLeft: "6px" }}>v1.2</span>
+            <span style={{ fontSize: "18px", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.03em" }}>STRKYR</span>
+            <span style={{ fontSize: "10px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "2px 6px", borderRadius: "6px", marginLeft: "6px" }}>STUDIO</span>
           </div>
         </div>
 

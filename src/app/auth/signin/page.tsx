@@ -6,6 +6,7 @@ import React, { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Shield, Key, ArrowRight, UserCheck, AlertCircle, Sparkles } from "lucide-react";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
 
 function getCleanCallbackUrl(raw: string | null): string {
   if (!raw || typeof raw !== "string") return "/dashboard";
@@ -101,28 +102,18 @@ function SignInContent() {
         }}
       >
         {/* Header Icon & Title */}
-        <div style={{ marginBottom: "1.5rem" }}>
-          <div
-            style={{
-              width: "56px",
-              height: "56px",
-              background: "#eff6ff",
-              color: "#2563eb",
-              borderRadius: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 1rem auto",
-              fontSize: "28px",
-            }}
-          >
-            💪
+        <div style={{ marginBottom: "1.75rem" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.75rem" }}>
+            <StrkyrLogo size={64} />
           </div>
-          <h1 style={{ fontSize: "1.6rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.4rem 0", letterSpacing: "-0.02em" }}>
-            STRKYR Fitness
+          <h1 style={{ fontSize: "1.65rem", fontWeight: 900, color: "#0f172a", margin: "0 0 0.25rem 0", letterSpacing: "-0.03em" }}>
+            STRKYR
           </h1>
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#2563eb", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "0.5rem" }}>
+            STYRKR • COACH STUDIO
+          </div>
           <p style={{ fontSize: "0.875rem", color: "#64748b", margin: 0 }}>
-            Unified platform for coaches and athletes
+            Unified strength &amp; performance platform for coaches and athletes
           </p>
         </div>
 
