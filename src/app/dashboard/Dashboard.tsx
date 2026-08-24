@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   Dumbbell,
   LogOut,
@@ -60,6 +60,7 @@ export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
 }
 
 export function Dashboard({ userName, userImage, isAdmin }: { userName: string; userImage: string | null; isAdmin?: boolean }) {
+  const { data: session } = useSession();
   const [clients, setClients] = useState<Client[]>([]);
   const [selected, setSelected] = useState<Client | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
