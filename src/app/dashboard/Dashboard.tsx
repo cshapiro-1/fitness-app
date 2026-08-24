@@ -46,6 +46,8 @@ import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { AIRoutineGeneratorModal } from "./components/AIRoutineGeneratorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
+import { CoachWalkthroughModal } from "./components/CoachWalkthroughModal";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
@@ -68,6 +70,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isPlateModalOpen, setIsPlateModalOpen] = useState(false);
   const [isAIRoutineModalOpen, setIsAIRoutineModalOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+  const [isCoachWalkthroughOpen, setIsCoachWalkthroughOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
@@ -619,27 +622,26 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       {/* App Header */}
       {/* App Header */}
       <header className="header">
-        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              background: "#2563eb",
-              color: "#ffffff",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Dumbbell size={18} />
-          </div>
-          <span className="header-title" style={{ fontWeight: 800, letterSpacing: "-0.02em", color: "#0f172a" }}>
+        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <StrkyrLogo size={32} />
+          <span className="header-title" style={{ fontWeight: 900, letterSpacing: "-0.03em", color: "#0f172a" }}>
             STRKYR Studio
           </span>
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Coach-Governed AI Walkthrough / Guide */}
+          <button
+            type="button"
+            onClick={() => setIsCoachWalkthroughOpen(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#1e40af", fontWeight: 700, background: "#eff6ff", border: "1px solid #bfdbfe", cursor: "pointer" }}
+            title="Review Coach-Governed AI Philosophy & Features"
+          >
+            <ShieldCheck size={14} style={{ color: "#2563eb" }} />
+            <span className="hide-mobile">Coach AI Guide</span>
+          </button>
+
           {/* Recovery */}
           <Link
             href="/recovery"
@@ -1459,6 +1461,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       <ReleaseNotesModal
         isOpen={isReleaseNotesOpen}
         onClose={() => setIsReleaseNotesOpen(false)}
+      />
+
+      {/* Coach-Governed AI Platform Walkthrough Modal */}
+      <CoachWalkthroughModal
+        isOpen={isCoachWalkthroughOpen}
+        onClose={() => setIsCoachWalkthroughOpen(false)}
       />
     </div>
   );

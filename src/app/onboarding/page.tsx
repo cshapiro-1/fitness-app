@@ -1,11 +1,8 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-  Dumbbell,
   Users,
   Sparkles,
   ArrowRight,
@@ -16,10 +13,11 @@ import {
   UserPlus,
   Briefcase,
   Zap,
-  Flame,
   Award,
   Link2,
 } from "lucide-react";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
+import { CoachWalkthroughModal } from "@/app/dashboard/components/CoachWalkthroughModal";
 
 export default function OnboardingPage() {
   const { data: session, update } = useSession();
@@ -31,7 +29,7 @@ export default function OnboardingPage() {
   const [studioName, setStudioName] = useState("");
   const [specialty, setSpecialty] = useState("Hypertrophy & Strength");
   const [experienceYears, setExperienceYears] = useState("3-5 years");
-  const [firstClientOption, setFirstClientOption] = useState<"sample" | "custom" | "skip">("sample");
+  const [firstClientOption, setFirstClientOption] = useState<"custom" | "skip">("custom");
   const [customClientName, setCustomClientName] = useState("");
   const [customClientEmail, setCustomClientEmail] = useState("");
 
@@ -56,7 +54,7 @@ export default function OnboardingPage() {
         }),
       });
 
-      // 3. Create first client if custom specified
+      // 3. Create first real client if specified
       if (firstClientOption === "custom" && customClientName.trim()) {
         await fetch("/api/clients", {
           method: "POST",
@@ -99,7 +97,7 @@ export default function OnboardingPage() {
           borderRadius: "20px",
           boxShadow: "0 20px 40px -10px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05)",
           border: "1px solid #e2e8f0",
-          maxWidth: "560px",
+          maxWidth: "600px",
           width: "100%",
         }}
       >
@@ -109,7 +107,7 @@ export default function OnboardingPage() {
             <div
               key={s}
               style={{
-                width: step >= s ? "32px" : "10px",
+                width: step >= s ? "36px" : "10px",
                 height: "6px",
                 borderRadius: "3px",
                 background: step >= s ? "#2563eb" : "#e2e8f0",
@@ -123,20 +121,8 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div>
             <div style={{ textAlign: "center", marginBottom: "28px" }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  borderRadius: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px auto",
-                }}
-              >
-                <Briefcase size={28} />
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
+                <StrkyrLogo size={52} />
               </div>
               <h1 style={{ fontSize: "24px", fontWeight: 900, color: "#0f172a", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
                 Coach Studio Setup
@@ -227,13 +213,13 @@ export default function OnboardingPage() {
                 boxShadow: "0 4px 12px rgba(37,99,235,0.25)",
               }}
             >
-              <span>Continue to Client Roster</span>
+              <span>Continue to Client Setup</span>
               <ArrowRight size={16} />
             </button>
           </div>
         )}
 
-        {/* STEP 2: ADD FIRST CLIENT / ATHLETE */}
+        {/* STEP 2: ADD FIRST CLIENT (REAL CLIENT OR SKIP) */}
         {step === 2 && (
           <div>
             <div style={{ textAlign: "center", marginBottom: "24px" }}>
@@ -241,36 +227,12 @@ export default function OnboardingPage() {
                 Add Your First Client
               </h2>
               <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-                Every client gets an automatic 1-click invite link with free portal access.
+                Every client gets an automatic 1-click invite link with free athlete portal access.
               </p>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
-              {/* Option A: Sample Client */}
-              <div
-                onClick={() => setFirstClientOption("sample")}
-                style={{
-                  border: firstClientOption === "sample" ? "2px solid #2563eb" : "1px solid #e2e8f0",
-                  background: firstClientOption === "sample" ? "#f0f7ff" : "#ffffff",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                }}
-              >
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
-                  <Users size={18} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>Start with Sample Athletes</div>
-                  <div style={{ fontSize: "12px", color: "#64748b" }}>Pre-loads sample client profiles with workout histories</div>
-                </div>
-                {firstClientOption === "sample" && <CheckCircle2 size={18} style={{ color: "#2563eb" }} />}
-              </div>
-
-              {/* Option B: Custom Real Client */}
+              {/* Option A: Custom Real Client */}
               <div
                 onClick={() => setFirstClientOption("custom")}
                 style={{
@@ -284,11 +246,11 @@ export default function OnboardingPage() {
                   gap: "12px",
                 }}
               >
-                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: "#475569" }}>
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#2563eb" }}>
                   <UserPlus size={18} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>Add Real Client Now</div>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>Add Athlete Now</div>
                   <div style={{ fontSize: "12px", color: "#64748b" }}>Create client profile and generate instant invite link</div>
                 </div>
                 {firstClientOption === "custom" && <CheckCircle2 size={18} style={{ color: "#2563eb" }} />}
@@ -297,7 +259,7 @@ export default function OnboardingPage() {
               {firstClientOption === "custom" && (
                 <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", marginTop: "4px" }}>
                   <div style={{ marginBottom: "10px" }}>
-                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>Client Name</label>
+                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>Athlete Full Name</label>
                     <input
                       type="text"
                       value={customClientName}
@@ -307,7 +269,7 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>Client Email (Optional)</label>
+                    <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>Athlete Email (Optional)</label>
                     <input
                       type="email"
                       value={customClientEmail}
@@ -318,6 +280,30 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               )}
+
+              {/* Option B: Skip for now */}
+              <div
+                onClick={() => setFirstClientOption("skip")}
+                style={{
+                  border: firstClientOption === "skip" ? "2px solid #2563eb" : "1px solid #e2e8f0",
+                  background: firstClientOption === "skip" ? "#f0f7ff" : "#ffffff",
+                  borderRadius: "12px",
+                  padding: "16px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
+                  <Users size={18} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>I&apos;ll Add Clients Later</div>
+                  <div style={{ fontSize: "12px", color: "#64748b" }}>Explore your studio dashboard and program workouts first</div>
+                </div>
+                {firstClientOption === "skip" && <CheckCircle2 size={18} style={{ color: "#2563eb" }} />}
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: "12px" }}>
@@ -333,105 +319,28 @@ export default function OnboardingPage() {
                 onClick={() => setStep(3)}
                 style={{ flex: 1, padding: "12px 20px", borderRadius: "10px", background: "#2563eb", color: "#ffffff", border: "none", fontWeight: 700, fontSize: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", cursor: "pointer" }}
               >
-                <span>Continue to Summary</span>
+                <span>Continue to Coach Walkthrough</span>
                 <ArrowRight size={16} />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: REVIEW & LAUNCH STUDIO */}
+        {/* STEP 3: COACH-GOVERNED AI INTERACTIVE WALKTHROUGH */}
         {step === 3 && (
           <div>
-            <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <div
-                style={{
-                  width: "56px",
-                  height: "56px",
-                  background: "#dcfce7",
-                  color: "#16a34a",
-                  borderRadius: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 12px auto",
-                }}
-              >
-                <Award size={28} />
-              </div>
-              <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
-                Your Coach Studio is Ready!
-              </h2>
-              <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-                30-Day Full Access Coach Pass Activated
-              </p>
-            </div>
+            <CoachWalkthroughModal
+              isOpen={true}
+              isEmbedded={true}
+              onClose={() => {}}
+              onComplete={finishOnboarding}
+            />
 
-            {/* Studio Summary Card */}
-            <div
-              style={{
-                background: "#f8fafc",
-                border: "1px solid #e2e8f0",
-                borderRadius: "14px",
-                padding: "16px",
-                marginBottom: "20px",
-              }}
-            >
-              <div style={{ fontSize: "11px", fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "6px" }}>
-                Studio Profile
+            {loading && (
+              <div style={{ textAlign: "center", marginTop: "12px", fontSize: "13px", color: "#2563eb", fontWeight: 700 }}>
+                Launching your Coach Studio...
               </div>
-              <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", marginBottom: "2px" }}>
-                {coachName || "Head Coach"}
-              </div>
-              <div style={{ fontSize: "13px", color: "#64748b" }}>
-                {specialty} • {experienceYears} experience
-              </div>
-              {firstClientOption === "custom" && customClientName && (
-                <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #e2e8f0", fontSize: "12px", color: "#1e293b" }}>
-                  <b>First Client:</b> {customClientName} (Instant invite link will be generated)
-                </div>
-              )}
-            </div>
-
-            {/* Features list */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "24px" }}>
-              {[
-                "Unlimited Athlete & Client Roster Management",
-                "Instant 1-Click Athlete Invite Links",
-                "AI Periodized Workout Prescription",
-                "Interactive 3D Muscle Anatomy Guides",
-                "Personal & Client Workout History Logging",
-              ].map((feat, idx) => (
-                <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#334155" }}>
-                  <CheckCircle2 size={16} style={{ color: "#16a34a", flexShrink: 0 }} />
-                  <span>{feat}</span>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={finishOnboarding}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: "12px",
-                background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                color: "#ffffff",
-                border: "none",
-                fontWeight: 800,
-                fontSize: "15px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-              }}
-            >
-              <span>{loading ? "Launching Studio..." : "Launch Coach Studio"}</span>
-              <ArrowRight size={16} />
-            </button>
+            )}
           </div>
         )}
       </div>
