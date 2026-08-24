@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Trash2, Calendar, Filter, RotateCcw, Copy, Check } from "lucide-react";
+import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare } from "lucide-react";
 import { WorkoutSession } from "../types";
 import { getMuscleGroup } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
@@ -11,11 +11,18 @@ interface WorkoutHistoryProps {
   loadingWorkouts: boolean;
   onDeleteWorkout: (id: string) => void;
   onRepeatWorkout?: (workout: WorkoutSession) => void;
+  onOpenTextImport?: () => void;
 }
 
 const MUSCLE_GROUPS = ["ALL", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Other"];
 
-export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWorkout, onRepeatWorkout }: WorkoutHistoryProps) {
+export function WorkoutHistory({
+  completedWorkouts,
+  loadingWorkouts,
+  onDeleteWorkout,
+  onRepeatWorkout,
+  onOpenTextImport,
+}: WorkoutHistoryProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("ALL");
@@ -175,7 +182,21 @@ export function WorkoutHistory({ completedWorkouts, loadingWorkouts, onDeleteWor
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
-        <h3 className="section-title" style={{ margin: 0 }}>Workout History</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h3 className="section-title" style={{ margin: 0 }}>Workout History</h3>
+          {onOpenTextImport && (
+            <button
+              type="button"
+              onClick={onOpenTextImport}
+              className="btn-secondary"
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#2563eb", borderColor: "#bfdbfe", background: "#eff6ff", padding: "4px 10px", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+              title="Backfill past workouts from Android SMS or text messages"
+            >
+              <MessageSquare size={13} />
+              <span>Import from Text Messages</span>
+            </button>
+          )}
+        </div>
 
         {/* Quick Date Presets */}
         <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
