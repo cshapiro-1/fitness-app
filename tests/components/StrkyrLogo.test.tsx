@@ -18,11 +18,13 @@ describe("StrkyrLogo Nordic Strength Logo Component", () => {
     expect(getByText("COACH STUDIO")).toBeDefined();
   });
 
-  it("should render valknut-barbell and mjolnir-plate variants properly", () => {
-    const { container: c1 } = render(<StrkyrLogo variant="valknut-barbell" size={48} />);
-    expect(c1.querySelector("svg")).toBeDefined();
-
-    const { container: c2 } = render(<StrkyrLogo variant="mjolnir-plate" size={48} />);
-    expect(c2.querySelector("svg")).toBeDefined();
+  it("should render all 5 minimalist Mjolnir hammer/barbell variants properly", () => {
+    const variants = ["mjolnir-tbar", "mjolnir-anvil-hub", "mjolnir-cross", "mjolnir-monoline", "mjolnir-wedge"] as const;
+    for (const v of variants) {
+      const { container } = render(<StrkyrLogo variant={v} size={48} />);
+      const svg = container.querySelector("svg");
+      expect(svg).toBeDefined();
+      expect(svg?.getAttribute("width")).toBe("48");
+    }
   });
 });
