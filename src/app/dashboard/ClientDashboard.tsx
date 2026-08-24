@@ -24,6 +24,8 @@ import {
   Filter,
   Copy,
   Trash2,
+  Edit3,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { isDefaultBodyweight } from "./utils/exerciseLibrary";
@@ -36,6 +38,7 @@ import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
+import { EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { Compass, Menu } from "lucide-react";
 
@@ -65,6 +68,7 @@ export function ClientDashboard({
   const [tab, setTab] = useState<"assigned" | "history" | "analytics" | "mobility">("assigned");
 
   const [currentImage, setCurrentImage] = useState<string | null>(userImage);
+  const [editingWorkout, setEditingWorkout] = useState<any | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showPlateModal, setShowPlateModal] = useState(false);
   const [showReleaseModal, setShowReleaseModal] = useState(false);
@@ -735,6 +739,30 @@ export function ClientDashboard({
                       );
                     })}
                   </div>
+
+                  {/* Workout Action Buttons */}
+                  <div style={{ display: "flex", gap: "8px", marginTop: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditingWorkout(workout)}
+                      className="btn-secondary"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 12px" }}
+                      title="Edit planned exercises, sets, weights and notes"
+                    >
+                      <Edit3 size={13} />
+                      <span>Edit Plan</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingWorkout(workout)}
+                      className="btn-primary"
+                      style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 14px", background: "#16a34a", color: "#ffffff" }}
+                      title="Track, adjust, and complete this workout"
+                    >
+                      <CheckCircle2 size={13} />
+                      <span>Log &amp; Complete</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1225,6 +1253,27 @@ export function ClientDashboard({
         role="CLIENT"
         isOpen={showAIChatModal}
         onClose={() => setShowAIChatModal(false)}
+      />
+
+      {/* Edit Assigned Workout Modal */}
+      <EditAssignedWorkoutModal
+        isOpen={!!editingWorkout}
+        workout={editingWorkout}
+        onClose={() => setEditingWorkout(null)}
+        onSaved={(updated) => {
+          setWorkouts((prev) => {
+            const idx = prev.findIndex((w) => w.id === updated.id);
+            if (idx >= 0) {
+              const next = [...prev];
+              next[idx] = updated;
+              return next;
+            }
+            return [updated, ...prev];
+          });
+          if (updated.status === "COMPLETED") {
+            setTab("history");
+          }
+        }}
       />
 
       {/* Mobile Slide-Out Navigation Drawer */}

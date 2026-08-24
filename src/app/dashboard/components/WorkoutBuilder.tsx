@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame } from "lucide-react";
+import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame, Edit3 } from "lucide-react";
 import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
@@ -22,6 +22,7 @@ interface WorkoutBuilderProps {
   onClearDraftNotice?: () => void;
   onStartWorkout: () => void;
   onBeginPlannedWorkout: (workout: WorkoutSession) => void;
+  onEditPlannedWorkout?: (workout: WorkoutSession) => void;
   onSaveWorkoutPlan: () => void;
   onCompleteWorkout: () => void;
   onDiscardWorkout?: () => void;
@@ -373,7 +374,17 @@ export function WorkoutBuilder({
                     </div>
                     <div className="planned-row-meta">{new Date(plannedWorkout.createdAt).toLocaleString()}</div>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => (onEditPlannedWorkout ? onEditPlannedWorkout(plannedWorkout) : onBeginPlannedWorkout(plannedWorkout))}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "5px", padding: "8px 12px", fontSize: "12px" }}
+                      title="Edit planned exercises, sets, weights and notes"
+                    >
+                      <Edit3 size={13} />
+                      <span>Edit Plan</span>
+                    </button>
                     <button className="btn-primary" onClick={() => onBeginPlannedWorkout(plannedWorkout)}>
                       {plannedWorkout.status === "IN_PROGRESS" ? "Resume Workout" : "Begin Workout"}
                     </button>
@@ -782,7 +793,7 @@ export function WorkoutBuilder({
           <div className="workout-action-row" style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
             <button className="btn-secondary" onClick={onSaveWorkoutPlan} disabled={savingPlan || savingWorkout} style={{ padding: "10px 18px", fontSize: "13px" }}>
               <BookmarkPlus size={15} />
-              <span>{savingPlan ? "Saving Plan..." : "Save Workout Plan"}</span>
+              <span>{savingPlan ? "Saving Plan..." : activeWorkout.plannedWorkoutId ? "Save Changes to Plan" : "Save Workout Plan"}</span>
             </button>
             <button
               className="btn-primary complete-btn"

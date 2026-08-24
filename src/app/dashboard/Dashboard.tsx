@@ -525,23 +525,46 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         })),
       };
 
-      const res = await fetch("/api/workouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      if (activeWorkout.plannedWorkoutId) {
+        // Update existing planned workout
+        const res = await fetch(`/api/workouts/${activeWorkout.plannedWorkoutId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
-      if (res.ok) {
-        const saved = await res.json();
-        setWorkouts((prev) => [saved, ...prev]);
-        try {
-          localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
-        } catch {}
-        setActiveWorkout(null);
-        setDraftRestoredNotice(false);
+        if (res.ok) {
+          const updated = await res.json();
+          setWorkouts((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+          try {
+            localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+          } catch {}
+          setActiveWorkout(null);
+          setDraftRestoredNotice(false);
+        } else {
+          const err = await res.json().catch(() => null);
+          alert(err?.error || "Failed to update workout plan.");
+        }
       } else {
-        const err = await res.json().catch(() => null);
-        alert(err?.error || "Failed to save workout plan.");
+        // Create new planned workout
+        const res = await fetch("/api/workouts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const saved = await res.json();
+          setWorkouts((prev) => [saved, ...prev]);
+          try {
+            localStorage.removeItem(`fitcoach_active_draft_${selected.id}`);
+          } catch {}
+          setActiveWorkout(null);
+          setDraftRestoredNotice(false);
+        } else {
+          const err = await res.json().catch(() => null);
+          alert(err?.error || "Failed to save workout plan.");
+        }
       }
     } catch {
       alert("Error saving workout plan.");
@@ -1078,6 +1101,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onClearDraftNotice={() => setDraftRestoredNotice(false)}
                   onStartWorkout={startWorkout}
                   onBeginPlannedWorkout={beginPlannedWorkout}
+                  onEditPlannedWorkout={beginPlannedWorkout}
                   onSaveWorkoutPlan={saveWorkoutPlan}
                   onCompleteWorkout={completeWorkout}
                   onDiscardWorkout={discardActiveWorkout}
