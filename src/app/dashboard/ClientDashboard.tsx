@@ -34,8 +34,9 @@ import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
 import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
+import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
-import { Compass } from "lucide-react";
+import { Compass, Menu } from "lucide-react";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -68,6 +69,7 @@ export function ClientDashboard({
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
   const [showAIChatModal, setShowAIChatModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
 
   // Auto-launch athlete tour on first join
@@ -401,6 +403,16 @@ export function ClientDashboard({
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Mobile Hamburger Menu Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="mobile-menu-btn"
+            title="Open Mobile Navigation Menu"
+          >
+            <Menu size={18} />
+          </button>
+
           {/* AI Performance Assistant */}
           <button
             type="button"
@@ -1320,6 +1332,18 @@ export function ClientDashboard({
         role="CLIENT"
         isOpen={showAIChatModal}
         onClose={() => setShowAIChatModal(false)}
+      />
+
+      {/* Mobile Slide-Out Navigation Drawer */}
+      <MobileNavDrawer
+        role="CLIENT"
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        userName={userName}
+        userImage={currentImage}
+        isAdmin={isAdmin}
+        onOpenTour={() => setShowTourModal(true)}
+        onOpenReleaseNotes={() => setShowReleaseModal(true)}
       />
     </div>
   );

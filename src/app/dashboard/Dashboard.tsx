@@ -49,9 +49,10 @@ import { MobilityTab } from "./components/MobilityTab";
 import { CoachWalkthroughModal } from "./components/CoachWalkthroughModal";
 import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
+import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
-import { Compass } from "lucide-react";
+import { Compass, Menu } from "lucide-react";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -76,6 +77,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isCoachWalkthroughOpen, setIsCoachWalkthroughOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Auto-launch tour on first join
@@ -646,6 +648,16 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Mobile Hamburger Menu Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="mobile-menu-btn"
+            title="Open Mobile Navigation Menu"
+          >
+            <Menu size={18} />
+          </button>
+
           {/* AI Performance Assistant */}
           <button
             type="button"
@@ -1524,6 +1536,20 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         clients={clients}
         selectedClient={selected}
         onSelectClient={handleRequestSelectClient}
+      />
+
+      {/* Mobile Slide-Out Navigation Drawer */}
+      <MobileNavDrawer
+        role="TRAINER"
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        userName={userName}
+        userImage={userImage}
+        isAdmin={isAdmin || subInfo?.isAdmin}
+        onOpenTour={() => setIsTourOpen(true)}
+        onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}
+        onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
       />
     </div>
   );
