@@ -2,6 +2,8 @@
 
 import React from "react";
 
+export type LogoVariant = "srune-barbell" | "valknut-barbell" | "mjolnir-plate";
+
 interface StrkyrLogoProps {
   size?: number;
   className?: string;
@@ -9,20 +11,21 @@ interface StrkyrLogoProps {
   textColor?: string;
   subtitle?: string;
   accentColor?: string;
+  variant?: LogoVariant;
 }
 
 /**
- * STRKYR (Old Norse for Strength / Fortitude)
- * Precision 2D Scandinavian Monoline Valknut.
- * Minimalist geometric interlocking ribbon triangles with a single electric cobalt accent.
+ * STRKYR Brandmark
+ * Sleek Nordic Minimalism fused with clear Strength & Barbell Fitness symbolism.
  */
 export function StrkyrLogo({
   size = 56,
   className = "",
   withText = false,
   textColor = "#0f172a",
-  subtitle = "COACH STUDIO",
+  subtitle = "STRENGTH & PERFORMANCE",
   accentColor = "#2563eb",
+  variant = "srune-barbell",
 }: StrkyrLogoProps) {
   return (
     <div
@@ -34,39 +37,114 @@ export function StrkyrLogo({
         userSelect: "none",
       }}
     >
-      {/* Precision 2D Monoline Valknut Vector */}
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 100 100"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ flexShrink: 0 }}
-      >
-        {/* Triangle 1: Top Apex (Matte Obsidian) */}
-        <path
-          d="M50 14 L76 58 L66 58 L50 30 L34 58 L24 58 Z"
-          fill="#0f172a"
-        />
+      {/* 1. S-Rune Barbell Monogram (Olympic Barbell fused into an angular Nordic 'S') */}
+      {variant === "srune-barbell" && (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ flexShrink: 0 }}
+        >
+          {/* Top Barbell Plate & Sleeve (Left) */}
+          <rect x="14" y="20" width="8" height="28" rx="2" fill="#0f172a" />
+          <rect x="24" y="24" width="5" height="20" rx="1.5" fill="#64748b" />
+          {/* Top Barbell Bar */}
+          <rect x="29" y="31" width="48" height="6" rx="2" fill="#0f172a" />
+          {/* Top Right Plate */}
+          <rect x="77" y="20" width="8" height="28" rx="2" fill="#0f172a" />
+          <rect x="71" y="24" width="5" height="20" rx="1.5" fill="#64748b" />
 
-        {/* Triangle 2: Bottom Right (Electric Cobalt Accent Core) */}
-        <path
-          d="M62 36 L88 80 L28 80 L33 71 L73 71 L57 44 Z"
-          fill={accentColor}
-        />
+          {/* Central Nordic Angular S-Spine connecting the two barbells */}
+          <path
+            d="M72 31 L34 69"
+            stroke={accentColor}
+            strokeWidth="7"
+            strokeLinecap="round"
+          />
 
-        {/* Triangle 3: Bottom Left (Matte Obsidian Interlock) */}
-        <path
-          d="M38 36 L43 44 L27 71 L67 71 L72 80 L12 80 Z"
-          fill="#0f172a"
-        />
+          {/* Bottom Barbell Bar */}
+          <rect x="23" y="63" width="48" height="6" rx="2" fill="#0f172a" />
+          {/* Bottom Left Plate */}
+          <rect x="15" y="52" width="8" height="28" rx="2" fill="#0f172a" />
+          <rect x="25" y="56" width="5" height="20" rx="1.5" fill="#64748b" />
+          {/* Bottom Right Plate */}
+          <rect x="78" y="52" width="8" height="28" rx="2" fill="#0f172a" />
+          <rect x="71" y="56" width="5" height="20" rx="1.5" fill="#64748b" />
 
-        {/* Precision Interlocking Corner Highlights */}
-        <path
-          d="M50 14 L55 23 L45 23 Z"
-          fill="#0f172a"
-        />
-      </svg>
+          {/* Center Knurling Grip Accents */}
+          <circle cx="50" cy="50" r="3" fill={accentColor} />
+        </svg>
+      )}
+
+      {/* 2. Barbell Valknut (Three Interlocking Olympic Plates in Valknut Formation) */}
+      {variant === "valknut-barbell" && (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ flexShrink: 0 }}
+        >
+          {/* Top Olympic Weight Plate */}
+          <circle cx="50" cy="30" r="18" stroke="#0f172a" strokeWidth="5" fill="none" />
+          <circle cx="50" cy="30" r="6" fill={accentColor} />
+          {/* Top Plate Collar Notches */}
+          <line x1="50" y1="12" x2="50" y2="18" stroke="#0f172a" strokeWidth="3" />
+          <line x1="50" y1="42" x2="50" y2="48" stroke="#0f172a" strokeWidth="3" />
+
+          {/* Bottom Left Olympic Weight Plate */}
+          <circle cx="34" cy="65" r="18" stroke="#0f172a" strokeWidth="5" fill="none" />
+          <circle cx="34" cy="65" r="6" fill="#0f172a" />
+
+          {/* Bottom Right Olympic Weight Plate */}
+          <circle cx="66" cy="65" r="18" stroke={accentColor} strokeWidth="5" fill="none" />
+          <circle cx="66" cy="65" r="6" fill={accentColor} />
+
+          {/* Interlocking Tri-Bar Vectors */}
+          <path d="M50 30 L34 65" stroke="#64748b" strokeWidth="2.5" strokeDasharray="3 3" />
+          <path d="M34 65 L66 65" stroke="#64748b" strokeWidth="2.5" strokeDasharray="3 3" />
+          <path d="M66 65 L50 30" stroke="#64748b" strokeWidth="2.5" strokeDasharray="3 3" />
+        </svg>
+      )}
+
+      {/* 3. Mjölnir Plate (Thor's Hammer Silhouette with Barbell Shaft & Weight Hub) */}
+      {variant === "mjolnir-plate" && (
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ flexShrink: 0 }}
+        >
+          {/* Hammer Head (Anvil / Bumper Block) */}
+          <path
+            d="M24 20 L76 20 L80 34 L72 38 L28 38 L20 34 Z"
+            fill="#0f172a"
+          />
+          {/* Inner Power Channel */}
+          <path
+            d="M32 26 L68 26"
+            stroke={accentColor}
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          {/* Barbell Knurled Shaft */}
+          <rect x="46" y="38" width="8" height="34" fill="#0f172a" />
+          <line x1="46" y1="46" x2="54" y2="46" stroke="#64748b" strokeWidth="1.5" />
+          <line x1="46" y1="54" x2="54" y2="54" stroke="#64748b" strokeWidth="1.5" />
+          <line x1="46" y1="62" x2="54" y2="62" stroke="#64748b" strokeWidth="1.5" />
+          {/* Bottom Barbell Collar Plate Base */}
+          <path
+            d="M34 72 L66 72 L72 82 L28 82 Z"
+            fill="#0f172a"
+          />
+          <circle cx="50" cy="77" r="2.5" fill={accentColor} />
+        </svg>
+      )}
 
       {/* Modern Wordmark */}
       {withText && (
@@ -76,7 +154,7 @@ export function StrkyrLogo({
               fontSize: `${Math.round(size * 0.42)}px`,
               fontWeight: 900,
               color: textColor,
-              letterSpacing: "-0.04em",
+              letterSpacing: "-0.03em",
               lineHeight: 1,
               fontFamily: "system-ui, -apple-system, sans-serif",
             }}
