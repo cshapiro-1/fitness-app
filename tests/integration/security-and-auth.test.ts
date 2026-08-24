@@ -164,7 +164,7 @@ describe("Backend Security & Authentication Suite", () => {
         role: "TRAINER",
       });
 
-      const session = await getServerSession({} as any);
+      const session = (await getServerSession({} as any)) as any;
       expect(session?.user?.image).toBe("https://lh3.googleusercontent.com/a/test-avatar");
       expect(session?.user?.name).toBe("Collin Shapiro");
     });
@@ -179,7 +179,7 @@ describe("Backend Security & Authentication Suite", () => {
         },
       });
 
-      const session = await getServerSession({} as any);
+      const session = (await getServerSession({} as any)) as any;
       expect(session?.user?.email).toContain("appleid.com");
       expect(session?.user?.role).toBe("CLIENT");
     });
