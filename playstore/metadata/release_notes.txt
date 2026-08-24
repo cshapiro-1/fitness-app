@@ -1,0 +1,6 @@
+Initial Production Release of STRKYR:
+• Coach-Governed AI workout builder and natural language routine generation
+• Real-time athlete set logger, rest stopwatch, and 120+ exercise 3D anatomy guides
+• Deep kinematic analytics, 1RM trajectory modeling, and push/pull symmetry tracker
+• Scoped AI Performance Assistant with role-based privacy boundaries
+• Graphical onboarding walkthrough and tab tour

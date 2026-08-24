@@ -1,0 +1,129 @@
+name: Google Play Store Release & Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Google Play Release Track (internal, alpha, beta, production)'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      status:
+        description: 'Release Status (completed, draft, inProgress, halted)'
+        required: true
+        default: 'completed'
+        type: choice
+        options:
+          - completed
+          - draft
+          - inProgress
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-publish:
+    name: Build Signed AAB & Publish to Google Play
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm install
+
+      - name: Validate Prisma Schema & Generate Client
+        run: |
+          npx prisma validate
+          npx prisma generate
+
+      - name: Build Web Application
+        run: npx next build
+        env:
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mockdb?sslmode=disable"
+          NEXTAUTH_SECRET: "ci-build-mock-secret-fitcoach-2026"
+          NEXTAUTH_URL: "https://strkyr.fit"
+
+      - name: Sync Native Capacitor Android Assets
+        run: npx cap sync android
+
+      - name: Configure Production Signing Keystore
+        run: |
+          cd android/app
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "Decoding release keystore from GitHub Secrets..."
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > strkyr-release.keystore
+          else
+            echo "Generating production self-signed keystore for AAB signing..."
+            keytool -genkeypair -v \
+              -keystore strkyr-release.keystore \
+              -alias strkyr \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "StrkyrRelease2026!" \
+              -keypass "StrkyrRelease2026!" \
+              -dname "CN=Collin Shapiro, OU=Mobile Engineering, O=STRKYR, L=Austin, ST=Texas, C=US"
+          fi
+
+      - name: Compile Signed Android Release Bundle (AAB) & APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon
+        env:
+          KEYSTORE_FILE: "strkyr-release.keystore"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'StrkyrRelease2026!' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'strkyr' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'StrkyrRelease2026!' }}
+
+      - name: Upload Signed Google Play AAB Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: strkyr-google-play-signed-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 30
+
+      - name: Upload Signed Universal APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: strkyr-android-signed-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+      - name: Publish to Google Play Store Track
+        if: ${{ env.HAVE_PLAY_SECRET == 'true' }}
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.strkyr.app
+          releaseFiles: android/app/build/outputs/bundle/release/*.aab
+          track: ${{ github.event.inputs.track || 'internal' }}
+          status: ${{ github.event.inputs.status || 'completed' }}
+          whatsNewDirectory: playstore/metadata
+        env:
+          HAVE_PLAY_SECRET: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}

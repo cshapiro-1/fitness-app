@@ -1,0 +1,20 @@
+STRKYR is the modern strength and athletic performance studio built for elite coaches and dedicated athletes. Built upon the philosophy of Coach-Governed AI, STRKYR puts trainers in 100% command while automating routine programming, in-gym exercise tracking, and volume kinematics.
+
+🔥 KEY COACH FEATURES:
+• Workout Builder & AI Co-Pilot: Draft multi-week training splits and periodized routines in seconds from natural language prompts, with full coach approval.
+• 1-Click Athlete Portals: Invite athletes instantly with 1-click magic links. Zero friction, zero client fees.
+• Live Gym Floor Telemetry: Receive instant alerts when athletes modify exercises or report joint fatigue during live sessions.
+• Deep Kinematic Analytics: Track progressive overload velocity, estimated 1-Rep Max (1RM) progression curves, and push/pull muscular balance ratios.
+• Automated Client Dunning: Seamless Stripe recurring billing, trial management, and automated client retention notices.
+
+⚡ KEY ATHLETE FEATURES:
+• Assigned Workouts: View daily programs prescribed directly by your master coach.
+• Real-Time Set Logger: Track working sets, reps, and RPE with automated rest timers.
+• 3D Muscle Anatomy Guides: High-fidelity anatomical illustrations showing primary and secondary target muscle groups for over 120+ compound and isolation lifts.
+• Plate Loading Calculator: Instant visual barbell math for standard 45lb and 35lb Olympic bars.
+• Recovery & Mobility: Curated warmup protocols and post-workout cooldown stretches.
+• AI Performance Assistant: Scoped directly to your personal logs for exercise substitutions and PR trajectory guidance.
+
+Privacy Policy: https://strkyr.fit/privacy
+Terms of Service: https://strkyr.fit/terms
+Support: collin@strkyr.fit

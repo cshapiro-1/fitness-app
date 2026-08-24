@@ -3,12 +3,13 @@ apply plugin: 'com.android.application'
 android {
     namespace "com.strkyr.app"
     compileSdk rootProject.ext.compileSdkVersion
+
     defaultConfig {
         applicationId "com.strkyr.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 100
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +17,34 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            def ksFile = System.getenv("KEYSTORE_FILE") ?: "strkyr-release.keystore"
+            def ksPassword = System.getenv("KEYSTORE_PASSWORD") ?: "StrkyrRelease2026!"
+            def kAlias = System.getenv("KEY_ALIAS") ?: "strkyr"
+            def kPassword = System.getenv("KEY_PASSWORD") ?: "StrkyrRelease2026!"
+
+            if (file(ksFile).exists()) {
+                storeFile file(ksFile)
+                storePassword ksPassword
+                keyAlias kAlias
+                keyPassword kPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (file(System.getenv("KEYSTORE_FILE") ?: "strkyr-release.keystore").exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
         }
     }
 }

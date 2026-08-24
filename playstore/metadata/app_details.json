@@ -1,0 +1,21 @@
+{
+  "packageName": "com.strkyr.app",
+  "versionCode": 100,
+  "versionName": "1.0.0",
+  "category": "HEALTH_AND_FITNESS",
+  "containsAds": false,
+  "contentRating": "EVERYONE",
+  "defaultLanguage": "en-US",
+  "developerEmail": "collin@strkyr.fit",
+  "privacyPolicyUrl": "https://strkyr.fit/privacy",
+  "termsUrl": "https://strkyr.fit/terms",
+  "website": "https://strkyr.fit",
+  "features": [
+    "Coach-Governed AI Routine Generation",
+    "Real-Time Athlete Workout Logger",
+    "Rest Stopwatch & Plate Calculator",
+    "120+ Exercise 3D Anatomical Guides",
+    "Kinematic Volume & 1RM Progression Modeling",
+    "Role-Scoped AI Performance Assistant"
+  ]
+}
