@@ -527,6 +527,20 @@ export function TrainerProfileModal({
               </div>
             </div>
 
+            {/* Direct Founder Contact Link on Profile */}
+            <div style={{ marginTop: "16px", padding: "12px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>Need Help or Have Feature Feedback?</div>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Reach founder Collin Shapiro directly for concierge assistance.</div>
+              </div>
+              <a
+                href="mailto:collin.shapiro1@gmail.com?subject=STRKYR%20Trainer%20Support"
+                style={{ fontSize: "12px", fontWeight: 700, color: "#2563eb", textDecoration: "underline", flexShrink: 0 }}
+              >
+                collin.shapiro1@gmail.com
+              </a>
+            </div>
+
             {/* Footer */}
             <div className="client-modal-footer" style={{ marginTop: "12px" }}>
               <div />
@@ -757,10 +771,24 @@ export function TrainerProfileModal({
                 {loadingCheckout
                   ? "Processing..."
                   : subInfo?.status === "active"
-                  ? `Renew Subscription (${selectedPlan === "annual" ? "$200/year" : "$20/month"})`
-                  : `Activate Pro Subscription (${selectedPlan === "annual" ? "$200/year" : "$20/month"})`}
+                  ? `Renew Subscription (${selectedPlan === "annual" ? "$200/year" : "$19/month"})`
+                  : `Activate Pro Subscription (${selectedPlan === "annual" ? "$200/year" : "$19/month"})`}
               </span>
             </button>
+
+            {/* Direct Founder & Invoicing Support */}
+            <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <div>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a" }}>Custom Invoicing or Billing Questions?</div>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Reach founder Collin Shapiro directly for instant support.</div>
+              </div>
+              <a
+                href="mailto:collin.shapiro1@gmail.com?subject=STRKYR%20Billing%20Support"
+                style={{ fontSize: "12px", fontWeight: 700, color: "#2563eb", textDecoration: "underline", flexShrink: 0 }}
+              >
+                collin.shapiro1@gmail.com
+              </a>
+            </div>
 
             {/* Restore Purchases (App Store Requirement) */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "12px", borderTop: "1px solid #e2e8f0" }}>

@@ -69,4 +69,67 @@ describe("Workout Email Notification Generator", () => {
 
     expect(result).toBe(true);
   });
+
+  it("should generate 2-day trial expiry reminder email with founder contact link", async () => {
+    const { generateTrialExpiryEmailHtml, sendTrialExpiryReminderEmail } = await import("@/lib/email");
+    const { subject, html } = generateTrialExpiryEmailHtml({
+      recipientEmail: "coach@gym.com",
+      recipientName: "Coach Dave",
+      daysRemaining: 2,
+    });
+
+    expect(subject).toContain("2 Days Left");
+    expect(html).toContain("Coach Dave");
+    expect(html).toContain("collin.shapiro1@gmail.com");
+    expect(html).toContain("Subscribe Now");
+
+    const res = await sendTrialExpiryReminderEmail({
+      recipientEmail: "coach@gym.com",
+      recipientName: "Coach Dave",
+      daysRemaining: 2,
+    });
+    expect(res).toBe(true);
+  });
+
+  it("should generate lapsed subscription dunning email with reactivate link and founder email", async () => {
+    const { generateLapsedSubscriptionEmailHtml, sendLapsedSubscriptionReminderEmail } = await import("@/lib/email");
+    const { subject, html } = generateLapsedSubscriptionEmailHtml({
+      recipientEmail: "lapsed@gym.com",
+      recipientName: "Coach Sarah",
+      daysLapsed: 3,
+    });
+
+    expect(subject).toContain("Reactivate Your STRKYR Coach Studio Access");
+    expect(html).toContain("3 days ago");
+    expect(html).toContain("collin.shapiro1@gmail.com");
+    expect(html).toContain("Reactivate Studio");
+
+    const res = await sendLapsedSubscriptionReminderEmail({
+      recipientEmail: "lapsed@gym.com",
+      recipientName: "Coach Sarah",
+      daysLapsed: 3,
+    });
+    expect(res).toBe(true);
+  });
+
+  it("should generate quarterly 90-day feedback survey email for trainers and clients", async () => {
+    const { generateQuarterlyFeedbackEmailHtml, sendQuarterlyFeedbackEmail } = await import("@/lib/email");
+    const { subject, html } = generateQuarterlyFeedbackEmailHtml({
+      recipientEmail: "trainer@gym.com",
+      recipientName: "Coach Alex",
+      role: "TRAINER",
+    });
+
+    expect(subject).toContain("Quick Check-in from Collin");
+    expect(html).toContain("Coach Alex");
+    expect(html).toContain("collin.shapiro1@gmail.com");
+    expect(html).toContain("3 months");
+
+    const res = await sendQuarterlyFeedbackEmail({
+      recipientEmail: "trainer@gym.com",
+      recipientName: "Coach Alex",
+      role: "TRAINER",
+    });
+    expect(res).toBe(true);
+  });
 });
