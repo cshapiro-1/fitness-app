@@ -42,6 +42,7 @@ export function WorkoutBuilder({
   onClearDraftNotice,
   onStartWorkout,
   onBeginPlannedWorkout,
+  onEditPlannedWorkout,
   onSaveWorkoutPlan,
   onCompleteWorkout,
   onDiscardWorkout,
