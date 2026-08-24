@@ -73,6 +73,12 @@ export function ClientDashboard({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
 
+  useEffect(() => {
+    if (session?.user?.image && !currentImage) {
+      setCurrentImage(session.user.image);
+    }
+  }, [session, currentImage]);
+
   // Auto-launch athlete tour on first join
   useEffect(() => {
     try {

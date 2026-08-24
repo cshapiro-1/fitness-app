@@ -112,6 +112,15 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [currentTrainerImage, setCurrentTrainerImage] = useState<string | null>(userImage);
   const [currentTrainerName, setCurrentTrainerName] = useState<string>(userName);
 
+  useEffect(() => {
+    if (session?.user?.image && !currentTrainerImage) {
+      setCurrentTrainerImage(session.user.image);
+    }
+    if (session?.user?.name && !currentTrainerName) {
+      setCurrentTrainerName(session.user.name);
+    }
+  }, [session, currentTrainerImage, currentTrainerName]);
+
   const [tab, setTab] = useState<"log" | "history" | "analytics" | "mobility">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);

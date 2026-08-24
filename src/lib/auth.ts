@@ -109,6 +109,9 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = mapRole((user as any).role);
         token.isAdmin = (user as any).isAdmin;
+        if (user.image) {
+          token.picture = user.image;
+        }
       }
       
       const email = token.email || user?.email;
@@ -121,6 +124,20 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (dbUser) {
+            // Auto-sync image if OAuth provided an image but dbUser has none or updated
+            const incomingImage = user?.image || (token.picture as string);
+            if (incomingImage && (!dbUser.image || dbUser.image !== incomingImage)) {
+              try {
+                await prisma.user.update({
+                  where: { id: dbUser.id },
+                  data: { image: incomingImage },
+                });
+                dbUser.image = incomingImage;
+              } catch (imgErr) {
+                console.error("Failed to update user image:", imgErr);
+              }
+            }
+
             // Auto-link Client Profile if unlinked and matching client exists
             if (!dbUser.clientProfileId) {
               const matchedClient = await prisma.client.findFirst({
@@ -152,7 +169,7 @@ export const authOptions: NextAuthOptions = {
             token.role = mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;
             token.clientProfileId = dbUser.clientProfileId;
-            if (dbUser.image) token.picture = dbUser.image;
+            token.picture = dbUser.image || (token.picture as string) || user?.image || null;
             if (dbUser.name) token.name = dbUser.name;
           }
         } catch (error) {
@@ -175,7 +192,7 @@ export const authOptions: NextAuthOptions = {
               (session.user as any).role = mapRole(dbUser.role);
               (session.user as any).isAdmin = !!dbUser.isAdmin;
               (session.user as any).clientProfileId = dbUser.clientProfileId;
-              if (dbUser.image) session.user.image = dbUser.image;
+              session.user.image = dbUser.image || (token.picture as string) || (session.user as any).image || null;
               if (dbUser.name) session.user.name = dbUser.name;
               return session;
             }
@@ -187,7 +204,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).isAdmin = !!token.isAdmin;
         (session.user as any).clientProfileId = (token as any).clientProfileId;
-        if (token.picture) session.user.image = token.picture as string;
+        session.user.image = (token.picture as string) || (session.user as any).image || null;
         if (token.name) session.user.name = token.name as string;
       }
       return session;

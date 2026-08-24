@@ -17,15 +17,15 @@ export function UserAvatar({
   className = "",
   style = {},
 }: UserAvatarProps) {
-  const [imageError, setImageError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    setImageError(false);
-    setLoaded(false);
+    setHasError(false);
+    setIsLoaded(false);
   }, [src]);
 
-  const initial = name ? name.trim().charAt(0).toUpperCase() : "U";
+  const initial = (name && name.trim().length > 0) ? name.trim().charAt(0).toUpperCase() : "U";
 
   // Deterministic stylish gradient from name
   const gradients = [
@@ -38,43 +38,6 @@ export function UserAvatar({
   const charCode = name ? name.charCodeAt(0) : 0;
   const bgGradient = gradients[charCode % gradients.length];
 
-  if (src && !imageError) {
-    return (
-      <div
-        style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          minWidth: `${size}px`,
-          minHeight: `${size}px`,
-          borderRadius: "50%",
-          overflow: "hidden",
-          position: "relative",
-          background: bgGradient,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          ...style,
-        }}
-        className={className}
-      >
-        <img
-          src={src}
-          alt={name}
-          referrerPolicy="no-referrer"
-          onLoad={() => setLoaded(true)}
-          onError={() => setImageError(true)}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
-          }}
-        />
-      </div>
-    );
-  }
-
   return (
     <div
       style={{
@@ -83,6 +46,8 @@ export function UserAvatar({
         minWidth: `${size}px`,
         minHeight: `${size}px`,
         borderRadius: "50%",
+        overflow: "hidden",
+        position: "relative",
         background: bgGradient,
         color: "#ffffff",
         display: "inline-flex",
@@ -92,11 +57,38 @@ export function UserAvatar({
         fontSize: `${Math.round(size * 0.42)}px`,
         userSelect: "none",
         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        flexShrink: 0,
         ...style,
       }}
       className={className}
     >
-      {initial}
+      {/* Background Initials (Always visible until image fully loads) */}
+      <span style={{ position: "absolute", zIndex: 1, pointerEvents: "none" }}>
+        {initial}
+      </span>
+
+      {/* Foreground Image */}
+      {src && !hasError && (
+        <img
+          src={src}
+          alt={name}
+          referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setHasError(true)}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 2,
+            opacity: isLoaded ? 1 : 0,
+            transition: "opacity 0.2s ease-in-out",
+          }}
+        />
+      )}
     </div>
   );
 }
