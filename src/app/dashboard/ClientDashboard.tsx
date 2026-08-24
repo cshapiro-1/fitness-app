@@ -32,6 +32,9 @@ import { computeAnalytics, getMuscleGroup } from "./utils/analytics";
 import { PlateCalculatorModal } from "./components/PlateCalculatorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
+import { DashboardTourModal } from "./components/DashboardTourModal";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
+import { Compass } from "lucide-react";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -62,7 +65,19 @@ export function ClientDashboard({
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showPlateModal, setShowPlateModal] = useState(false);
   const [showReleaseModal, setShowReleaseModal] = useState(false);
+  const [showTourModal, setShowTourModal] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+
+  // Auto-launch athlete tour on first join
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem("strkyr_tour_seen_client");
+      if (!seen) {
+        const timer = setTimeout(() => setShowTourModal(true), 800);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, []);
 
   // History Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -376,27 +391,26 @@ export function ClientDashboard({
     <div className="app">
       {/* App Header */}
       <header className="header">
-        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              background: "#2563eb",
-              color: "#ffffff",
-              borderRadius: "8px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Dumbbell size={18} />
-          </div>
-          <span className="header-title" style={{ fontWeight: 800, letterSpacing: "-0.02em", color: "#0f172a" }}>
+        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <StrkyrLogo size={32} />
+          <span className="header-title" style={{ fontWeight: 900, letterSpacing: "-0.03em", color: "#0f172a" }}>
             STRKYR Athlete
           </span>
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Athlete Graphical Tour */}
+          <button
+            type="button"
+            onClick={() => setShowTourModal(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#0f172a", fontWeight: 700, cursor: "pointer" }}
+            title="Take Graphical Athlete Portal Tour"
+          >
+            <Compass size={14} style={{ color: "#2563eb" }} />
+            <span className="hide-mobile">Tour</span>
+          </button>
+
           {isAdmin && (
             <Link
               href="/admin"
@@ -1278,6 +1292,13 @@ export function ClientDashboard({
       <ReleaseNotesModal
         isOpen={showReleaseModal}
         onClose={() => setShowReleaseModal(false)}
+      />
+
+      {/* Graphical Athlete Dashboard Tour Modal */}
+      <DashboardTourModal
+        role="CLIENT"
+        isOpen={showTourModal}
+        onClose={() => setShowTourModal(false)}
       />
     </div>
   );

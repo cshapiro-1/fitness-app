@@ -47,8 +47,10 @@ import { AIRoutineGeneratorModal } from "./components/AIRoutineGeneratorModal";
 import { ReleaseNotesModal } from "./components/ReleaseNotesModal";
 import { MobilityTab } from "./components/MobilityTab";
 import { CoachWalkthroughModal } from "./components/CoachWalkthroughModal";
+import { DashboardTourModal } from "./components/DashboardTourModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
+import { Compass } from "lucide-react";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -71,7 +73,19 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isAIRoutineModalOpen, setIsAIRoutineModalOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [isCoachWalkthroughOpen, setIsCoachWalkthroughOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Auto-launch tour on first join
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem("strkyr_tour_seen_trainer");
+      if (!seen) {
+        const timer = setTimeout(() => setIsTourOpen(true), 800);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, []);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
   // Mobile Client Switcher Drawer
@@ -630,6 +644,18 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         </div>
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {/* Dashboard Graphical Tour */}
+          <button
+            type="button"
+            onClick={() => setIsTourOpen(true)}
+            className="nav-btn"
+            style={{ display: "flex", alignItems: "center", gap: "5px", color: "#0f172a", fontWeight: 700, cursor: "pointer" }}
+            title="Take Graphical Dashboard Tour"
+          >
+            <Compass size={14} style={{ color: "#2563eb" }} />
+            <span className="hide-mobile">Tour</span>
+          </button>
+
           {/* Coach-Governed AI Walkthrough / Guide */}
           <button
             type="button"
@@ -1467,6 +1493,13 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       <CoachWalkthroughModal
         isOpen={isCoachWalkthroughOpen}
         onClose={() => setIsCoachWalkthroughOpen(false)}
+      />
+
+      {/* Graphical Dashboard Tour Modal */}
+      <DashboardTourModal
+        role="TRAINER"
+        isOpen={isTourOpen}
+        onClose={() => setIsTourOpen(false)}
       />
     </div>
   );
