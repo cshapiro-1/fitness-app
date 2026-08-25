@@ -22,7 +22,7 @@ import {
   FileText,
 } from "lucide-react";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
-import { parseSMSWorkoutText, ParsedWorkoutSession } from "@/lib/smsWorkoutParser";
+import { parseBulkAndroidFile, ParsedWorkoutSession } from "@/lib/smsWorkoutParser";
 import { Client } from "../types";
 
 export interface TextImportModalProps {
@@ -71,6 +71,7 @@ export function TextImportModal({
   const [rawText, setRawText] = useState("");
   const [selectedTargetClientId, setSelectedTargetClientId] = useState<string>(clientId || "auto");
   const [parsedSessions, setParsedSessions] = useState<ParsedWorkoutSession[]>([]);
+  const [scannedMessagesCount, setScannedMessagesCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -122,12 +123,14 @@ export function TextImportModal({
     }
 
     const knownList = clients.map((c) => ({ id: c.id, name: c.name }));
-    const sessions = parseSMSWorkoutText(rawText, undefined, knownList);
+    const { sessions, totalMessagesScanned } = parseBulkAndroidFile(rawText, knownList);
 
     if (sessions.length === 0) {
       setErrorMsg("Could not detect any valid exercises, sets, or reps. Check the example format below.");
       return;
     }
+
+    setScannedMessagesCount(totalMessagesScanned);
 
     // Apply selected target client if specific client chosen
     const resolvedSessions = sessions.map((s) => {
@@ -536,7 +539,8 @@ export function TextImportModal({
                     ✓ Ready to Import {parsedSessions.length} Workout Sessions
                   </div>
                   <div style={{ fontSize: "12px", color: "#15803d" }}>
-                    Total: {totalExercisesFound} exercises · {totalSetsFound} recorded sets
+                    {scannedMessagesCount > 0 && <span>Scanned {scannedMessagesCount.toLocaleString()} messages · </span>}
+                    {totalExercisesFound} exercises · {totalSetsFound} recorded sets
                   </div>
                 </div>
                 <button
