@@ -38,7 +38,7 @@ import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
-import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { EditWorkoutModal, EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
