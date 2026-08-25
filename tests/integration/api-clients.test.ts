@@ -241,11 +241,13 @@ describe("API: /api/clients", () => {
 
       (prisma.client.findUnique as any).mockResolvedValue({
         id: "c-1",
+        userId: "trainer-1",
         name: "Old Name",
       });
 
       (prisma.client.update as any).mockResolvedValue({
         id: "c-1",
+        userId: "trainer-1",
         name: "New Name",
         email: "new@fit.com",
         phone: "555-9999",
@@ -272,6 +274,12 @@ describe("API: /api/clients", () => {
     it("should delete client", async () => {
       (getServerSession as any).mockResolvedValue({
         user: { id: "trainer-1" },
+      });
+
+      (prisma.client.findUnique as any).mockResolvedValue({
+        id: "c-1",
+        userId: "trainer-1",
+        name: "Client to Delete",
       });
 
       (prisma.client.delete as any).mockResolvedValue({ id: "c-1" });

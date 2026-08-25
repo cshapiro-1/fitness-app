@@ -151,7 +151,14 @@ describe("Workout Delete & Repeat Integration", () => {
   describe("POST /api/workouts (Repeat Workout)", () => {
     it("should allow repeating a workout with status PLANNED", async () => {
       (getServerSession as any).mockResolvedValue({
-        user: { id: "user-1", name: "Athlete John", role: "CLIENT" },
+        user: { id: "user-1", name: "Athlete John", role: "CLIENT", email: "john@fit.com" },
+      });
+
+      (prisma.client.findUnique as any).mockResolvedValue({
+        id: "client-1",
+        userId: "user-1",
+        name: "Athlete John",
+        email: "john@fit.com",
       });
 
       (prisma.workoutSession.create as any).mockResolvedValue({

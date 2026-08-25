@@ -1,9 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
+import { verifyAdminAccess } from "@/lib/adminGuard";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
     const updated = await prisma.user.updateMany({
       data: { role: UserRole.TRAINER },
     });

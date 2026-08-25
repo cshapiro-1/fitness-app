@@ -19,10 +19,10 @@ export interface AdminVerificationResult {
 export async function verifyAdminAccess(
   req?: NextRequest | Request
 ): Promise<AdminVerificationResult> {
-  const adminSecret = process.env.ADMIN_SECRET || process.env.SERVICE_ACCOUNT_PASSWORD || "FitCoachAdmin2026!";
+  const adminSecret = process.env.ADMIN_SECRET || process.env.SERVICE_ACCOUNT_PASSWORD;
 
-  // 1. Check Secret Header Bypass for automated tasks or CLI tools
-  if (req && "headers" in req) {
+  // 1. Check Secret Header Bypass for automated tasks or CLI tools (only if secret is explicitly configured)
+  if (adminSecret && req && "headers" in req) {
     const customHeader = req.headers.get("x-admin-secret");
     const authHeader = req.headers.get("authorization");
 

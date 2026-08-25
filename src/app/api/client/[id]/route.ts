@@ -16,6 +16,17 @@ export async function PATCH(
     const { id: clientId } = await params;
     const { name, notes, fitnessGoals } = await req.json();
 
+    let userId = (session.user as any)?.id;
+    if (!userId && session.user.email) {
+      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+      userId = dbUser?.id;
+    }
+    const isAdmin = (session.user as any)?.isAdmin === true;
+
+    if (userId !== clientId && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You cannot modify another user's profile" }, { status: 403 });
+    }
+
     const updatedClient = await prisma.user.update({
       where: { id: clientId },
       data: {

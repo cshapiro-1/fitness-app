@@ -82,7 +82,8 @@ describe("Backend Security & Authentication Suite", () => {
   });
 
   describe("Hardened Admin Authorization Guard", () => {
-    it("should allow access with matching x-admin-secret header", async () => {
+    it("should allow access with matching x-admin-secret header when ADMIN_SECRET is configured", async () => {
+      process.env.ADMIN_SECRET = "FitCoachAdmin2026!";
       const req = new NextRequest("http://localhost:3000/api/admin/clean-test-data", {
         headers: { "x-admin-secret": "FitCoachAdmin2026!" },
       });
@@ -91,7 +92,8 @@ describe("Backend Security & Authentication Suite", () => {
       expect(auth.authorized).toBe(true);
     });
 
-    it("should allow access with matching Bearer token Authorization header", async () => {
+    it("should allow access with matching Bearer token Authorization header when ADMIN_SECRET is configured", async () => {
+      process.env.ADMIN_SECRET = "FitCoachAdmin2026!";
       const req = new NextRequest("http://localhost:3000/api/admin/setup-service-account", {
         headers: { authorization: "Bearer FitCoachAdmin2026!" },
       });
@@ -100,7 +102,20 @@ describe("Backend Security & Authentication Suite", () => {
       expect(auth.authorized).toBe(true);
     });
 
+    it("should reject secret header when ADMIN_SECRET is not configured or mismatched", async () => {
+      delete process.env.ADMIN_SECRET;
+      delete process.env.SERVICE_ACCOUNT_PASSWORD;
+      const req = new NextRequest("http://localhost:3000/api/admin/stats", {
+        headers: { "x-admin-secret": "FitCoachAdmin2026!" },
+      });
+
+      const auth = await verifyAdminAccess(req);
+      expect(auth.authorized).toBe(false);
+    });
+
     it("should reject unauthenticated admin access with 401", async () => {
+      delete process.env.ADMIN_SECRET;
+      delete process.env.SERVICE_ACCOUNT_PASSWORD;
       (getServerSession as any).mockResolvedValue(null);
       const req = new NextRequest("http://localhost:3000/api/admin/stats");
 

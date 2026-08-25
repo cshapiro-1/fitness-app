@@ -17,12 +17,24 @@ export async function PATCH(
     const { id: clientId } = await params;
     const { name, image, email, phone, notes, fitnessGoals, emailNotifications } = await req.json();
 
+    const userEmail = session.user.email?.toLowerCase().trim();
+    let userId = (session.user as any)?.id;
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      userId = dbUser?.id;
+    }
+    const isAdmin = (session.user as any)?.isAdmin === true;
+
     const client = await prisma.client.findUnique({
       where: { id: clientId },
     });
 
     if (!client) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    if (client.userId !== userId && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to modify this client" }, { status: 403 });
     }
 
     const updatedClient = await prisma.client.update({
@@ -89,7 +101,27 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userEmail = session.user.email?.toLowerCase().trim();
+    let userId = (session.user as any)?.id;
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      userId = dbUser?.id;
+    }
+    const isAdmin = (session.user as any)?.isAdmin === true;
+
     const { id: clientId } = await params;
+
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: "Client not found" }, { status: 404 });
+    }
+
+    if (client.userId !== userId && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to delete this client" }, { status: 403 });
+    }
 
     await prisma.client.delete({
       where: { id: clientId },

@@ -24,11 +24,23 @@ export async function GET(req: NextRequest) {
     let isSelfQuery = false;
 
     if (urlClientId && urlClientId !== "all") {
-      targetClientIds = [urlClientId];
       const targetClient = await prisma.client.findUnique({
         where: { id: urlClientId },
-        select: { name: true, userId: true },
+        select: { id: true, name: true, userId: true, email: true },
       });
+      if (!targetClient) {
+        return NextResponse.json({ error: "Client not found" }, { status: 404 });
+      }
+
+      const isCoach = userId && targetClient.userId === userId;
+      const isAthlete = userEmail && targetClient.email?.toLowerCase() === userEmail;
+      const isAdmin = (session?.user as any)?.isAdmin === true;
+
+      if (!isCoach && !isAthlete && !isAdmin) {
+        return NextResponse.json({ error: "Forbidden: Unauthorized access to client workouts" }, { status: 403 });
+      }
+
+      targetClientIds = [urlClientId];
       if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
         isSelfQuery = true;
         const otherSelfClients = await prisma.client.findMany({
@@ -144,6 +156,23 @@ export async function POST(req: NextRequest) {
     const { clientId, status, startedAt, completedAt, notes, exercises } = body;
     
     if (!clientId || !exercises) return NextResponse.json({ error: "Missing data" }, { status: 400 });
+
+    const targetClient = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
+    });
+
+    if (!targetClient) {
+      return NextResponse.json({ error: "Target client not found" }, { status: 404 });
+    }
+
+    const isCoach = targetClient.userId === userId;
+    const isAthlete = session?.user?.email && targetClient.email?.toLowerCase() === session.user.email.toLowerCase();
+    const isAdmin = (session?.user as any)?.isAdmin === true;
+
+    if (!isCoach && !isAthlete && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You cannot log workouts for this client" }, { status: 403 });
+    }
 
     const cleanNotes = sanitizeText(notes, 1000);
 

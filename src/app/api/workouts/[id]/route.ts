@@ -9,14 +9,32 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const params = await props.params;
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
-    if (!userId && session?.user?.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    const userEmail = session?.user?.email?.toLowerCase().trim();
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
       userId = dbUser?.id;
     }
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
     
     if (params.id.startsWith("session-")) return NextResponse.json({ error: "Cannot modify legacy flat workouts. Please start a new workout." }, { status: 400 });
+
+    const sessionToUpdate = await prisma.workoutSession.findUnique({
+      where: { id: params.id },
+      include: { client: true },
+    });
+
+    if (!sessionToUpdate) {
+      return NextResponse.json({ error: "Workout not found" }, { status: 404 });
+    }
+
+    const isCoach = (userId && sessionToUpdate.client.userId === userId) || (userId && sessionToUpdate.loggedById === userId);
+    const isAthlete = userEmail && sessionToUpdate.client.email?.toLowerCase() === userEmail;
+    const isAdmin = (session?.user as any)?.isAdmin === true;
+
+    if (!isCoach && !isAthlete && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to modify this workout" }, { status: 403 });
+    }
 
     if (body.exercises) {
       await prisma.workoutExercise.deleteMany({ where: { workoutSessionId: params.id } });
@@ -30,7 +48,8 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
           exercises: {
             create: body.exercises.map((ex: any, i: number) => ({
               name: ex.name, order: i,
-              sets: { create: ex.sets.map((s: any, j: number) => ({ order: j, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, notes: s.notes || null })) }
+              category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
+              sets: { create: (ex.sets || []).map((s: any, j: number) => ({ order: j, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, notes: s.notes || null })) }
             }))
           }
         },

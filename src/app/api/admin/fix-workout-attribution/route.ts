@@ -1,9 +1,14 @@
 export const dynamic = "force-dynamic";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminAccess } from "@/lib/adminGuard";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
     // 1. Add columns to PostgreSQL if needed using raw SQL
     try {
       await prisma.$executeRawUnsafe(`
