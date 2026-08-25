@@ -2,9 +2,14 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyAdminAccess } from "@/lib/adminGuard";
 
 export async function GET(req: NextRequest) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
     const clients = await prisma.client.findMany({
       where: {
         OR: [
@@ -51,6 +56,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await verifyAdminAccess(req);
+    if (!auth.authorized) {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
     // 1. Find all client records for Collin
     const collinClients = await prisma.client.findMany({
       where: {
