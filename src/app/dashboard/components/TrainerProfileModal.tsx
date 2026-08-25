@@ -22,6 +22,7 @@ import {
   RotateCcw,
   Trash2,
   AlertTriangle,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { SubscriptionInfo } from "./SubscriptionBanner";
@@ -68,9 +69,10 @@ export function TrainerProfileModal({
   const [restoringPurchases, setRestoringPurchases] = useState(false);
   const [billingSuccessMsg, setBillingSuccessMsg] = useState<string | null>(null);
 
-  // Delete Account State
+  // Data Privacy & Account Deletion State
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -202,6 +204,27 @@ export function TrainerProfileModal({
       alert("Network error during account deletion.");
     } finally {
       setDeletingAccount(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setExportingData(true);
+    try {
+      const res = await fetch("/api/user/export-data");
+      if (!res.ok) throw new Error("Failed to export data");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `strkyr_personal_data_export_${Date.now()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err.message || "Failed to download data export");
+    } finally {
+      setExportingData(false);
     }
   };
 
@@ -486,13 +509,37 @@ export function TrainerProfileModal({
               </div>
             </div>
 
-            {/* Legal Links & Delete Account Section */}
+            {/* Legal Links & Privacy / Data Rights Section */}
             <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #e2e8f0" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
-                <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: "#64748b" }}>
-                  <Link href="/privacy" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Privacy Policy</Link>
-                  <span>•</span>
-                  <Link href="/terms" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Terms of Service</Link>
+                <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={handleExportData}
+                    disabled={exportingData}
+                    style={{
+                      background: "#f1f5f9",
+                      border: "1px solid #cbd5e1",
+                      color: "#1e293b",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      padding: "5px 10px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                    title="Export all personal and workout data in standard JSON format (GDPR Art. 20 / CCPA)"
+                  >
+                    <Download size={13} />
+                    <span>{exportingData ? "Exporting Data..." : "Download My Data (GDPR / CCPA)"}</span>
+                  </button>
+                  <div style={{ display: "flex", gap: "8px", fontSize: "12px", color: "#64748b" }}>
+                    <Link href="/privacy" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Privacy</Link>
+                    <span>•</span>
+                    <Link href="/terms" target="_blank" style={{ color: "#2563eb", textDecoration: "none" }}>Terms</Link>
+                  </div>
                 </div>
 
                 {!showDeleteConfirm ? (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare } from "lucide-react";
+import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus } from "lucide-react";
 import { WorkoutSession } from "../types";
 import { getMuscleGroup } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
@@ -11,6 +11,7 @@ interface WorkoutHistoryProps {
   loadingWorkouts: boolean;
   onDeleteWorkout: (id: string) => void;
   onRepeatWorkout?: (workout: WorkoutSession) => void;
+  onAssignWorkout?: (workout: WorkoutSession) => void;
   onOpenTextImport?: () => void;
 }
 
@@ -21,6 +22,7 @@ export function WorkoutHistory({
   loadingWorkouts,
   onDeleteWorkout,
   onRepeatWorkout,
+  onAssignWorkout,
   onOpenTextImport,
 }: WorkoutHistoryProps) {
   const [startDate, setStartDate] = useState<string>("");
@@ -382,6 +384,32 @@ export function WorkoutHistory({
                   >
                     <RotateCcw size={12} />
                     <span>Repeat</span>
+                  </button>
+                )}
+
+                {/* Assign / Schedule Routine for Client */}
+                {onAssignWorkout && !workout.deletedAt && (
+                  <button
+                    className="btn-primary"
+                    onClick={() => onAssignWorkout(workout)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                    }}
+                    title="Assign or schedule this past workout to a client"
+                  >
+                    <CalendarPlus size={12} />
+                    <span>Assign to Client</span>
                   </button>
                 )}
 

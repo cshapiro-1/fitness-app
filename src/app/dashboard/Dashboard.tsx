@@ -51,6 +51,7 @@ import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
+import { AssignWorkoutModal } from "./components/AssignWorkoutModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 import { Compass, Menu } from "lucide-react";
@@ -124,9 +125,15 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [tab, setTab] = useState<"log" | "history" | "analytics" | "mobility">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
+  const [assigningWorkout, setAssigningWorkout] = useState<WorkoutSession | null>(null);
   const [exercisePicker, setExercisePicker] = useState("");
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
+
+  const totalActiveSets = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return activeWorkout.exercises.reduce((count, ex) => count + ex.sets.length, 0);
+  }, [activeWorkout]);
 
   const fetchSubscription = useCallback(async () => {
     try {
@@ -444,13 +451,9 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedWorkout]);
 
-  // In-app navigation guards
+  // Smooth in-app navigation with persistent draft auto-save
   const handleRequestTab = (targetTab: "log" | "history" | "analytics" | "mobility") => {
-    if (tab === "log" && targetTab !== "log" && hasUnsavedWorkout) {
-      setPendingNavigation({ type: "tab", targetTab });
-    } else {
-      setTab(targetTab);
-    }
+    setTab(targetTab);
   };
 
   const handleRequestSelectClient = (targetClient: Client) => {
@@ -1071,6 +1074,49 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                     </div>
                   )}
 
+                  {/* Active Workout Floating Status Bar */}
+                  {hasUnsavedWorkout && tab !== "log" && (
+                    <div
+                      style={{
+                        background: "linear-gradient(135deg, #1e3a8a, #2563eb)",
+                        color: "#ffffff",
+                        padding: "10px 16px",
+                        borderRadius: "10px",
+                        marginBottom: "12px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600 }}>
+                        <span style={{ fontSize: "16px" }}>⚡</span>
+                        <span>
+                          <b>Active Workout In-Progress</b> ({activeWorkout?.exercises?.length || 0} exercises, {totalActiveSets} sets) · Auto-saved
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTab("log")}
+                        style={{
+                          background: "#ffffff",
+                          color: "#1d4ed8",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                          padding: "6px 14px",
+                          borderRadius: "6px",
+                          border: "none",
+                          cursor: "pointer",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                        }}
+                      >
+                        Return to Workout Logger →
+                      </button>
+                    </div>
+                  )}
+
                   {/* Tabs */}
                   <div className="tabs">
                     {(["log", "history", "analytics", "mobility"] as const).map((currentTab) => (
@@ -1115,6 +1161,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   loadingWorkouts={loadingWorkouts}
                   onDeleteWorkout={deleteWorkout}
                   onRepeatWorkout={handleRepeatWorkout}
+                  onAssignWorkout={(workout) => setAssigningWorkout(workout)}
                 />
               )}
 
@@ -1445,6 +1492,20 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         clients={clients}
         selectedClient={selected}
         onSelectClient={handleRequestSelectClient}
+      />
+
+      {/* Assign Past Workout to Client Modal */}
+      <AssignWorkoutModal
+        isOpen={!!assigningWorkout}
+        workout={assigningWorkout}
+        clients={clients}
+        selectedClientId={selected?.id || ""}
+        onClose={() => setAssigningWorkout(null)}
+        onAssigned={(newWorkout, targetClientId) => {
+          if (selected && selected.id === targetClientId) {
+            setWorkouts((prev) => [newWorkout, ...prev]);
+          }
+        }}
       />
 
       {/* Mobile Slide-Out Navigation Drawer */}
