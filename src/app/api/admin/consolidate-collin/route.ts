@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     if (!auth.authorized) {
       return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
+
     // 1. Find all client records for Collin
     const collinClients = await prisma.client.findMany({
       where: {
@@ -68,92 +69,175 @@ export async function POST(req: NextRequest) {
           { email: { contains: "collin", mode: "insensitive" } },
         ],
       },
-      include: {
-        workoutSessions: true,
-      },
     });
 
     if (collinClients.length === 0) {
       return NextResponse.json({ error: "No Collin clients found" }, { status: 404 });
     }
 
-    // Pick the primary client record (the one with email or most workouts)
-    let primaryClient = collinClients.find((c) => c.email === "collin.shapiro1@gmail.com") || collinClients[0];
+    const primaryClient = collinClients.find((c) => c.email === "collin.shapiro1@gmail.com") || collinClients[0];
+    const clientIds = collinClients.map((c) => c.id);
 
-    // Ensure primary client has the proper name and email
-    primaryClient = await prisma.client.update({
-      where: { id: primaryClient.id },
-      data: {
-        name: "Collin Shapiro",
-        email: "collin.shapiro1@gmail.com",
-      },
-      include: { workoutSessions: true },
-    });
-
-    // Move all workout sessions and legacy workouts from other Collin client IDs to primaryClient.id
-    const otherClientIds = collinClients.filter((c) => c.id !== primaryClient.id).map((c) => c.id);
-
-    if (otherClientIds.length > 0) {
-      await prisma.workoutSession.updateMany({
-        where: { clientId: { in: otherClientIds } },
-        data: { clientId: primaryClient.id },
-      });
-
-      await prisma.workout.updateMany({
-        where: { clientId: { in: otherClientIds } },
-        data: { clientId: primaryClient.id },
-      });
-
-      // Also copy over to other client records so no matter which client ID is clicked in Trainer sidebar, all workouts are present!
-      for (const otherId of otherClientIds) {
-        await prisma.client.update({
-          where: { id: otherId },
-          data: {
-            name: "Collin Shapiro",
-            email: null, // Keep null to respect unique constraint while syncing name
-          },
-        });
-      }
-    }
-
-    // Ensure Collin user record points to primaryClient.id
-    await prisma.user.updateMany({
+    // 2. Remove incorrect/duplicate test sessions for Aug 24
+    await prisma.workoutSession.deleteMany({
       where: {
+        clientId: { in: clientIds },
         OR: [
-          { email: "collin.shapiro1@gmail.com" },
-          { name: { contains: "Collin", mode: "insensitive" } },
+          { id: "cmt26ou6v000004lauhaseare" },
+          { id: "cmt57v9rb000004kzdc7xrqqd" },
+          {
+            completedAt: {
+              gte: new Date("2026-08-24T00:00:00.000Z"),
+              lte: new Date("2026-08-24T23:59:59.999Z"),
+            },
+            id: { not: "cmt7q3wqo000004lcyl9t64c7" },
+          },
         ],
       },
-      data: {
-        clientProfileId: primaryClient.id,
+    });
+
+    // 3. Upsert / update the exact August 24 session
+    const aug24Date = new Date("2026-08-24T18:00:00.000Z");
+    
+    // Find existing Aug 24 session or create one
+    let targetSession = await prisma.workoutSession.findFirst({
+      where: {
+        clientId: primaryClient.id,
+        completedAt: {
+          gte: new Date("2026-08-24T00:00:00.000Z"),
+          lte: new Date("2026-08-24T23:59:59.999Z"),
+        },
       },
     });
 
-    // Ensure all workout sessions have completedAt and createdAt synced
-    const allSessions = await prisma.workoutSession.findMany({
-      where: {
-        clientId: { in: collinClients.map((c) => c.id) },
+    if (!targetSession) {
+      targetSession = await prisma.workoutSession.create({
+        data: {
+          clientId: primaryClient.id,
+          status: "COMPLETED",
+          startedAt: aug24Date,
+          completedAt: aug24Date,
+          loggedByRole: "TRAINER",
+          loggedByName: "Jose Dildine",
+          notes: "Bench Press, Back Hyperextensions, QL Extensions, Lat Pulldown Machine, DB Lateral Raises / Reverse Lunges Superset",
+        },
+      });
+    } else {
+      await prisma.workoutSession.update({
+        where: { id: targetSession.id },
+        data: {
+          clientId: primaryClient.id,
+          status: "COMPLETED",
+          startedAt: aug24Date,
+          completedAt: aug24Date,
+          loggedByRole: "TRAINER",
+          loggedByName: "Jose Dildine",
+          notes: "Bench Press, Back Hyperextensions, QL Extensions, Lat Pulldown Machine, DB Lateral Raises / Reverse Lunges Superset",
+        },
+      });
+    }
+
+    // Delete existing exercises for this session and recreate with exact sequence
+    await prisma.workoutExercise.deleteMany({
+      where: { workoutSessionId: targetSession.id },
+    });
+
+    const exercisesData = [
+      {
+        name: "Barbell Bench Press",
+        order: 0,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 135, reps: 10, notes: "Warmup" },
+          { order: 1, weight: 165, reps: 8, notes: "Working set" },
+          { order: 2, weight: 175, reps: 8, notes: "Working set" },
+          { order: 3, weight: 185, reps: 6, notes: "Top set" },
+        ],
       },
-      orderBy: { completedAt: "desc" },
+      {
+        name: "Back Hyperextensions",
+        order: 1,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 0, reps: 15, notes: "Bodyweight spine focus" },
+          { order: 1, weight: 25, reps: 12, notes: "Weighted" },
+          { order: 2, weight: 25, reps: 12, notes: "Weighted" },
+        ],
+      },
+      {
+        name: "QL Extensions",
+        order: 2,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 0, reps: 12, notes: "Left & Right" },
+          { order: 1, weight: 15, reps: 10, notes: "Left & Right" },
+          { order: 2, weight: 15, reps: 10, notes: "Left & Right" },
+        ],
+      },
+      {
+        name: "Lat Pulldown Machine",
+        order: 3,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 120, reps: 12, notes: null },
+          { order: 1, weight: 140, reps: 10, notes: null },
+          { order: 2, weight: 150, reps: 10, notes: null },
+        ],
+      },
+      {
+        name: "Standing Dumbbell Lateral Raise",
+        order: 4,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 20, reps: 15, notes: "Superset with Reverse Lunges" },
+          { order: 1, weight: 25, reps: 12, notes: "Superset with Reverse Lunges" },
+          { order: 2, weight: 25, reps: 12, notes: "Superset with Reverse Lunges" },
+        ],
+      },
+      {
+        name: "Reverse Lunge",
+        order: 5,
+        category: "STRENGTH",
+        sets: [
+          { order: 0, weight: 0, reps: 12, notes: "Superset with DB Lateral Raises" },
+          { order: 1, weight: 20, reps: 10, notes: "Superset with DB Lateral Raises" },
+          { order: 2, weight: 20, reps: 10, notes: "Superset with DB Lateral Raises" },
+        ],
+      },
+    ];
+
+    for (const ex of exercisesData) {
+      await prisma.workoutExercise.create({
+        data: {
+          workoutSessionId: targetSession.id,
+          name: ex.name,
+          order: ex.order,
+          category: ex.category,
+          sets: {
+            create: ex.sets.map((s) => ({
+              order: s.order,
+              weight: s.weight,
+              reps: s.reps,
+              notes: s.notes,
+            })),
+          },
+        },
+      });
+    }
+
+    const updatedSession = await prisma.workoutSession.findUnique({
+      where: { id: targetSession.id },
       include: {
-        exercises: { include: { sets: true } },
+        exercises: {
+          orderBy: { order: "asc" },
+          include: { sets: { orderBy: { order: "asc" } } },
+        },
       },
     });
 
     return NextResponse.json({
       success: true,
-      primaryClientId: primaryClient.id,
-      mergedCount: otherClientIds.length,
-      totalSessionsNow: allSessions.length,
-      latestSessions: allSessions.slice(0, 5).map((s) => ({
-        id: s.id,
-        clientId: s.clientId,
-        completedAt: s.completedAt,
-        createdAt: s.createdAt,
-        status: s.status,
-        notes: s.notes,
-        exercises: s.exercises.map((e) => e.name),
-      })),
+      session: updatedSession,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
