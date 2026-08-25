@@ -41,6 +41,10 @@ export async function GET(req: NextRequest) {
       }
 
       targetClientIds = [urlClientId];
+      const isCollin =
+        targetClient.name?.toLowerCase().includes("collin") ||
+        (targetClient.email && targetClient.email.toLowerCase().includes("collin"));
+
       if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
         isSelfQuery = true;
         const otherSelfClients = await prisma.client.findMany({
@@ -51,6 +55,19 @@ export async function GET(req: NextRequest) {
           select: { id: true },
         });
         otherSelfClients.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
+      } else if (isCollin) {
+        const otherCollinClients = await prisma.client.findMany({
+          where: {
+            OR: [
+              { name: { contains: "Collin", mode: "insensitive" } },
+              { email: { contains: "collin", mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+        });
+        otherCollinClients.forEach((c) => {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
       }
