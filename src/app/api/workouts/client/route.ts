@@ -39,6 +39,22 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    const userName = (session?.user?.name || dbUser?.name)?.trim();
+    if (userName) {
+      const nameMatchedClients = await prisma.client.findMany({
+        where: {
+          OR: [
+            { name: { equals: userName, mode: "insensitive" } },
+            { name: { contains: userName, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true },
+      });
+      nameMatchedClients.forEach((c) => {
+        if (!clientIds.includes(c.id)) clientIds.push(c.id);
+      });
+    }
+
     if (userId) {
       const selfClients = await prisma.client.findMany({
         where: { userId },
