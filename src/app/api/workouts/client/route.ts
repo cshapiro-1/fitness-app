@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     // Fetch real WorkoutSessions for all matched client IDs or logged by user
     const sessions = await prisma.workoutSession.findMany({
       where: {
+        deletedAt: null,
         OR: [
           ...(clientIds.length > 0 ? [{ clientId: { in: clientIds } }] : []),
           ...(userId ? [{ loggedById: userId }] : []),
@@ -67,7 +68,7 @@ export async function GET(req: NextRequest) {
     // Fetch legacy seeded Workouts and dynamically group them
     const legacyWorkouts = clientIds.length > 0
       ? await prisma.workout.findMany({
-          where: { clientId: { in: clientIds } },
+          where: { deletedAt: null, clientId: { in: clientIds } },
           orderBy: { createdAt: "desc" },
         })
       : [];

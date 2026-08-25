@@ -123,6 +123,37 @@ describe("Workout Delete & Repeat Integration", () => {
       expect(data.workout.deletedByName).toBe("Collin Athlete");
     });
 
+    it("should allow deleting a planned workout and purge it completely", async () => {
+      (getServerSession as any).mockResolvedValue({
+        user: { id: "trainer-1", name: "Coach Mike", email: "trainer@fit.com", role: "TRAINER" },
+      });
+
+      (prisma.user.findUnique as any).mockResolvedValue({
+        id: "trainer-1",
+        name: "Coach Mike",
+        email: "trainer@fit.com",
+        role: "TRAINER",
+      });
+
+      (prisma.workoutSession.findUnique as any).mockResolvedValue({
+        id: "w-planned-1",
+        clientId: "client-1",
+        status: "PLANNED",
+        loggedById: "trainer-1",
+        client: { userId: "trainer-1", email: "client@fit.com" },
+      });
+
+      (prisma.workoutSession.delete as any).mockResolvedValue({ id: "w-planned-1" });
+
+      const req = new NextRequest("http://localhost/api/workouts/w-planned-1", { method: "DELETE" });
+      const res = await deleteWorkout(req, { params: Promise.resolve({ id: "w-planned-1" }) });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.purged).toBe(true);
+      expect(prisma.workoutSession.delete).toHaveBeenCalledWith({ where: { id: "w-planned-1" } });
+    });
+
     it("should prevent unauthorized user from deleting someone else's workout", async () => {
       (getServerSession as any).mockResolvedValue({
         user: { id: "stranger-1", email: "stranger@fit.com", role: "CLIENT" },

@@ -393,11 +393,7 @@ export function WorkoutBuilder({
                       <button
                         type="button"
                         className="btn-ghost-danger"
-                        onClick={() => {
-                          if (confirm("Delete this planned workout? This cannot be undone.")) {
-                            onDeleteWorkout(plannedWorkout.id);
-                          }
-                        }}
+                        onClick={() => onDeleteWorkout(plannedWorkout.id)}
                         title="Delete planned workout"
                         style={{ padding: "8px 10px", borderRadius: "8px" }}
                       >

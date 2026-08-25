@@ -108,9 +108,11 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     }
 
     const shouldPurge = new URL(req.url).searchParams.get("purge") === "true";
-    if (shouldPurge && (isCoach || isAdmin)) {
+    const isPlanned = sessionToDelete.status === "PLANNED";
+
+    if (isPlanned || (shouldPurge && (isCoach || isAdmin))) {
       await prisma.workoutSession.delete({ where: { id: params.id } });
-      return NextResponse.json({ success: true, purged: true });
+      return NextResponse.json({ success: true, purged: true, id: params.id });
     }
 
     const deleterName = session?.user?.name || (isCoach ? "Coach" : "Athlete");
@@ -133,7 +135,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       },
     });
 
-    return NextResponse.json({ success: true, workout: updated });
+    return NextResponse.json({ success: true, id: params.id, workout: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

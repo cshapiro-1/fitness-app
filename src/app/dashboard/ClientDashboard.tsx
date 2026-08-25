@@ -208,18 +208,18 @@ export function ClientDashboard({
   };
 
   const [repeatingWorkoutId, setRepeatingWorkoutId] = useState<string | null>(null);
-
   const handleDeleteWorkout = async (workoutId: string) => {
-    if (!confirm("Are you sure you want to delete this workout? A deletion record will be saved.")) return;
+    const targetWorkout = workouts.find((w) => w.id === workoutId);
+    const isPlanned = targetWorkout?.status === "PLANNED" || targetWorkout?.status === "IN_PROGRESS";
+    const confirmPrompt = isPlanned
+      ? "Are you sure you want to delete this planned workout?"
+      : "Are you sure you want to delete this workout log? A deletion record will be saved.";
+
+    if (!confirm(confirmPrompt)) return;
     try {
       const res = await fetch(`/api/workouts/${workoutId}`, { method: "DELETE" });
       if (res.ok) {
-        const data = await res.json();
-        if (data.workout) {
-          setWorkouts((prev) => prev.map((w) => (w.id === workoutId ? { ...w, ...data.workout } : w)));
-        } else {
-          setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
-        }
+        setWorkouts((prev) => prev.filter((w) => w.id !== workoutId));
       } else {
         const data = await res.json();
         alert(data.error || "Failed to delete workout.");
@@ -257,11 +257,11 @@ export function ClientDashboard({
         setWorkouts((prev) => [created, ...prev]);
         setTab("assigned");
       } else {
-        const err = await res.json();
-        alert(err.error || "Failed to repeat workout.");
+        const data = await res.json();
+        alert(data.error || "Failed to repeat workout.");
       }
     } catch {
-      alert("Network error repeating workout.");
+      alert("Network error while repeating workout.");
     } finally {
       setRepeatingWorkoutId(null);
     }
@@ -269,6 +269,7 @@ export function ClientDashboard({
 
   const completed = useMemo(() => {
     return workouts.filter((w) => {
+      if (w.deletedAt) return false;
       const s = (w.status || "").toUpperCase();
       return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
     });
@@ -276,6 +277,7 @@ export function ClientDashboard({
 
   const planned = useMemo(() => {
     return workouts.filter((w) => {
+      if (w.deletedAt) return false;
       const s = (w.status || "").toUpperCase();
       return s === "PLANNED" || s === "IN_PROGRESS";
     });
