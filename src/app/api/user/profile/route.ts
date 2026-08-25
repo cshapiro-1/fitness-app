@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { checkTrainerSubscription } from "@/lib/subscription";
 
-// GET /api/user/profile - Fetch current trainer profile and billing details
+// GET /api/user/profile - Fetch current user/trainer profile and billing details
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -32,6 +32,7 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
+        clientProfile: true,
         _count: {
           select: {
             clients: true,
@@ -44,6 +45,35 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Resolve avatar with fallbacks if user.image is empty
+    let userAvatar = user.image;
+    if (!userAvatar && user.clientProfile?.image) {
+      userAvatar = user.clientProfile.image;
+    }
+    if (!userAvatar && email) {
+      const matchedClient = await prisma.client.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+        select: { image: true },
+      });
+      if (matchedClient?.image) {
+        userAvatar = matchedClient.image;
+      }
+    }
+
+    // If session has an OAuth image and DB had none, sync it into DB
+    const sessionImage = (session.user as any)?.image;
+    if (!userAvatar && sessionImage) {
+      userAvatar = sessionImage;
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { image: sessionImage },
+        });
+      } catch (err) {
+        console.error("Auto-sync image error:", err);
+      }
+    }
+
     const subInfo = await checkTrainerSubscription(user.id);
 
     return NextResponse.json({
@@ -51,7 +81,7 @@ export async function GET() {
         id: user.id,
         name: user.name,
         email: user.email,
-        image: user.image,
+        image: userAvatar,
         phone: user.phone,
         notes: user.notes,
         fitnessGoals: user.fitnessGoals,
@@ -108,6 +138,25 @@ export async function PATCH(req: NextRequest) {
         ...(fitnessGoals !== undefined && { fitnessGoals: fitnessGoals?.trim() || null }),
       },
     });
+
+    // Also synchronize client table if linked
+    if (image !== undefined && (updated.clientProfileId || updated.email) && prisma.client && typeof prisma.client.updateMany === "function") {
+      try {
+        await prisma.client.updateMany({
+          where: {
+            OR: [
+              ...(updated.clientProfileId ? [{ id: updated.clientProfileId }] : []),
+              ...(updated.email ? [{ email: { equals: updated.email, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          data: {
+            image: image?.trim() || null,
+          },
+        });
+      } catch (clientErr) {
+        console.error("Failed to sync client avatar:", clientErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

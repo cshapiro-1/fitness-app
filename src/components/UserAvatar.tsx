@@ -23,7 +23,18 @@ export function UserAvatar({
     setHasError(false);
   }, [src]);
 
-  const initial = (name && name.trim().length > 0) ? name.trim().charAt(0).toUpperCase() : "U";
+  const cleanSrc = typeof src === "string" ? src.trim() : null;
+  const isValidSrc = !!(
+    cleanSrc &&
+    cleanSrc.length > 0 &&
+    cleanSrc !== "null" &&
+    cleanSrc !== "undefined"
+  );
+
+  const initial =
+    name && name.trim().length > 0
+      ? name.trim().charAt(0).toUpperCase()
+      : "U";
 
   // Deterministic stylish gradient from name
   const gradients = [
@@ -52,7 +63,7 @@ export function UserAvatar({
         alignItems: "center",
         justifyContent: "center",
         fontWeight: 800,
-        fontSize: `${Math.round(size * 0.42)}px`,
+        fontSize: `${Math.max(10, Math.round(size * 0.42))}px`,
         userSelect: "none",
         boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
         flexShrink: 0,
@@ -66,11 +77,13 @@ export function UserAvatar({
       </span>
 
       {/* Foreground Image */}
-      {src && !hasError && (
+      {isValidSrc && !hasError && (
         <img
-          src={src}
-          alt={name}
+          src={cleanSrc}
+          alt={name || "User Avatar"}
           referrerPolicy="no-referrer"
+          crossOrigin="anonymous"
+          loading="eager"
           onError={() => setHasError(true)}
           style={{
             position: "absolute",
@@ -80,6 +93,7 @@ export function UserAvatar({
             height: "100%",
             objectFit: "cover",
             zIndex: 2,
+            display: "block",
           }}
         />
       )}

@@ -12,12 +12,16 @@ describe("UserAvatar Component", () => {
     expect(img).toBeDefined();
     expect(img.getAttribute("src")).toBe(googleUrl);
     expect(img.getAttribute("referrerpolicy")).toBe("no-referrer");
-    expect(img.getAttribute("crossorigin")).toBeNull();
+    expect(img.getAttribute("crossorigin")).toBe("anonymous");
   });
 
-  it("should fallback to name initial if no image src is provided", () => {
-    render(<UserAvatar src={null} name="Collin Shapiro" size={40} />);
+  it("should fallback to name initial if no image src is provided or if src is string literal 'null'", () => {
+    const { unmount } = render(<UserAvatar src={null} name="Collin Shapiro" size={40} />);
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText("C")).toBeDefined();
+    unmount();
 
+    render(<UserAvatar src="null" name="Collin Shapiro" size={40} />);
     expect(screen.queryByRole("img")).toBeNull();
     expect(screen.getByText("C")).toBeDefined();
   });

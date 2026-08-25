@@ -111,6 +111,24 @@ export function ClientDashboard({
     }
   }, [session, currentImage]);
 
+  // Sync profile details on mount
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const res = await fetch("/api/user/profile");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user?.image) {
+            setCurrentImage(data.user.image);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load profile image", err);
+      }
+    }
+    loadProfile();
+  }, []);
+
   // Auto-launch athlete tour on first join
   useEffect(() => {
     try {
