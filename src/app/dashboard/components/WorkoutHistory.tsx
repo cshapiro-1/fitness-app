@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus } from "lucide-react";
+import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus, Edit3 } from "lucide-react";
 import { WorkoutSession } from "../types";
 import { getMuscleGroup } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
@@ -12,6 +12,7 @@ interface WorkoutHistoryProps {
   onDeleteWorkout: (id: string) => void;
   onRepeatWorkout?: (workout: WorkoutSession) => void;
   onAssignWorkout?: (workout: WorkoutSession) => void;
+  onEditWorkout?: (workout: WorkoutSession) => void;
   onOpenTextImport?: () => void;
 }
 
@@ -23,6 +24,7 @@ export function WorkoutHistory({
   onDeleteWorkout,
   onRepeatWorkout,
   onAssignWorkout,
+  onEditWorkout,
   onOpenTextImport,
 }: WorkoutHistoryProps) {
   const [startDate, setStartDate] = useState<string>("");
@@ -392,6 +394,31 @@ export function WorkoutHistory({
             {/* Actions Toolbar - Never overflows */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                {/* Edit Workout Button */}
+                {onEditWorkout && !workout.deletedAt && (
+                  <button
+                    onClick={() => onEditWorkout(workout)}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      background: "#ffffff",
+                      color: "#0f172a",
+                      border: "1px solid #cbd5e1",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                    title="Edit exercises, weights, sets, or date for this workout"
+                  >
+                    <Edit3 size={12} style={{ color: "#2563eb" }} />
+                    <span>Edit</span>
+                  </button>
+                )}
+
                 {/* Repeat Workout Button */}
                 {onRepeatWorkout && (
                   <button

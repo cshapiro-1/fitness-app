@@ -150,4 +150,34 @@ describe("EditAssignedWorkoutModal Component Tests", () => {
       expect(onCloseMock).toHaveBeenCalled();
     });
   });
+
+  it("should render Edit Logged Workout title and Save Workout Updates button for completed sessions", async () => {
+    const mockCompletedWorkout = {
+      id: "completed-wk-456",
+      status: "COMPLETED",
+      completedAt: "2026-08-24T18:00:00.000Z",
+      notes: "Heavy bench and accessories",
+      exercises: [
+        {
+          id: "ex-10",
+          name: "Barbell Bench Press",
+          category: "STRENGTH",
+          sets: [{ id: "s-10", weight: 185, reps: 6, notes: "Top set" }],
+        },
+      ],
+    };
+
+    render(
+      <EditAssignedWorkoutModal
+        isOpen={true}
+        workout={mockCompletedWorkout}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Edit Logged Workout")).toBeDefined();
+    expect(screen.getByText("Save Workout Updates")).toBeDefined();
+    expect(screen.getByDisplayValue("Heavy bench and accessories")).toBeDefined();
+  });
 });

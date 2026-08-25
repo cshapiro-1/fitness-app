@@ -38,7 +38,7 @@ import { DashboardTourModal } from "./components/DashboardTourModal";
 import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
-import { EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
@@ -1033,8 +1033,33 @@ export function ClientDashboard({
                   </div>
 
                   {/* Actions Toolbar - Never overflows */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                      {!workout.deletedAt && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingWorkout(workout)}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            background: "#ffffff",
+                            color: "#0f172a",
+                            border: "1px solid #cbd5e1",
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                          }}
+                          title="Edit exercises, weights, sets, or date for this workout"
+                        >
+                          <Edit3 size={12} style={{ color: "#2563eb" }} />
+                          <span>Edit</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleRepeatWorkout(workout)}

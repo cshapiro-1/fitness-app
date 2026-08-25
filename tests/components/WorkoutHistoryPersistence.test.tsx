@@ -109,6 +109,27 @@ describe("Workout History UI Persistence & Safety Suite", () => {
     expect(onRepeat).toHaveBeenCalledWith(mockSessions[1]);
   });
 
+  it("should trigger onEditWorkout when edit button is clicked", () => {
+    const onDelete = vi.fn();
+    const onEdit = vi.fn();
+
+    render(
+      <WorkoutHistory
+        completedWorkouts={mockSessions}
+        loadingWorkouts={false}
+        onDeleteWorkout={onDelete}
+        onEditWorkout={onEdit}
+      />
+    );
+
+    const editBtns = screen.getAllByRole("button", { name: /edit/i });
+    expect(editBtns.length).toBe(2);
+
+    // Click first edit button
+    fireEvent.click(editBtns[0]);
+    expect(onEdit).toHaveBeenCalledWith(mockSessions[1]);
+  });
+
   it("should cleanly show empty state only when completedWorkouts array is genuinely empty", () => {
     const onDelete = vi.fn();
 

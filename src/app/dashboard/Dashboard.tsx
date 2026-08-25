@@ -52,6 +52,7 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { AssignWorkoutModal } from "./components/AssignWorkoutModal";
+import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
@@ -128,6 +129,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
   const [assigningWorkout, setAssigningWorkout] = useState<WorkoutSession | null>(null);
+  const [editingWorkout, setEditingWorkout] = useState<WorkoutSession | null>(null);
   const [exercisePicker, setExercisePicker] = useState("");
   const [savingWorkout, setSavingWorkout] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -1176,6 +1178,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onDeleteWorkout={deleteWorkout}
                   onRepeatWorkout={handleRepeatWorkout}
                   onAssignWorkout={(workout) => setAssigningWorkout(workout)}
+                  onEditWorkout={(workout) => setEditingWorkout(workout)}
                   onOpenTextImport={() => setIsTextImportOpen(true)}
                 />
               )}
@@ -1520,6 +1523,17 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           if (selected && selected.id === targetClientId) {
             setWorkouts((prev) => [newWorkout, ...prev]);
           }
+        }}
+      />
+
+      {/* Edit Workout Modal (for Completed and Planned Workouts) */}
+      <EditWorkoutModal
+        isOpen={!!editingWorkout}
+        workout={editingWorkout}
+        onClose={() => setEditingWorkout(null)}
+        onSaved={(updated) => {
+          setWorkouts((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+          if (selected) fetchWorkouts(selected.id);
         }}
       />
 

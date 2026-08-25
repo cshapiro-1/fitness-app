@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 export interface EditAssignedWorkoutModalProps {
@@ -17,14 +17,23 @@ export function EditAssignedWorkoutModal({
   onClose,
   onSaved,
 }: EditAssignedWorkoutModalProps) {
+  const [sessionDate, setSessionDate] = useState("");
   const [notes, setNotes] = useState("");
   const [exercises, setExercises] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isCompleted = workout && (
+    (workout.status || "").toUpperCase() === "COMPLETED" ||
+    (!workout.status && (workout.completedAt || (workout.exercises && workout.exercises.length > 0)))
+  );
+
   useEffect(() => {
     if (workout) {
+      const rawDate = workout.completedAt || workout.startedAt || workout.createdAt;
+      const initialDate = rawDate ? new Date(rawDate).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+      setSessionDate(initialDate);
       setNotes(workout.notes || "");
       setExercises(
         (workout.exercises || []).map((ex: any) => ({
@@ -34,8 +43,8 @@ export function EditAssignedWorkoutModal({
           isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name),
           sets: (ex.sets || []).map((s: any) => ({
             id: s.id,
-            weight: s.weight?.toString() || "0",
-            reps: s.reps?.toString() || "10",
+            weight: s.weight !== undefined && s.weight !== null ? s.weight.toString() : "0",
+            reps: s.reps !== undefined && s.reps !== null ? s.reps.toString() : "10",
             notes: s.notes || "",
           })),
         }))
@@ -134,9 +143,14 @@ export function EditAssignedWorkoutModal({
     setError(null);
 
     try {
+      const parsedDate = sessionDate ? new Date(`${sessionDate}T12:00:00.000Z`).toISOString() : undefined;
+      const targetStatus = isCompleted ? "COMPLETED" : markAsCompleted ? "COMPLETED" : "PLANNED";
+      const targetCompletedAt = isCompleted || markAsCompleted ? parsedDate || new Date().toISOString() : undefined;
+
       const payload = {
-        status: markAsCompleted ? "COMPLETED" : "PLANNED",
-        completedAt: markAsCompleted ? new Date().toISOString() : undefined,
+        status: targetStatus,
+        startedAt: parsedDate,
+        completedAt: targetCompletedAt,
         notes: notes.trim() || null,
         exercises: exercises.map((ex, exIdx) => ({
           name: ex.name.trim() || "Exercise",
@@ -147,7 +161,7 @@ export function EditAssignedWorkoutModal({
             order: sIdx,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,
-            notes: s.notes || null,
+            notes: s.notes ? s.notes.trim() : null,
           })),
         })),
       };
@@ -222,10 +236,10 @@ export function EditAssignedWorkoutModal({
             <Dumbbell size={20} style={{ color: "#2563eb" }} />
             <div>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0f172a" }}>
-                Edit Planned Routine
+                {isCompleted ? "Edit Logged Workout" : "Edit Planned Routine"}
               </h3>
               <span style={{ fontSize: "11px", color: "#64748b" }}>
-                Modify target exercises, weights, and sets
+                {isCompleted ? "Update recorded exercises, weights, reps, supersets, and date" : "Modify target exercises, weights, and sets"}
               </span>
             </div>
           </div>
@@ -246,6 +260,31 @@ export function EditAssignedWorkoutModal({
               <span>{error}</span>
             </div>
           )}
+
+          {/* Date & Title Row */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <div>
+              <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                <Calendar size={12} style={{ color: "#2563eb" }} />
+                Workout Date
+              </label>
+              <input
+                type="date"
+                className="input"
+                value={sessionDate}
+                onChange={(e) => setSessionDate(e.target.value)}
+                style={{ width: "100%", fontSize: "13px", padding: "6px 10px" }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                Status
+              </label>
+              <div style={{ padding: "7px 12px", background: isCompleted ? "#f0fdf4" : "#eff6ff", border: `1px solid ${isCompleted ? "#bbf7d0" : "#bfdbfe"}`, borderRadius: "8px", fontSize: "12px", fontWeight: 700, color: isCompleted ? "#16a34a" : "#2563eb" }}>
+                {isCompleted ? "✓ Completed History" : "📋 Planned / Assigned"}
+              </div>
+            </div>
+          </div>
 
           {/* Routine Notes */}
           <div>
@@ -314,15 +353,16 @@ export function EditAssignedWorkoutModal({
 
                 {/* Sets Header & Rows */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr 1.5fr auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
                     <span>Set</span>
-                    <span>Weight (lbs)</span>
+                    <span>Weight</span>
                     <span>Reps</span>
+                    <span>Notes / Superset</span>
                     <span></span>
                   </div>
 
                   {ex.sets.map((s: any, sIdx: number) => (
-                    <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr auto", gap: "6px", alignItems: "center" }}>
+                    <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr 1.5fr auto", gap: "6px", alignItems: "center" }}>
                       <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", textAlign: "center" }}>
                         {sIdx + 1}
                       </span>
@@ -341,6 +381,14 @@ export function EditAssignedWorkoutModal({
                         onChange={(e) => handleUpdateSet(exIdx, sIdx, "reps", e.target.value)}
                         placeholder="10"
                         style={{ padding: "4px 8px", fontSize: "12px", textAlign: "center" }}
+                      />
+                      <input
+                        type="text"
+                        className="input"
+                        value={s.notes || ""}
+                        onChange={(e) => handleUpdateSet(exIdx, sIdx, "notes", e.target.value)}
+                        placeholder="e.g. Superset..."
+                        style={{ padding: "4px 8px", fontSize: "11px" }}
                       />
                       <button
                         type="button"
@@ -413,31 +461,33 @@ export function EditAssignedWorkoutModal({
               }}
             >
               <Save size={14} />
-              <span>{saving ? "Saving..." : "Save Changes"}</span>
+              <span>{saving ? "Saving..." : isCompleted ? "Save Workout Updates" : "Save Changes"}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleSave(true)}
-              disabled={saving || completing}
-              style={{
-                fontSize: "12px",
-                padding: "8px 16px",
-                background: "#16a34a",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontWeight: 700,
-                cursor: saving || completing ? "not-allowed" : "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 1px 3px rgba(22,163,74,0.3)",
-              }}
-            >
-              <CheckCircle2 size={14} />
-              <span>{completing ? "Logging..." : "✓ Log & Complete"}</span>
-            </button>
+            {!isCompleted && (
+              <button
+                type="button"
+                onClick={() => handleSave(true)}
+                disabled={saving || completing}
+                style={{
+                  fontSize: "12px",
+                  padding: "8px 16px",
+                  background: "#16a34a",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  cursor: saving || completing ? "not-allowed" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 1px 3px rgba(22,163,74,0.3)",
+                }}
+              >
+                <CheckCircle2 size={14} />
+                <span>{completing ? "Logging..." : "✓ Log & Complete"}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -445,4 +495,5 @@ export function EditAssignedWorkoutModal({
   );
 }
 
+export const EditWorkoutModal = EditAssignedWorkoutModal;
 export default EditAssignedWorkoutModal;
