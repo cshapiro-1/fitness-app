@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
     // Fetch legacy seeded Workouts and dynamically group them
     const legacyWorkouts = targetClientIds.length > 0
       ? await prisma.workout.findMany({
-          where: { deletedAt: null, clientId: { in: targetClientIds } },
+          where: { clientId: { in: targetClientIds } },
           orderBy: { createdAt: "desc" },
         })
       : [];
