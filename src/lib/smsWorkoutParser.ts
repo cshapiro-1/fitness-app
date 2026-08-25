@@ -16,6 +16,8 @@ export interface ParsedWorkoutSession {
   date: string; // YYYY-MM-DD or ISO string
   title?: string;
   notes?: string;
+  clientId?: string;
+  clientName?: string;
   exercises: ParsedExercise[];
 }
 
@@ -23,11 +25,18 @@ export interface ParsedWorkoutSession {
  * Intelligent SMS / Free-Text Workout Parser.
  * Converts messy text messages, Android SMS logs, WhatsApp chats, or notes into structured workout sessions.
  */
-export function parseSMSWorkoutText(rawText: string, defaultDate?: string): ParsedWorkoutSession[] {
+export function parseSMSWorkoutText(
+  rawText: string,
+  defaultDate?: string,
+  knownClients?: { id: string; name: string }[]
+): ParsedWorkoutSession[] {
   if (!rawText || !rawText.trim()) return [];
 
   const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const sessions: ParsedWorkoutSession[] = [];
+
+  let currentClientName: string | undefined;
+  let currentClientId: string | undefined;
 
   let currentSession: ParsedWorkoutSession | null = null;
   let currentExercise: ParsedExercise | null = null;
@@ -38,6 +47,30 @@ export function parseSMSWorkoutText(rawText: string, defaultDate?: string): Pars
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+
+    // Check if line indicates a client name
+    const clientHeaderMatch = line.match(/^(?:client|athlete|name|for|to):\s*([a-z0-9\s\-'.]+)$/i) ||
+      line.match(/^\[([a-z0-9\s\-'.]+)\]$/i);
+
+    let matchedKnownClient = knownClients?.find(
+      (c) => c.name.trim().toLowerCase() === line.trim().toLowerCase()
+    );
+
+    if (clientHeaderMatch || matchedKnownClient) {
+      const detectedName = matchedKnownClient ? matchedKnownClient.name : clientHeaderMatch![1].trim();
+      const detectedId = matchedKnownClient
+        ? matchedKnownClient.id
+        : knownClients?.find((c) => c.name.trim().toLowerCase() === detectedName.toLowerCase())?.id;
+
+      currentClientName = detectedName;
+      currentClientId = detectedId;
+
+      if (currentSession && currentSession.exercises.length === 0) {
+        currentSession.clientName = currentClientName;
+        currentSession.clientId = currentClientId;
+      }
+      continue;
+    }
 
     // Check if line contains a new date indicator or section divider
     const isDivider = splitDividers.test(line);
@@ -73,6 +106,8 @@ export function parseSMSWorkoutText(rawText: string, defaultDate?: string): Pars
         date: parsedDate,
         title,
         notes: "",
+        clientId: currentClientId,
+        clientName: currentClientName,
         exercises: [],
       };
       currentExercise = null;
@@ -85,6 +120,8 @@ export function parseSMSWorkoutText(rawText: string, defaultDate?: string): Pars
         date: defaultDate || new Date().toISOString().split("T")[0],
         title: "Imported Session",
         notes: "",
+        clientId: currentClientId,
+        clientName: currentClientName,
         exercises: [],
       };
     }

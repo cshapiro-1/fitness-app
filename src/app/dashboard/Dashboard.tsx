@@ -52,6 +52,7 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { AssignWorkoutModal } from "./components/AssignWorkoutModal";
+import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 import { Compass, Menu } from "lucide-react";
@@ -76,6 +77,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isPlateModalOpen, setIsPlateModalOpen] = useState(false);
   const [isAIRoutineModalOpen, setIsAIRoutineModalOpen] = useState(false);
+  const [isTextImportOpen, setIsTextImportOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [isCoachWalkthroughOpen, setIsCoachWalkthroughOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
@@ -739,6 +741,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
             onOpenProfile={() => setIsProfileModalOpen(true)}
             onOpenPlateCalculator={() => setIsPlateModalOpen(true)}
+            onOpenTextImport={() => setIsTextImportOpen(true)}
             onSwitchToClientView={async () => {
               await fetch("/api/user/role", {
                 method: "PATCH",
@@ -1162,6 +1165,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onCompleteWorkout={completeWorkout}
                   onDiscardWorkout={discardActiveWorkout}
                   onDeleteWorkout={deleteWorkout}
+                  onOpenTextImport={() => setIsTextImportOpen(true)}
                 />
               )}
 
@@ -1172,6 +1176,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onDeleteWorkout={deleteWorkout}
                   onRepeatWorkout={handleRepeatWorkout}
                   onAssignWorkout={(workout) => setAssigningWorkout(workout)}
+                  onOpenTextImport={() => setIsTextImportOpen(true)}
                 />
               )}
 
@@ -1518,6 +1523,20 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         }}
       />
 
+      {/* SMS / Text Message Workout Importer Modal */}
+      <TextImportModal
+        isOpen={isTextImportOpen}
+        onClose={() => setIsTextImportOpen(false)}
+        clientId={selected?.id}
+        clientName={selected?.name}
+        clients={clients}
+        role="TRAINER"
+        onImportComplete={() => {
+          if (selected) fetchWorkouts(selected.id);
+          fetchClients();
+        }}
+      />
+
       {/* Mobile Slide-Out Navigation Drawer */}
       <MobileNavDrawer
         role="TRAINER"
@@ -1530,6 +1549,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}
         onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenTextImport={() => setIsTextImportOpen(true)}
       />
     </div>
   );

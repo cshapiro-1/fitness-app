@@ -111,12 +111,39 @@ export async function POST(req: NextRequest) {
     // MODE 2: Commit & Backfill to Database
     const createdSessions = [];
 
+    // Cache trainer's clients for lookup & authorization
+    const trainerClients = userRole === "TRAINER"
+      ? await prisma.client.findMany({ where: { userId: user.id } })
+      : [];
+    const trainerClientMap = new Map(trainerClients.map((c) => [c.id, c]));
+    const trainerClientNameMap = new Map(trainerClients.map((c) => [c.name.trim().toLowerCase(), c]));
+
     for (const s of workoutSessions) {
+      let sessionClientId = s.clientId || targetClientId;
+
+      // If a client name was detected or selected on the card
+      if (!sessionClientId && s.clientName && userRole === "TRAINER") {
+        const found = trainerClientNameMap.get(s.clientName.trim().toLowerCase());
+        if (found) {
+          sessionClientId = found.id;
+        }
+      }
+
+      if (!sessionClientId) {
+        sessionClientId = targetClientId;
+      }
+
+      // Check coach ownership of sessionClientId
+      if (userRole === "TRAINER" && !isAdmin && !trainerClientMap.has(sessionClientId)) {
+        // Skip or default to targetClientId
+        sessionClientId = targetClientId;
+      }
+
       const completedDate = new Date(`${s.date}T12:00:00.000Z`);
 
       const sessionRecord = await prisma.workoutSession.create({
         data: {
-          clientId: targetClientId,
+          clientId: sessionClientId,
           status: "COMPLETED",
           startedAt: completedDate,
           completedAt: completedDate,

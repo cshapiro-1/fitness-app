@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Layers,
+  MessageSquare,
 } from "lucide-react";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { signOut } from "next-auth/react";
@@ -30,6 +31,7 @@ export interface MobileNavDrawerProps {
   onOpenCoachGuide?: () => void;
   onOpenReleaseNotes?: () => void;
   onOpenProfile?: () => void;
+  onOpenTextImport?: () => void;
 }
 
 export function MobileNavDrawer({
@@ -43,6 +45,7 @@ export function MobileNavDrawer({
   onOpenCoachGuide,
   onOpenReleaseNotes,
   onOpenProfile,
+  onOpenTextImport,
 }: MobileNavDrawerProps) {
   if (!isOpen) return null;
 
@@ -183,6 +186,34 @@ export function MobileNavDrawer({
             <Utensils size={18} style={{ color: "#16a34a" }} />
             <span>Nutrition &amp; Macros</span>
           </Link>
+
+          {/* Import Workouts from SMS */}
+          {onOpenTextImport && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenTextImport();
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "none",
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                fontSize: "14px",
+                fontWeight: 700,
+                cursor: "pointer",
+                textAlign: "left",
+                width: "100%",
+              }}
+            >
+              <MessageSquare size={18} style={{ color: "#2563eb" }} />
+              <span>📱 Import from Text / SMS</span>
+            </button>
+          )}
 
           {/* App Tour */}
           {onOpenTour && (

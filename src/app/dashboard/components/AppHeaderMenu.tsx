@@ -15,6 +15,7 @@ import {
   LogOut,
   ChevronDown,
   UserCheck,
+  MessageSquare,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { signOut } from "next-auth/react";
@@ -29,6 +30,7 @@ export interface AppHeaderMenuProps {
   onOpenReleaseNotes: () => void;
   onOpenProfile?: () => void;
   onOpenPlateCalculator?: () => void;
+  onOpenTextImport?: () => void;
   onSwitchToClientView?: () => void;
 }
 
@@ -42,6 +44,7 @@ export function AppHeaderMenu({
   onOpenReleaseNotes,
   onOpenProfile,
   onOpenPlateCalculator,
+  onOpenTextImport,
   onSwitchToClientView,
 }: AppHeaderMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -213,6 +216,35 @@ export function AppHeaderMenu({
               >
                 <Calculator size={16} style={{ color: "#2563eb" }} />
                 <span>Barbell Plate Calculator</span>
+              </button>
+            )}
+
+            {onOpenTextImport && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenTextImport();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "transparent",
+                  color: "#334155",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left",
+                }}
+                className="dropdown-item"
+              >
+                <MessageSquare size={16} style={{ color: "#8b5cf6" }} />
+                <span>Import Text / SMS Workouts</span>
               </button>
             )}
 

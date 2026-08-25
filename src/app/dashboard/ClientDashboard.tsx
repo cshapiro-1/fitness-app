@@ -39,6 +39,7 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { Compass, Menu } from "lucide-react";
 
@@ -71,6 +72,7 @@ export function ClientDashboard({
   const [editingWorkout, setEditingWorkout] = useState<any | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showPlateModal, setShowPlateModal] = useState(false);
+  const [showTextImportModal, setShowTextImportModal] = useState(false);
   const [showReleaseModal, setShowReleaseModal] = useState(false);
   const [showTourModal, setShowTourModal] = useState(false);
   const [showAIChatModal, setShowAIChatModal] = useState(false);
@@ -459,6 +461,7 @@ export function ClientDashboard({
             onOpenReleaseNotes={() => setShowReleaseModal(true)}
             onOpenProfile={() => setShowPhotoModal(true)}
             onOpenPlateCalculator={() => setShowPlateModal(true)}
+            onOpenTextImport={() => setShowTextImportModal(true)}
             onSwitchToClientView={isAdmin ? async () => {
               await fetch("/api/user/role", {
                 method: "PATCH",
@@ -1278,6 +1281,14 @@ export function ClientDashboard({
         }}
       />
 
+      {/* SMS / Text Message Workout Importer Modal */}
+      <TextImportModal
+        isOpen={showTextImportModal}
+        onClose={() => setShowTextImportModal(false)}
+        role="CLIENT"
+        onImportComplete={fetchWorkouts}
+      />
+
       {/* Mobile Slide-Out Navigation Drawer */}
       <MobileNavDrawer
         role="CLIENT"
@@ -1288,6 +1299,7 @@ export function ClientDashboard({
         isAdmin={isAdmin}
         onOpenTour={() => setShowTourModal(true)}
         onOpenReleaseNotes={() => setShowReleaseModal(true)}
+        onOpenTextImport={() => setShowTextImportModal(true)}
       />
     </div>
   );

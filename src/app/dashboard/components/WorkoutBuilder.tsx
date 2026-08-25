@@ -27,6 +27,7 @@ interface WorkoutBuilderProps {
   onCompleteWorkout: () => void;
   onDiscardWorkout?: () => void;
   onDeleteWorkout?: (id: string) => void;
+  onOpenTextImport?: () => void;
 }
 
 export function WorkoutBuilder({
@@ -47,6 +48,7 @@ export function WorkoutBuilder({
   onCompleteWorkout,
   onDiscardWorkout,
   onDeleteWorkout,
+  onOpenTextImport,
 }: WorkoutBuilderProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
@@ -352,7 +354,7 @@ export function WorkoutBuilder({
       {!activeWorkout && (
         <div className="builder-empty">
           <p>Build a new workout or begin a saved workout plan.</p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
             <button className="btn-primary" onClick={onStartWorkout}>Create New Workout</button>
             <button
               className="btn-secondary"
@@ -362,6 +364,25 @@ export function WorkoutBuilder({
               <Dumbbell size={14} />
               <span>Exercise Library</span>
             </button>
+            {onOpenTextImport && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onOpenTextImport}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  borderColor: "#3b82f6",
+                  color: "#1d4ed8",
+                  background: "#eff6ff",
+                  fontWeight: 600,
+                }}
+                title="Import workouts directly from Android text messages, WhatsApp, or notes"
+              >
+                <span>📱 Import from Text / SMS</span>
+              </button>
+            )}
           </div>
 
           {!!plannedWorkouts.length && (
