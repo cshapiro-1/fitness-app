@@ -207,19 +207,20 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Also ensure all Collin clients under Jose have collin.shapiro1@gmail.com
-    await prisma.client.updateMany({
-      where: {
-        userId: jose.id,
-        OR: [
-          { name: { contains: "Collin", mode: "insensitive" } },
-          { email: null },
-        ],
-      },
-      data: {
-        email: "collin.shapiro1@gmail.com",
-      },
-    });
+    // Re-link any workouts from all Collin client variants directly to collinClient.id
+    const allCollinClients = jose.clients.filter((c) =>
+      c.name.toLowerCase().includes("collin")
+    );
+    if (allCollinClients.length > 0) {
+      await prisma.workoutSession.updateMany({
+        where: {
+          clientId: { in: allCollinClients.map((c) => c.id) },
+        },
+        data: {
+          clientId: collinClient.id,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
