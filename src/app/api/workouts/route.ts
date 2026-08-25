@@ -74,6 +74,32 @@ export async function GET(req: NextRequest) {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
       }
+
+      const userName = session?.user?.name?.trim();
+      if (userName) {
+        const parts = userName.split(/\s+/);
+        const firstName = parts[0];
+        const lastName = parts.slice(1).join(" ");
+        const initial = lastName ? lastName[0] : "";
+        const searchTerms = [
+          userName,
+          firstName,
+          initial ? `${firstName} ${initial}.` : "",
+          initial ? `${firstName} ${initial}` : "",
+        ].filter(Boolean);
+
+        const nameMatched = await prisma.client.findMany({
+          where: {
+            OR: searchTerms.map((term) => ({
+              name: { contains: term, mode: "insensitive" as const },
+            })),
+          },
+          select: { id: true },
+        });
+        nameMatched.forEach((c) => {
+          if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+        });
+      }
     }
 
     if (targetClientIds.length === 0 && !userId) {

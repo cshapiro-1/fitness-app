@@ -23,7 +23,21 @@ export async function GET(req: NextRequest) {
       console.warn("Raw SQL alter notice:", e);
     }
 
-    // 2. Backfill existing sessions
+    // 2. Auto-link unlinked Collin clients to collin.shapiro1@gmail.com
+    await prisma.client.updateMany({
+      where: {
+        OR: [
+          { name: { contains: "Collin S", mode: "insensitive" } },
+          { name: { equals: "Collin", mode: "insensitive" } },
+        ],
+        email: null,
+      },
+      data: {
+        email: "collin.shapiro1@gmail.com",
+      },
+    });
+
+    // 3. Backfill existing sessions
     const sessions = await prisma.workoutSession.findMany({
       include: {
         client: {

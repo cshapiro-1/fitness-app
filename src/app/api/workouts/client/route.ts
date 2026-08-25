@@ -41,12 +41,23 @@ export async function GET(req: NextRequest) {
 
     const userName = (session?.user?.name || dbUser?.name)?.trim();
     if (userName) {
+      const parts = userName.split(/\s+/);
+      const firstName = parts[0];
+      const lastName = parts.slice(1).join(" ");
+      const initial = lastName ? lastName[0] : "";
+      
+      const searchTerms = [
+        userName,
+        firstName,
+        initial ? `${firstName} ${initial}.` : "",
+        initial ? `${firstName} ${initial}` : "",
+      ].filter(Boolean);
+
       const nameMatchedClients = await prisma.client.findMany({
         where: {
-          OR: [
-            { name: { equals: userName, mode: "insensitive" } },
-            { name: { contains: userName, mode: "insensitive" } },
-          ],
+          OR: searchTerms.map((term) => ({
+            name: { contains: term, mode: "insensitive" as const },
+          })),
         },
         select: { id: true },
       });
