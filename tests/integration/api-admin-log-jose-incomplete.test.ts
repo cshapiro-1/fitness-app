@@ -3,6 +3,10 @@ import { NextRequest } from "next/server";
 import { GET, POST } from "@/app/api/admin/log-jose-incomplete/route";
 import { prisma } from "@/lib/prisma";
 
+vi.mock("@/lib/adminGuard", () => ({
+  verifyAdminAccess: vi.fn().mockResolvedValue({ authorized: true }),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {

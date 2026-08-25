@@ -37,12 +37,11 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email) return null;
         const cleanEmail = credentials.email.toLowerCase().trim();
-        const servicePassword = process.env.SERVICE_ACCOUNT_PASSWORD || "FitCoachAdmin2026!";
-
+        const servicePassword = process.env.SERVICE_ACCOUNT_PASSWORD;
         try {
           // Master Service Account Check
           if (cleanEmail === "service@fitcoach.pro" || cleanEmail === "admin@fitcoach.pro") {
-            if (credentials.password && credentials.password !== servicePassword) {
+            if (!servicePassword || credentials.password !== servicePassword) {
               return null;
             }
 
@@ -83,6 +82,12 @@ export const authOptions: NextAuthOptions = {
             };
           }
 
+          // In production, non-service accounts MUST authenticate via OAuth (Google/Apple) or verified hash
+          if (process.env.NODE_ENV === "production") {
+            return null;
+          }
+
+          // Development / Test Fallback Only
           const user = await prisma.user.findUnique({
             where: { email: cleanEmail },
           });

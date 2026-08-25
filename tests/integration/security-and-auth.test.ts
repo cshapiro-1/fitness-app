@@ -198,5 +198,36 @@ describe("Backend Security & Authentication Suite", () => {
       expect(session?.user?.email).toContain("appleid.com");
       expect(session?.user?.role).toBe("CLIENT");
     });
+
+    it("should reject unauthenticated trainer account overwrite if email already exists", async () => {
+      const { POST: trainersRoute } = await import("@/app/api/trainers/route");
+      (prisma.user.findUnique as any).mockResolvedValue({
+        id: "existing-user-id",
+        email: "victim@example.com",
+        role: "CLIENT",
+        isAdmin: true,
+      });
+
+      const req = new Request("http://localhost:3000/api/trainers", {
+        method: "POST",
+        body: JSON.stringify({ email: "victim@example.com", name: "Attacker" }),
+      });
+
+      const res = await trainersRoute(req);
+      const data = await res.json();
+      expect(res.status).toBe(409);
+      expect(data.error).toContain("already exists");
+    });
+
+    it("should reject unauthenticated backfill requests", async () => {
+      const { GET: backfillRoute } = await import("@/app/api/admin/backfill-sms-workouts/route");
+      (getServerSession as any).mockResolvedValue(null);
+      delete process.env.ADMIN_SECRET;
+      delete process.env.SERVICE_ACCOUNT_PASSWORD;
+
+      const req = new NextRequest("http://localhost:3000/api/admin/backfill-sms-workouts");
+      const res = await backfillRoute(req);
+      expect(res.status).toBe(401);
+    });
   });
 });

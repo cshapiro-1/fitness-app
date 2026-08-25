@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
         logger.error(`⚠️ Webhook signature verification failed: ${err.message}`);
         return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
       }
+    } else if (process.env.NODE_ENV === "production") {
+      logger.error("⚠️ Stripe webhook rejected: missing stripe-signature header or webhook secret");
+      return NextResponse.json({ error: "Webhook signature verification required in production" }, { status: 400 });
     } else {
       try {
         event = JSON.parse(rawBody);
