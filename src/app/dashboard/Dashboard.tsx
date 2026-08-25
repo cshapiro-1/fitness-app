@@ -1542,8 +1542,8 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         role="TRAINER"
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        userName={userName}
-        userImage={userImage}
+        userName={currentTrainerName || userName}
+        userImage={currentTrainerImage || userImage || session?.user?.image}
         isAdmin={isAdmin || subInfo?.isAdmin}
         onOpenTour={() => setIsTourOpen(true)}
         onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}

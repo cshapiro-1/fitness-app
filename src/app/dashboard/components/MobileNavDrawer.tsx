@@ -18,6 +18,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
+import { UserAvatar } from "@/components/UserAvatar";
 import { signOut } from "next-auth/react";
 
 export interface MobileNavDrawerProps {
@@ -119,22 +120,7 @@ export function MobileNavDrawer({
             gap: "10px",
           }}
         >
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "#2563eb",
-              color: "#ffffff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "14px",
-              fontWeight: 800,
-            }}
-          >
-            {userName ? userName.charAt(0).toUpperCase() : "U"}
-          </div>
+          <UserAvatar src={userImage} name={userName} size={38} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: "14px", fontWeight: 700, color: "#1e3a8a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {userName}

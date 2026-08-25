@@ -1295,7 +1295,7 @@ export function ClientDashboard({
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         userName={userName}
-        userImage={currentImage}
+        userImage={currentImage || userImage || session?.user?.image}
         isAdmin={isAdmin}
         onOpenTour={() => setShowTourModal(true)}
         onOpenReleaseNotes={() => setShowReleaseModal(true)}

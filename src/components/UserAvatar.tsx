@@ -18,11 +18,9 @@ export function UserAvatar({
   style = {},
 }: UserAvatarProps) {
   const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setHasError(false);
-    setIsLoaded(false);
   }, [src]);
 
   const initial = (name && name.trim().length > 0) ? name.trim().charAt(0).toUpperCase() : "U";
@@ -62,7 +60,7 @@ export function UserAvatar({
       }}
       className={className}
     >
-      {/* Background Initials (Always visible until image fully loads) */}
+      {/* Background Initials (Always visible underneath / if image fails) */}
       <span style={{ position: "absolute", zIndex: 1, pointerEvents: "none" }}>
         {initial}
       </span>
@@ -73,8 +71,6 @@ export function UserAvatar({
           src={src}
           alt={name}
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
-          onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
           style={{
             position: "absolute",
@@ -84,8 +80,6 @@ export function UserAvatar({
             height: "100%",
             objectFit: "cover",
             zIndex: 2,
-            opacity: isLoaded ? 1 : 0,
-            transition: "opacity 0.2s ease-in-out",
           }}
         />
       )}

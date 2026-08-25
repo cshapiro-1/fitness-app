@@ -104,7 +104,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, profile, trigger, session: updateSession }) {
       if (user) {
         token.id = user.id;
         token.role = mapRole((user as any).role);
@@ -112,6 +112,12 @@ export const authOptions: NextAuthOptions = {
         if (user.image) {
           token.picture = user.image;
         }
+      }
+      if ((profile as any)?.picture) {
+        token.picture = (profile as any).picture;
+      }
+      if (trigger === "update" && updateSession?.user?.image) {
+        token.picture = updateSession.user.image;
       }
       
       const email = token.email || user?.email;
@@ -125,7 +131,7 @@ export const authOptions: NextAuthOptions = {
 
           if (dbUser) {
             // Auto-sync image if OAuth provided an image but dbUser has none or updated
-            const incomingImage = user?.image || (token.picture as string);
+            const incomingImage = (profile as any)?.picture || user?.image || (token.picture as string);
             if (incomingImage && (!dbUser.image || dbUser.image !== incomingImage)) {
               try {
                 await prisma.user.update({

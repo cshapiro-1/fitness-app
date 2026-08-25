@@ -1,6 +1,7 @@
 "use client";
 
 import { Users, UserPlus, ChevronRight, Trash2, Edit3, User, Link2, Dumbbell } from "lucide-react";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Client } from "../types";
 
 interface ClientSidebarProps {
@@ -75,38 +76,14 @@ export function ClientSidebar({
             >
               {/* Client Avatar Thumbnail */}
               <div style={{ position: "relative", flexShrink: 0, marginRight: "10px" }}>
-                {client.image ? (
-                  <img
-                    src={client.image}
-                    alt={client.name}
-                    referrerPolicy="no-referrer"
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #cbd5e1",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      borderRadius: "50%",
-                      background: isSelfProfile ? "#eff6ff" : "#f1f5f9",
-                      color: isSelfProfile ? "#2563eb" : "#64748b",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "13px",
-                      fontWeight: 700,
-                      border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #e2e8f0",
-                    }}
-                  >
-                    {isSelfProfile ? <Dumbbell size={16} /> : (client.name ? client.name.charAt(0).toUpperCase() : <User size={16} />)}
-                  </div>
-                )}
+                <UserAvatar
+                  src={client.image}
+                  name={client.name}
+                  size={36}
+                  style={{
+                    border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                  }}
+                />
               </div>
 
               <div className="client-item-main">
