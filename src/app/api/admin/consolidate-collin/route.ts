@@ -57,8 +57,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const auth = await verifyAdminAccess(req);
-    const syncSecret = req.headers.get("x-sync-secret");
-    if (!auth.authorized && syncSecret !== "FitCoachAug24Sync2026") {
+    if (!auth.authorized) {
       return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
