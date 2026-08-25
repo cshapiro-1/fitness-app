@@ -54,9 +54,11 @@ export async function GET(req: NextRequest) {
     let expiredUsers = 0;
 
     const formattedUsers = allUsers.map((u: any) => {
-      let computedStatus: "trial" | "active" | "expired" = "expired";
+      let computedStatus: "trial" | "active" | "expired" | "client_free" = "expired";
 
-      if (u.subscribedUntil && new Date(u.subscribedUntil) > now) {
+      if (u.role === "CLIENT") {
+        computedStatus = "client_free";
+      } else if (u.subscribedUntil && new Date(u.subscribedUntil) > now) {
         computedStatus = "active";
         activeSubscriptions++;
       } else if (u.trialEndsAt && new Date(u.trialEndsAt) > now) {

@@ -15,7 +15,7 @@ interface AdminUser {
   role: "TRAINER" | "CLIENT";
   isAdmin: boolean;
   subscriptionStatus: string | null;
-  computedStatus: "trial" | "active" | "expired";
+  computedStatus: "trial" | "active" | "expired" | "client_free";
   trialEndsAt: string | null;
   subscribedUntil: string | null;
   createdAt: string;
@@ -294,10 +294,11 @@ export function AdminPortal({ userName }: { userName: string }) {
               onChange={(e) => setStatusFilter(e.target.value)}
               style={{ fontSize: "12px", padding: "6px 10px" }}
             >
-              <option value="ALL">All Subscription Statuses</option>
-              <option value="ACTIVE">Active Paid</option>
-              <option value="TRIAL">Trialing</option>
-              <option value="EXPIRED">Expired</option>
+              <option value="ALL">All Membership Statuses</option>
+              <option value="ACTIVE">Active Paid (Trainers)</option>
+              <option value="TRIAL">Trialing (Trainers)</option>
+              <option value="EXPIRED">Expired (Trainers)</option>
+              <option value="CLIENT_FREE">Athletes (Free Access)</option>
             </select>
           </div>
 
@@ -340,17 +341,19 @@ export function AdminPortal({ userName }: { userName: string }) {
                       <td style={{ padding: "12px", fontWeight: 600 }}>{u.clientCount}</td>
 
                       <td style={{ padding: "12px" }}>
-                        {u.computedStatus === "active" && (
+                        {u.role === "CLIENT" || u.computedStatus === "client_free" ? (
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <span>✓</span> Free Athlete Access
+                          </span>
+                        ) : u.computedStatus === "active" ? (
                           <span style={{ fontSize: "11px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
                             ✓ Active Paid
                           </span>
-                        )}
-                        {u.computedStatus === "trial" && (
+                        ) : u.computedStatus === "trial" ? (
                           <span style={{ fontSize: "11px", fontWeight: 600, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
                             ⏱ Trialing
                           </span>
-                        )}
-                        {u.computedStatus === "expired" && (
+                        ) : (
                           <span style={{ fontSize: "11px", fontWeight: 600, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
                             🔒 Expired
                           </span>
@@ -362,25 +365,39 @@ export function AdminPortal({ userName }: { userName: string }) {
                       </td>
 
                       <td style={{ padding: "12px", textAlign: "right" }}>
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
-                          <button
-                            onClick={() => handleUpdateUser(u.id, { extendTrialDays: 14 })}
-                            disabled={actionUserId === u.id}
-                            style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
-                            title="Add +14 days to trial"
-                          >
-                            +14D Trial
-                          </button>
+                        {u.role === "CLIENT" ? (
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", alignItems: "center" }}>
+                            <span style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", marginRight: "6px" }}>No Billing Required</span>
+                            <button
+                              onClick={() => handleUpdateUser(u.id, { role: "TRAINER" })}
+                              disabled={actionUserId === u.id}
+                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
+                              title="Convert athlete account to coach account"
+                            >
+                              Make Trainer
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
+                            <button
+                              onClick={() => handleUpdateUser(u.id, { extendTrialDays: 14 })}
+                              disabled={actionUserId === u.id}
+                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
+                              title="Add +14 days to trial"
+                            >
+                              +14D Trial
+                            </button>
 
-                          <button
-                            onClick={() => handleUpdateUser(u.id, { grantSubscriptionDays: 365 })}
-                            disabled={actionUserId === u.id}
-                            style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600 }}
-                            title="Grant 1 Year Active Subscription"
-                          >
-                            Grant 1Yr Sub
-                          </button>
-                        </div>
+                            <button
+                              onClick={() => handleUpdateUser(u.id, { grantSubscriptionDays: 365 })}
+                              disabled={actionUserId === u.id}
+                              style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600 }}
+                              title="Grant 1 Year Active Subscription"
+                            >
+                              Grant 1Yr Sub
+                            </button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))

@@ -68,6 +68,7 @@ export async function checkTrainerSubscription(userId: string): Promise<Subscrip
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      role: true,
       trialEndsAt: true,
       subscriptionStatus: true,
       subscribedUntil: true,
@@ -88,14 +89,26 @@ export async function checkTrainerSubscription(userId: string): Promise<Subscrip
     };
   }
 
+  const isAdmin = !!user.isAdmin;
+
+  // Clients / Athletes are 100% free and never expire
+  if (user.role === "CLIENT") {
+    return {
+      hasAccess: true,
+      status: "active",
+      daysRemaining: 9999,
+      trialEndsAt: null,
+      subscribedUntil: null,
+      isAdmin,
+    };
+  }
+
   const now = new Date();
   let trialEnd = user.trialEndsAt;
   if (!trialEnd && user.createdAt) {
     trialEnd = new Date(user.createdAt);
     trialEnd.setDate(trialEnd.getDate() + 30);
   }
-
-  const isAdmin = !!user.isAdmin;
 
   if (user.subscribedUntil && new Date(user.subscribedUntil) > now) {
     const daysRemaining = Math.max(0, Math.ceil((new Date(user.subscribedUntil).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));

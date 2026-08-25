@@ -77,4 +77,19 @@ describe("Subscription Checker", () => {
     expect(result.status).toBe("expired");
     expect(result.reason).toContain("expired");
   });
+
+  it("should grant permanent free active access for clients without expiration", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      role: "CLIENT",
+      subscriptionStatus: null,
+      subscribedUntil: null,
+      trialEndsAt: null,
+      createdAt: new Date(),
+      isAdmin: false,
+    });
+
+    const result = await checkTrainerSubscription("client-1");
+    expect(result.hasAccess).toBe(true);
+    expect(result.status).toBe("active");
+  });
 });
