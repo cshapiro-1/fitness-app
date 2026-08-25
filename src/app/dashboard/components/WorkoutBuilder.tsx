@@ -7,6 +7,7 @@ import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
 import { AnatomyGuideModal } from "./AnatomyGuideModal";
 import { EXERCISE_LIBRARY, isDefaultBodyweight, searchExercises } from "../utils/exerciseLibrary";
+import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
