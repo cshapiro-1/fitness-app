@@ -996,78 +996,91 @@ export function ClientDashboard({
                   }}
                 >
                   {/* Card Top Row: Date & Status Badge */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-                    <div>
-                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>
-                        {new Date(workout.completedAt || workout.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <Calendar size={14} style={{ color: "#2563eb", flexShrink: 0 }} />
+                        <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
+                          {new Date(workout.completedAt || workout.createdAt).toLocaleDateString(undefined, {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
+                          · {new Date(workout.completedAt || workout.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                        </span>
                       </div>
-                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 500, marginTop: "1px" }}>
                         {workout.loggedByRole === "CLIENT"
                           ? `👤 Logged by You${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`
                           : `🏋️ Logged by Coach${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`}
                       </div>
                     </div>
 
-                    <div>
+                    <div style={{ flexShrink: 0 }}>
                       {workout.deletedAt ? (
-                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 6px", borderRadius: "6px", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
                           🗑️ Deleted
                         </span>
                       ) : (
-                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 6px", borderRadius: "6px", whiteSpace: "nowrap" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
                           ✓ Finished
                         </span>
                       )}
                     </div>
                   </div>
 
-                  {/* Actions Bar */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => handleRepeatWorkout(workout)}
-                      disabled={repeatingWorkoutId === workout.id}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        background: "#eff6ff",
-                        color: "#2563eb",
-                        border: "1px solid #bfdbfe",
-                        padding: "3px 8px",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                      }}
-                      title="Re-assign this workout to your assigned list"
-                    >
-                      <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
-                      <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
-                    </button>
+                  {/* Actions Toolbar - Never overflows */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleRepeatWorkout(workout)}
+                        disabled={repeatingWorkoutId === workout.id}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          background: "#ffffff",
+                          color: "#2563eb",
+                          border: "1px solid #bfdbfe",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                        title="Re-assign this workout to your assigned list"
+                      >
+                        <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
+                        <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => copyWorkoutToClipboard(workout)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        background: copiedId === workout.id ? "#dcfce7" : "#f1f5f9",
-                        color: copiedId === workout.id ? "#16a34a" : "#475569",
-                        border: "1px solid",
-                        borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
-                        padding: "3px 8px",
-                        borderRadius: "6px",
-                        cursor: "pointer",
-                      }}
-                      title="Copy session details to clipboard"
-                    >
-                      {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
-                      <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => copyWorkoutToClipboard(workout)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background: copiedId === workout.id ? "#dcfce7" : "#ffffff",
+                          color: copiedId === workout.id ? "#16a34a" : "#475569",
+                          border: "1px solid",
+                          borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                        }}
+                        title="Copy session details to clipboard"
+                      >
+                        {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
+                        <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
+                      </button>
+                    </div>
 
                     {!workout.deletedAt && (
                       <button
@@ -1075,7 +1088,7 @@ export function ClientDashboard({
                         onClick={() => handleDeleteWorkout(workout.id)}
                         className="btn-ghost-danger"
                         title="Delete workout from history"
-                        style={{ padding: "3px 6px", borderRadius: "6px", marginLeft: "auto" }}
+                        style={{ padding: "4px 8px", borderRadius: "6px" }}
                       >
                         <Trash2 size={13} />
                       </button>

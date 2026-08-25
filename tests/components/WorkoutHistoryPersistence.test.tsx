@@ -61,9 +61,31 @@ describe("Workout History UI Persistence & Safety Suite", () => {
     );
 
     expect(screen.getAllByText(/Barbell Bench Press/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Barbell Squat/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Upper body strength block/i)).toBeDefined();
-    expect(screen.getByText(/Lower body quad focus/i)).toBeDefined();
+    expect(screen.getAllByText(/Finished/i).length).toBe(2);
+    expect(screen.getByText(/Logged by Client/i)).toBeDefined();
+    expect(screen.getByText(/Logged by Coach/i)).toBeDefined();
+  });
+
+  it("should render dedicated toolbar with Repeat, Copy Session, and Delete action buttons", () => {
+    const onDelete = vi.fn();
+    const onRepeat = vi.fn();
+
+    render(
+      <WorkoutHistory
+        completedWorkouts={mockSessions}
+        loadingWorkouts={false}
+        onDeleteWorkout={onDelete}
+        onRepeatWorkout={onRepeat}
+      />
+    );
+
+    const deleteButtons = screen.getAllByTitle(/Delete workout/i);
+    expect(deleteButtons.length).toBe(2);
+    fireEvent.click(deleteButtons[0]);
+    expect(onDelete).toHaveBeenCalledWith("session-hist-2");
+
+    const copyButtons = screen.getAllByTitle(/Copy full workout to clipboard/i);
+    expect(copyButtons.length).toBe(2);
   });
 
   it("should trigger onRepeatWorkout with complete session structure when repeat button clicked", () => {

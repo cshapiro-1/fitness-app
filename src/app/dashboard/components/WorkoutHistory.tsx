@@ -335,12 +335,27 @@ export function WorkoutHistory({
       <div className="history-list">
         {filteredWorkouts.map((workout) => (
           <div key={workout.id} className="history-card">
-            <div className="history-card-header">
-              <div>
-                <div className="history-date">
-                  <Calendar size={13} style={{ display: "inline", marginRight: "5px", color: "#2563eb" }} />
-                  {workout.completedAt ? new Date(workout.completedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-"}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                  <Calendar size={14} style={{ color: "#2563eb", flexShrink: 0 }} />
+                  <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
+                    {workout.completedAt
+                      ? new Date(workout.completedAt).toLocaleDateString(undefined, {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "-"}
+                  </span>
+                  {workout.completedAt && (
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
+                      · {new Date(workout.completedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  )}
                 </div>
+
                 <div className="history-meta" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "2px" }}>
                   <span>{workout.exercises.length} exercise{workout.exercises.length !== 1 ? "s" : ""} included</span>
                   <span
@@ -361,18 +376,33 @@ export function WorkoutHistory({
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ flexShrink: 0 }}>
+                {workout.deletedAt ? (
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
+                    🗑️ DELETED
+                  </span>
+                ) : (
+                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
+                    ✓ Finished
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Actions Toolbar - Never overflows */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                 {/* Repeat Workout Button */}
                 {onRepeatWorkout && (
                   <button
                     onClick={() => onRepeatWorkout(workout)}
                     style={{
-                      display: "flex",
+                      display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
                       fontSize: "11px",
-                      fontWeight: 600,
-                      background: "#eff6ff",
+                      fontWeight: 700,
+                      background: "#ffffff",
                       color: "#2563eb",
                       border: "1px solid #bfdbfe",
                       padding: "4px 8px",
@@ -393,7 +423,7 @@ export function WorkoutHistory({
                     className="btn-primary"
                     onClick={() => onAssignWorkout(workout)}
                     style={{
-                      display: "flex",
+                      display: "inline-flex",
                       alignItems: "center",
                       gap: "4px",
                       fontSize: "11px",
@@ -417,12 +447,12 @@ export function WorkoutHistory({
                 <button
                   onClick={() => copyWorkoutToClipboard(workout)}
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
                     gap: "4px",
                     fontSize: "11px",
                     fontWeight: 600,
-                    background: copiedId === workout.id ? "#dcfce7" : "#f1f5f9",
+                    background: copiedId === workout.id ? "#dcfce7" : "#ffffff",
                     color: copiedId === workout.id ? "#16a34a" : "#475569",
                     border: "1px solid",
                     borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
@@ -436,18 +466,13 @@ export function WorkoutHistory({
                   {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
                   <span>{copiedId === workout.id ? "Copied!" : "Copy Session"}</span>
                 </button>
-
-                {!workout.deletedAt && (
-                  <button className="btn-ghost-danger" onClick={() => onDeleteWorkout(workout.id)} title="Delete workout">
-                    <Trash2 size={13} />
-                  </button>
-                )}
-                {workout.deletedAt && (
-                  <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 6px", borderRadius: "4px" }}>
-                    🗑️ DELETED
-                  </span>
-                )}
               </div>
+
+              {!workout.deletedAt && (
+                <button className="btn-ghost-danger" onClick={() => onDeleteWorkout(workout.id)} title="Delete workout" style={{ padding: "4px 8px", borderRadius: "6px", marginLeft: "auto" }}>
+                  <Trash2 size={13} />
+                </button>
+              )}
             </div>
 
             {workout.deletedAt && (
