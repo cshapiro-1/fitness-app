@@ -93,19 +93,7 @@ export function ExerciseLibraryModal({
   }, [customExercises]);
 
   const filteredExercises = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return allExercises.filter((ex) => {
-      const matchesQuery =
-        !q ||
-        ex.name.toLowerCase().includes(q) ||
-        ex.muscleGroup.toLowerCase().includes(q) ||
-        ex.equipment.toLowerCase().includes(q);
-      const matchesMuscle =
-        !selectedMuscle || selectedMuscle === "All" || ex.muscleGroup === selectedMuscle;
-      const matchesEquipment =
-        !selectedEquipment || selectedEquipment === "All" || ex.equipment === selectedEquipment;
-      return matchesQuery && matchesMuscle && matchesEquipment;
-    });
+    return searchExercises(search, selectedMuscle, selectedEquipment, allExercises);
   }, [allExercises, search, selectedMuscle, selectedEquipment]);
 
   const handleSaveCustomExercise = (e: React.FormEvent) => {

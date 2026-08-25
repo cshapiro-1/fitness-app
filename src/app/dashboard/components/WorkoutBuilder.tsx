@@ -6,8 +6,7 @@ import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types"
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
 import { AnatomyGuideModal } from "./AnatomyGuideModal";
-import { EXERCISE_LIBRARY, isDefaultBodyweight } from "../utils/exerciseLibrary";
-import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
+import { EXERCISE_LIBRARY, isDefaultBodyweight, searchExercises } from "../utils/exerciseLibrary";
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
@@ -83,6 +82,12 @@ export function WorkoutBuilder({
     if (!activeWorkout) return 0;
     return activeWorkout.exercises.reduce((count, exercise) => count + exercise.sets.length, 0);
   }, [activeWorkout]);
+
+  // Fuzzy-matched exercise suggestions based on trainer input
+  const suggestedExercises = useMemo(() => {
+    if (!exercisePicker.trim()) return EXERCISE_LIBRARY;
+    return searchExercises(exercisePicker);
+  }, [exercisePicker]);
 
   // Compute previous performance lookup per exercise
   const previousPerformanceMap = useMemo(() => {
@@ -503,22 +508,38 @@ export function WorkoutBuilder({
             <input
               className="input"
               list="exercise-options"
-              placeholder="Choose or type an exercise (e.g. Bench Press, Squat)..."
+              placeholder="Type exercise name, acronym (e.g. OHP, RDL, DB Bench), or muscle..."
               value={exercisePicker}
               onChange={(event) => setExercisePicker(event.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && exercisePicker.trim()) {
-                  addExerciseWithName(exercisePicker);
+                  // If exact match doesn't exist, but top fuzzy match is strong, prefer top suggested match
+                  const topMatch = suggestedExercises[0];
+                  const chosenName = (topMatch && !EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === exercisePicker.trim().toLowerCase()))
+                    ? topMatch.name
+                    : exercisePicker;
+                  addExerciseWithName(chosenName);
                 }
               }}
               style={{ flex: 1 }}
             />
             <datalist id="exercise-options">
-              {EXERCISE_LIBRARY.map((ex) => (
-                <option key={ex.name} value={ex.name} />
+              {suggestedExercises.slice(0, 30).map((ex) => (
+                <option key={ex.name} value={ex.name}>
+                  {ex.muscleGroup} • {ex.equipment}
+                </option>
               ))}
             </datalist>
-            <button className="btn-primary" onClick={() => addExerciseWithName(exercisePicker)}>
+            <button
+              className="btn-primary"
+              onClick={() => {
+                const topMatch = suggestedExercises[0];
+                const chosenName = (topMatch && !EXERCISE_LIBRARY.some(e => e.name.toLowerCase() === exercisePicker.trim().toLowerCase()))
+                  ? topMatch.name
+                  : exercisePicker;
+                addExerciseWithName(chosenName);
+              }}
+            >
               <Plus size={14} />
               <span>Add</span>
             </button>

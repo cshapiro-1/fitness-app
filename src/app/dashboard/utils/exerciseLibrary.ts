@@ -170,18 +170,217 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Medicine Ball Slam", muscleGroup: "Full Body", equipment: "Other" },
 ];
 
-export function searchExercises(query: string, muscleFilter?: string, equipmentFilter?: string): ExerciseDefinition[] {
-  const q = query.toLowerCase().trim();
-  return EXERCISE_LIBRARY.filter((ex) => {
-    const matchesQuery =
-      !q ||
-      ex.name.toLowerCase().includes(q) ||
-      ex.muscleGroup.toLowerCase().includes(q) ||
-      ex.equipment.toLowerCase().includes(q);
-    const matchesMuscle = !muscleFilter || muscleFilter === "All" || ex.muscleGroup === muscleFilter;
-    const matchesEquipment = !equipmentFilter || equipmentFilter === "All" || ex.equipment === equipmentFilter;
-    return matchesQuery && matchesMuscle && matchesEquipment;
+/**
+ * Fitness Abbreviations, Acronyms & Synonyms
+ */
+export const FITNESS_SYNONYMS: Record<string, string[]> = {
+  db: ["dumbbell"],
+  bb: ["barbell"],
+  rdl: ["romanian", "deadlift"],
+  ohp: ["overhead", "press"],
+  bw: ["bodyweight"],
+  kb: ["kettlebell"],
+  tri: ["tricep", "triceps"],
+  tris: ["triceps"],
+  bi: ["bicep", "biceps"],
+  bis: ["biceps"],
+  lat: ["latissimus", "pulldown", "lats"],
+  lats: ["latissimus", "pulldown"],
+  abs: ["abdominals", "core", "plank", "crunch"],
+  pec: ["chest", "pectoral", "pecs"],
+  pecs: ["chest", "pectoral"],
+  quad: ["quadriceps", "leg extension", "squat"],
+  quads: ["quadriceps", "legs"],
+  ham: ["hamstring", "curl", "rdl"],
+  hams: ["hamstrings"],
+  bp: ["bench", "press"],
+  sq: ["squat"],
+  dl: ["deadlift"],
+  bench: ["press", "bench press"],
+  press: ["bench", "press"],
+  pushup: ["push-up", "push up"],
+  pullup: ["pull-up", "pull up"],
+  chinup: ["chin-up", "chin up"],
+  calf: ["calves", "gastrocnemius", "soleus"],
+  calves: ["calf", "gastrocnemius", "soleus"],
+  shrug: ["trapezius", "traps", "shrugs"],
+  trap: ["trapezius", "shrug"],
+  traps: ["trapezius", "shrugs"],
+  abduction: ["abductor", "glute medius", "outer hip"],
+  abductor: ["abduction", "glute medius"],
+  adduction: ["adductor", "inner thigh"],
+  adductor: ["adduction", "inner thigh"],
+};
+
+/**
+ * Damerau-Levenshtein Distance calculation with transposition support for typos
+ */
+export function levenshteinDistance(s1: string, s2: string): number {
+  const m = s1.length;
+  const n = s2.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1, // deletion
+        dp[i][j - 1] + 1, // insertion
+        dp[i - 1][j - 1] + cost // substitution
+      );
+      // Adjacent Transposition (e.g. "sqaut" <-> "squat")
+      if (i > 1 && j > 1 && s1[i - 1] === s2[j - 2] && s1[i - 2] === s2[j - 1]) {
+        dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + 1);
+      }
+    }
+  }
+  return dp[m][n];
+}
+
+/**
+ * Checks if a single query token fuzzy-matches a single target token
+ */
+export function fuzzyMatchToken(queryToken: string, targetToken: string): { matched: boolean; score: number } {
+  const q = queryToken.toLowerCase();
+  const t = targetToken.toLowerCase();
+
+  // Exact Match
+  if (q === t) return { matched: true, score: 100 };
+
+  // Prefix Match (e.g. "inc" in "incline")
+  if (t.startsWith(q)) return { matched: true, score: 90 };
+
+  // Substring Match (e.g. "press" in "bench press")
+  if (t.includes(q)) return { matched: true, score: 80 };
+
+  // Subsequence Match (characters appear in order)
+  let qIdx = 0;
+  for (let i = 0; i < t.length && qIdx < q.length; i++) {
+    if (t[i] === q[qIdx]) qIdx++;
+  }
+  if (qIdx === q.length && q.length >= 3) {
+    return { matched: true, score: 70 };
+  }
+
+  // Levenshtein / Damerau Edit Distance for Typos (e.g. "dumbell" -> "dumbbell", "sqaut" -> "squat")
+  const dist = levenshteinDistance(q, t);
+  const maxAllowedDistance = q.length <= 3 ? 0 : q.length <= 5 ? 1 : 2;
+  if (dist <= maxAllowedDistance) {
+    return { matched: true, score: 70 - dist * 10 };
+  }
+
+  // Synonym check
+  const syns = FITNESS_SYNONYMS[q];
+  if (syns) {
+    for (const syn of syns) {
+      if (t.includes(syn) || syn.includes(t)) {
+        return { matched: true, score: 85 };
+      }
+    }
+  }
+
+  return { matched: false, score: 0 };
+}
+
+/**
+ * Computes a relevance score for an exercise against a query
+ */
+export function scoreExercise(ex: ExerciseDefinition, query: string): number {
+  if (!query.trim()) return 1;
+
+  const rawQuery = query.toLowerCase().trim();
+  const exName = ex.name.toLowerCase();
+  const muscle = ex.muscleGroup.toLowerCase();
+  const equip = ex.equipment.toLowerCase();
+  const secondary = (ex.secondaryMuscle || "").toLowerCase();
+
+  // 1. Exact Full Match
+  if (exName === rawQuery) return 200;
+
+  // 2. Full Substring Match
+  if (exName.includes(rawQuery)) return 150;
+
+  // 3. Tokenize Query and Target
+  const queryTokens = rawQuery.split(/[\s\-_/]+/).filter(Boolean);
+  const targetText = `${exName} ${muscle} ${equip} ${secondary}`;
+  const targetTokens = targetText.split(/[\s\-_/]+/).filter(Boolean);
+
+  let totalScore = 0;
+  let allTokensMatched = true;
+
+  for (const qToken of queryTokens) {
+    let bestTokenScore = 0;
+
+    // Check against each word in the target
+    for (const tToken of targetTokens) {
+      const match = fuzzyMatchToken(qToken, tToken);
+      if (match.matched && match.score > bestTokenScore) {
+        bestTokenScore = match.score;
+      }
+    }
+
+    // Check if query token is a synonym mapping to any target token
+    const syns = FITNESS_SYNONYMS[qToken];
+    if (syns) {
+      for (const syn of syns) {
+        if (targetText.includes(syn)) {
+          bestTokenScore = Math.max(bestTokenScore, 85);
+        }
+      }
+    }
+
+    if (bestTokenScore === 0) {
+      allTokensMatched = false;
+      break;
+    } else {
+      totalScore += bestTokenScore;
+    }
+  }
+
+  if (allTokensMatched) {
+    // Reward matches in exercise name over metadata
+    if (queryTokens.every((t) => exName.includes(t) || (FITNESS_SYNONYMS[t] && FITNESS_SYNONYMS[t].some((s) => exName.includes(s))))) {
+      totalScore += 50;
+    }
+    return totalScore;
+  }
+
+  return 0;
+}
+
+/**
+ * Intelligent Fuzzy Exercise Search
+ * Tolerates typos, partial words, fitness acronyms (db, bb, rdl, ohp, bw, kb, etc.), and multi-term queries in any order.
+ */
+export function searchExercises(
+  query: string,
+  muscleFilter?: string,
+  equipmentFilter?: string,
+  customLibrary: ExerciseDefinition[] = EXERCISE_LIBRARY
+): ExerciseDefinition[] {
+  const q = query.trim();
+
+  const scored = customLibrary
+    .map((ex) => {
+      const matchesMuscle = !muscleFilter || muscleFilter === "All" || ex.muscleGroup === muscleFilter;
+      const matchesEquipment = !equipmentFilter || equipmentFilter === "All" || ex.equipment === equipmentFilter;
+      if (!matchesMuscle || !matchesEquipment) return { ex, score: 0 };
+
+      const score = scoreExercise(ex, q);
+      return { ex, score };
+    })
+    .filter((item) => item.score > 0);
+
+  // Sort by highest relevance score descending, then alphabetically by name
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.ex.name.localeCompare(b.ex.name);
   });
+
+  return scored.map((item) => item.ex);
 }
 
 /**
