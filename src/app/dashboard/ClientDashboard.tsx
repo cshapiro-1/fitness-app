@@ -557,14 +557,14 @@ export function ClientDashboard({
             background: restSeconds !== null && restSeconds > 0 ? "#eff6ff" : "#f8fafc",
             border: "1px solid",
             borderColor: restSeconds !== null && restSeconds > 0 ? "#bfdbfe" : "#e2e8f0",
-            borderRadius: "10px",
-            padding: "8px 14px",
+            borderRadius: "12px",
+            padding: "10px 14px",
             marginBottom: "14px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             flexWrap: "wrap",
-            gap: "10px",
+            gap: "8px",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -581,7 +581,7 @@ export function ClientDashboard({
             )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap" }}>
             {[60, 90, 120, 180].map((sec) => (
               <button
                 key={sec}
@@ -591,7 +591,7 @@ export function ClientDashboard({
                   setIsTimerRunning(true);
                 }}
                 style={{
-                  padding: "4px 8px",
+                  padding: "4px 7px",
                   fontSize: "11px",
                   fontWeight: 600,
                   borderRadius: "6px",
@@ -792,12 +792,12 @@ export function ClientDashboard({
                   </div>
 
                   {/* Workout Action Buttons */}
-                  <div style={{ display: "flex", gap: "8px", marginTop: "12px", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px", marginTop: "12px" }}>
                     <button
                       type="button"
                       onClick={() => setEditingWorkout(workout)}
                       className="btn-secondary"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 12px" }}
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", padding: "8px 12px" }}
                       title="Edit planned exercises, sets, weights and notes"
                     >
                       <Edit3 size={13} />
@@ -807,7 +807,7 @@ export function ClientDashboard({
                       type="button"
                       onClick={() => setEditingWorkout(workout)}
                       className="btn-primary"
-                      style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 14px", background: "#16a34a", color: "#ffffff" }}
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", padding: "8px 14px", background: "#16a34a", color: "#ffffff" }}
                       title="Track, adjust, and complete this workout"
                     >
                       <CheckCircle2 size={13} />
@@ -860,7 +860,7 @@ export function ClientDashboard({
               </div>
 
               {/* Multi-tier Dropdown Filters */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px" }}>
                 {/* Specific Exercise Dropdown */}
                 <div>
                   <label style={{ fontSize: "11px", fontWeight: 600, color: "#475569", display: "block", marginBottom: "4px" }}>
@@ -995,9 +995,10 @@ export function ClientDashboard({
                     boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "6px" }}>
+                  {/* Card Top Row: Date & Status Badge */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
                     <div>
-                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
+                      <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>
                         {new Date(workout.completedAt || workout.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
                       </div>
                       <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
@@ -1007,75 +1008,78 @@ export function ClientDashboard({
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <button
-                        type="button"
-                        onClick={() => handleRepeatWorkout(workout)}
-                        disabled={repeatingWorkoutId === workout.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          background: "#eff6ff",
-                          color: "#2563eb",
-                          border: "1px solid #bfdbfe",
-                          padding: "3px 8px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                        }}
-                        title="Re-assign this workout to your assigned list"
-                      >
-                        <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
-                        <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => copyWorkoutToClipboard(workout)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          background: copiedId === workout.id ? "#dcfce7" : "#f1f5f9",
-                          color: copiedId === workout.id ? "#16a34a" : "#475569",
-                          border: "1px solid",
-                          borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
-                          padding: "3px 8px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                        }}
-                        title="Copy session details to clipboard"
-                      >
-                        {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
-                      </button>
-
-                      {!workout.deletedAt && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteWorkout(workout.id)}
-                          className="btn-ghost-danger"
-                          title="Delete workout from history"
-                          style={{ padding: "3px 6px", borderRadius: "6px" }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-
+                    <div>
                       {workout.deletedAt ? (
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 8px", borderRadius: "8px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "2px 6px", borderRadius: "6px", whiteSpace: "nowrap" }}>
                           🗑️ Deleted
                         </span>
                       ) : (
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "2px 8px", borderRadius: "8px" }}>
+                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "2px 6px", borderRadius: "6px", whiteSpace: "nowrap" }}>
                           ✓ Finished
                         </span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Actions Bar */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => handleRepeatWorkout(workout)}
+                      disabled={repeatingWorkoutId === workout.id}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        border: "1px solid #bfdbfe",
+                        padding: "3px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                      title="Re-assign this workout to your assigned list"
+                    >
+                      <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
+                      <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => copyWorkoutToClipboard(workout)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        background: copiedId === workout.id ? "#dcfce7" : "#f1f5f9",
+                        color: copiedId === workout.id ? "#16a34a" : "#475569",
+                        border: "1px solid",
+                        borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
+                        padding: "3px 8px",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                      }}
+                      title="Copy session details to clipboard"
+                    >
+                      {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
+                      <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
+                    </button>
+
+                    {!workout.deletedAt && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteWorkout(workout.id)}
+                        className="btn-ghost-danger"
+                        title="Delete workout from history"
+                        style={{ padding: "3px 6px", borderRadius: "6px", marginLeft: "auto" }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </div>
 
                   {workout.deletedAt && (
