@@ -1,45 +1,42 @@
-name: CI Quality Gate
+name: STRKYR Automated CI & Bug Prevention Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main, master ]
 
 jobs:
-  validate:
-    name: Lint, Typecheck, Test & Build
+  quality-and-security-gate:
+    name: Typecheck, Security Tests & Production Build
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/fitness?sslmode=disable"
+      NEXTAUTH_SECRET: "ci-secret-key-32-chars-long-example"
+      NEXTAUTH_URL: "http://localhost:3000"
+
     steps:
-      - name: Checkout Code
+      - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js (v20)
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Validate Prisma Schema
-        run: npx prisma validate
-
-      - name: Generate Prisma Client
+      - name: Generate Prisma ORM Client
         run: npx prisma generate
 
-      - name: Typecheck TypeScript
+      - name: 1. Strict TypeScript Compiler Check
         run: npx tsc --noEmit
 
-      - name: Run Automated Unit & Integration Tests (Vitest)
-        run: npm run test:unit
+      - name: 2. Automated Vitest Unit & Integration Security Test Suite
+        run: npm run test
 
-      - name: Test Production Build
+      - name: 3. Next.js Production Compilation (Turbopack)
         run: npx next build
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/mockdb?sslmode=disable' }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'ci-build-mock-secret-fitcoach-2026' }}
-          NEXTAUTH_URL: "http://localhost:3000"
