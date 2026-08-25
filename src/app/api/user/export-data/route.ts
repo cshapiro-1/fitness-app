@@ -123,7 +123,7 @@ export async function GET() {
               id: ex.id,
               name: ex.name,
               category: ex.category,
-              isBodyweight: ex.isBodyweight,
+              isBodyweight: ex.category === "BODYWEIGHT" || (ex as any).isBodyweight,
               order: ex.order,
               sets: ex.sets.map((s) => ({
                 id: s.id,
@@ -141,20 +141,20 @@ export async function GET() {
             clientProfileId: clientProfile.id,
             trainerId: clientProfile.userId,
             workoutSessionsCount: clientWorkouts.length,
-            workoutSessions: clientWorkouts.map((ws) => ({
+            workoutSessions: clientWorkouts.map((ws: any) => ({
               id: ws.id,
               status: ws.status,
               startedAt: ws.startedAt,
               completedAt: ws.completedAt,
               notes: ws.notes,
               createdAt: ws.createdAt,
-              exercises: ws.exercises.map((ex) => ({
+              exercises: (ws.exercises || []).map((ex: any) => ({
                 id: ex.id,
                 name: ex.name,
                 category: ex.category,
-                isBodyweight: ex.isBodyweight,
+                isBodyweight: ex.category === "BODYWEIGHT" || ex.isBodyweight,
                 order: ex.order,
-                sets: ex.sets.map((s) => ({
+                sets: (ex.sets || []).map((s: any) => ({
                   id: s.id,
                   order: s.order,
                   weight: s.weight,
