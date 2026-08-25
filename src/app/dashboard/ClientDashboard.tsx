@@ -39,9 +39,10 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
-import { Compass, Menu } from "lucide-react";
+import { Compass, Menu, Activity } from "lucide-react";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -78,6 +79,31 @@ export function ClientDashboard({
   const [showAIChatModal, setShowAIChatModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+
+  // Anatomy Guide Modal State
+  const [selectedAnatomyExercise, setSelectedAnatomyExercise] = useState<string | null>(null);
+  const [anatomyChartData, setAnatomyChartData] = useState<any | null>(null);
+  const [loadingAnatomy, setLoadingAnatomy] = useState(false);
+
+  const handleOpenAnatomyGuide = async (exerciseName: string) => {
+    setSelectedAnatomyExercise(exerciseName);
+    setLoadingAnatomy(true);
+    try {
+      const res = await fetch("/api/ai/anatomy-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exerciseName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnatomyChartData(data.chart);
+      }
+    } catch {
+      console.error("Failed to load anatomy chart");
+    } finally {
+      setLoadingAnatomy(false);
+    }
+  };
 
   useEffect(() => {
     if (session?.user?.image && !currentImage) {
@@ -719,7 +745,7 @@ export function ClientDashboard({
                             fontSize: "12px",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                             <span style={{ fontWeight: 700, color: "#0f172a" }}>{ex.name}</span>
                             {isBW && (
                               <span
@@ -736,6 +762,26 @@ export function ClientDashboard({
                                 Bodyweight
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAnatomyGuide(ex.name)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "#0284c7",
+                                cursor: "pointer",
+                                padding: "2px 4px",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "3px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                              }}
+                              title="View 3D muscle anatomy & form guide"
+                            >
+                              <Activity size={12} />
+                              <span>Anatomy</span>
+                            </button>
                           </div>
                           <span style={{ color: "#64748b", fontWeight: 600 }}>
                             {(ex.sets || []).length} sets
@@ -1287,6 +1333,18 @@ export function ClientDashboard({
         onClose={() => setShowTextImportModal(false)}
         role="CLIENT"
         onImportComplete={fetchWorkouts}
+      />
+
+      {/* 3D Medical Anatomy & Form Guide Modal */}
+      <AnatomyGuideModal
+        isOpen={!!selectedAnatomyExercise}
+        onClose={() => {
+          setSelectedAnatomyExercise(null);
+          setAnatomyChartData(null);
+        }}
+        exerciseName={selectedAnatomyExercise || ""}
+        chartData={anatomyChartData}
+        loading={loadingAnatomy}
       />
 
       {/* Mobile Slide-Out Navigation Drawer */}

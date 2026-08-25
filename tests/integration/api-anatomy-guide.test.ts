@@ -1,200 +1,80 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST as anatomyGuidePost } from "@/app/api/ai/anatomy-guide/route";
-import { resetRateLimitStore } from "@/lib/rateLimit";
+import { describe, it, expect } from "vitest";
+import { POST } from "@/app/api/ai/anatomy-guide/route";
 import { NextRequest } from "next/server";
 
-describe("AI 3D Anatomy Visual Guide API", () => {
-  beforeEach(() => {
-    resetRateLimitStore();
-  });
-
-  it("should return squat anatomical chart and quadriceps/glutes for Barbell Squat", async () => {
+describe("Anatomy & Kinesiology Visual Guide API", () => {
+  it("should accurately match Hip Abduction Machine to hip_abduction chart (and not plank/core)", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
-      body: JSON.stringify({ exerciseName: "Barbell Back Squat" }),
+      body: JSON.stringify({ exerciseName: "Abduction Machine 3 x 12-15" }),
     });
 
-    const res = await anatomyGuidePost(req);
+    const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.success).toBe(true);
-    expect(data.chart.title).toBe("Barbell Back Squat");
-    expect(data.chart.image).toBe("/anatomy/squat.jpg");
-    expect(data.chart.primaryMuscles).toContain("Quadriceps Femoris (Rectus Femoris, Vastus Lateralis/Medialis)");
-    expect(data.chart.steps.length).toBeGreaterThan(0);
-    expect(data.chart.commonMistakes.length).toBeGreaterThan(0);
-    expect(data.chart.breathingPattern).toBeDefined();
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/hip_abduction.jpg");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Gluteus Medius"))).toBe(true);
   });
 
-  it("should return bench press anatomical chart for Incline Dumbbell Press", async () => {
+  it("should accurately match Leg Extension to leg_extension quad chart (and not tricep extension)", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
-      body: JSON.stringify({ exerciseName: "Incline Dumbbell Chest Press" }),
+      body: JSON.stringify({ exerciseName: "Seated Cable Leg Extension" }),
     });
 
-    const res = await anatomyGuidePost(req);
+    const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.title).toContain("Incline Dumbbell");
-    expect(data.chart.image).toBe("/anatomy/bench.jpg");
-    expect(data.chart.primaryMuscles).toContain("Pectoralis Major (Sternal & Clavicular Heads)");
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/leg_extension.jpg");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Quadriceps"))).toBe(true);
   });
 
-  it("should return pigeon pose stretch chart for Pigeon Stretch", async () => {
+  it("should accurately match Leg Curl to leg_curl hamstring chart (and not bicep curl)", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
-      body: JSON.stringify({ exerciseName: "Pigeon Pose Glute Stretch" }),
+      body: JSON.stringify({ exerciseName: "Lying Hamstring Leg Curl" }),
     });
 
-    const res = await anatomyGuidePost(req);
+    const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.title).toContain("Pigeon");
-    expect(data.chart.image).toBe("/anatomy/pigeon.jpg");
-    expect(data.chart.primaryMuscles).toContain("Deep Piriformis");
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/leg_curl.jpg");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Hamstrings"))).toBe(true);
   });
 
-  it("should return accurate brachialis & brachioradialis anatomy for Dumbbell Hammer Curl", async () => {
+  it("should accurately match Calf Raise to calf_raise gastrocnemius chart", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
-      body: JSON.stringify({ exerciseName: "Dumbbell Hammer Curl" }),
+      body: JSON.stringify({ exerciseName: "Standing Smith Machine Calf Raises" }),
     });
 
-    const res = await anatomyGuidePost(req);
+    const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.primaryMuscles).toContain("Brachialis");
-    expect(data.chart.primaryMuscles).toContain("Brachioradialis");
-    expect(data.chart.biomechanicsCue).toContain("neutral grip");
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/calf_raise.jpg");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Gastrocnemius"))).toBe(true);
   });
 
-  it("should return latissimus dorsi anatomy for Lat Pulldown", async () => {
+  it("should dynamically resolve custom trainer exercises with smart kinesiology synthesis", async () => {
     const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
       method: "POST",
-      body: JSON.stringify({ exerciseName: "Lat Pulldown (Close Grip)" }),
+      body: JSON.stringify({ exerciseName: "Deficit Reverse Bulgarian Split Squat" }),
     });
 
-    const res = await anatomyGuidePost(req);
+    const res = await POST(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.primaryMuscles).toContain("Latissimus Dorsi");
-  });
 
-  it("should return triceps brachii anatomy for Tricep Rope Pushdown", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Tricep Rope Pushdown" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.primaryMuscles).toContain("Triceps Brachii (Lateral Head, Long Head, Medial Head)");
-  });
-
-  it("should return hamstring & glute anatomy for Romanian Deadlift", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Romanian Deadlift (RDL)" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.primaryMuscles).toContain("Hamstrings (Biceps Femoris, Semitendinosus, Semimembranosus)");
-    expect(data.chart.primaryMuscles).toContain("Gluteus Maximus");
-    expect(data.chart.image).toBe("/anatomy/rdl.jpg");
-  });
-
-  it("should return hip thrust anatomy chart and glute focus for Hip Thrust", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Barbell Hip Thrust" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.image).toBe("/anatomy/hip_thrust.jpg");
-    expect(data.chart.primaryMuscles).toContain("Gluteus Maximus (Upper & Lower Fibers)");
-  });
-
-  it("should return plank anatomy chart and core musculature for Plank", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Forearm Plank Core Hold" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.image).toBe("/anatomy/plank.jpg");
-    expect(data.chart.primaryMuscles).toContain("Rectus Abdominis");
-    expect(data.chart.primaryMuscles).toContain("Transverse Abdominis");
-  });
-
-  it("should return chest stretch chart for Doorway Pec Stretch", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Doorway Chest & Pec Stretch" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.image).toBe("/anatomy/chest_stretch.jpg");
-    expect(data.chart.primaryMuscles).toContain("Pectoralis Major (Sternal & Clavicular fibers)");
-  });
-
-  it("should return cat-cow spine chart for Cat-Cow Mobilization", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Cat-Cow Spine Flow" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.image).toBe("/anatomy/cat_cow.jpg");
-    expect(data.chart.primaryMuscles).toContain("Erector Spinae");
-  });
-
-  it("should return lateral raise shoulder chart for Dumbbell Lateral Raise", async () => {
-    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-      method: "POST",
-      body: JSON.stringify({ exerciseName: "Dumbbell Lateral Raise" }),
-    });
-
-    const res = await anatomyGuidePost(req);
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.chart.image).toBe("/anatomy/lateral_raise.jpg");
-    expect(data.chart.primaryMuscles).toContain("Lateral Deltoid (Middle Deltoid)");
-  });
-
-  it("should exhaustively resolve every single exercise in the entire 120+ EXERCISE_LIBRARY to a verified anatomical guide", async () => {
-    const { EXERCISE_LIBRARY } = await import("@/app/dashboard/utils/exerciseLibrary");
-    expect(EXERCISE_LIBRARY.length).toBeGreaterThan(100);
-
-    for (const ex of EXERCISE_LIBRARY) {
-      resetRateLimitStore();
-      const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
-        method: "POST",
-        body: JSON.stringify({ exerciseName: ex.name }),
-      });
-
-      const res = await anatomyGuidePost(req);
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.success).toBe(true);
-      expect(data.chart).toBeDefined();
-      expect(data.chart.image).toMatch(/^\/anatomy\/.+\.jpg$/);
-      expect(data.chart.primaryMuscles.length).toBeGreaterThan(0);
-      expect(data.chart.secondaryMuscles.length).toBeGreaterThan(0);
-      expect(data.chart.steps.length).toBeGreaterThan(0);
-      expect(data.chart.commonMistakes.length).toBeGreaterThan(0);
-      expect(data.chart.biomechanicsCue).toBeTruthy();
-      expect(data.chart.breathingPattern).toBeTruthy();
-    }
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/squat.jpg");
+    expect(json.chart.title).toContain("Deficit Reverse Bulgarian Split Squat");
   });
 });

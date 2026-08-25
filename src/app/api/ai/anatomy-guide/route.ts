@@ -18,9 +18,85 @@ export interface AnatomyGuideData {
 
 // Map of known movements to high-res 3D anatomical charts with precise kinesiology
 const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
+  leg_extension: {
+    image: "/anatomy/leg_extension.jpg",
+    title: "Leg Extension (Quadriceps Isolation)",
+    primaryMuscles: ["Quadriceps Femoris (Rectus Femoris, Vastus Lateralis, Vastus Medialis 'Teardrop', Vastus Intermedius)"],
+    secondaryMuscles: ["Patellar Tendon", "Tensor Fasciae Latae (TFL)", "Anterior Tibialis"],
+    biomechanicsCue: "Align machine pivot point directly with the lateral epicondyle of your knee joint. Drive toes upward (dorsiflexion) and lock out fully to peak the vastus medialis teardrop.",
+    steps: [
+      "Set Up: Adjust back pad so knees bend naturally over seat edge. Position shin pad against lower tibia just above ankle crease.",
+      "Execution: Grip side handles firmly to lock pelvis down. Extend knees smoothly until legs are locked straight out.",
+      "Peak Contraction: Squeeze quads maximally for 1 full second at the top of the contraction.",
+      "Controlled Return: Lower the weight slowly over 3 seconds to a 90° knee angle without letting weights crash.",
+    ],
+    commonMistakes: [
+      "Using explosive hip momentum or lifting pelvis off seat — keep glutes glued down with handles.",
+      "Pivot axis misaligned with knee joint — leads to excess shear on the patellofemoral joint.",
+      "Slumping spine or bouncing weights at bottom range.",
+    ],
+    breathingPattern: "Inhale at bottom start position → Exhale forcefully as you extend knees → Inhale on controlled descent.",
+  },
+  leg_curl: {
+    image: "/anatomy/leg_curl.jpg",
+    title: "Leg Curl (Lying & Seated Hamstring Isolation)",
+    primaryMuscles: ["Hamstrings (Biceps Femoris Long/Short Heads, Semitendinosus, Semimembranosus)"],
+    secondaryMuscles: ["Gastrocnemius (Calf)", "Gracilis", "Sartorius", "Plantaris"],
+    biomechanicsCue: "Keep hips and pelvis pressed firmly into the bench pad. Flex knees through full range of motion without hyperextending lumbar spine.",
+    steps: [
+      "Set Up: Position knee joint directly in line with machine pivot axis. Place lever pad behind lower calf Achilles area.",
+      "Curl: Contract hamstrings to pull heels toward glutes in a smooth, continuous arc.",
+      "Hold: Squeeze hamstrings tightly at peak flexion for 1 count.",
+      "Eccentric Stretch: Slowly resist the load back over 3 seconds until knees reach near full extension without hyper-extending.",
+    ],
+    commonMistakes: [
+      "Arching lower back / lifting hips off bench to heave the weight — keep abs braced.",
+      "Pointed toes (plantarflexion) leading to calf cramping — keep ankles neutral.",
+      "Letting weight slam at top or bottom.",
+    ],
+    breathingPattern: "Inhale during extension stretch → Exhale forcefully as you curl heels to glutes.",
+  },
+  hip_abduction: {
+    image: "/anatomy/hip_abduction.jpg",
+    title: "Hip Abduction Machine & Cable Glute Kickback",
+    primaryMuscles: ["Gluteus Medius", "Gluteus Minimus", "Tensor Fasciae Latae (TFL)"],
+    secondaryMuscles: ["Upper Gluteus Maximus", "Piriformis", "Deep Hip Rotator Complex", "Obturator Internus"],
+    biomechanicsCue: "Sit tall with chest proud or slight forward hip hinge. Drive outward against the pads with the lateral edges of your knees to fire glute medius without lumbar twisting.",
+    steps: [
+      "Set Up: Sit upright against backrest with outer knees securely against abduction pads. Select moderate controlled load.",
+      "Abduction: Drive knees outward against resistance in a wide arc until full gluteus medius contraction is achieved.",
+      "Peak: Hold the outer spread position for 1 full second, feeling the intense lateral hip burn.",
+      "Return: Resist the inward pull under strict 3-second control, stopping just before weights touch.",
+    ],
+    commonMistakes: [
+      "Using torso swinging to bounce pads outward — keep upper body stationary.",
+      "Feet leading the push instead of knees — push outward from knees to isolate glute medius.",
+      "Rushing repetitions — slow eccentric phase builds maximum hip stability.",
+    ],
+    breathingPattern: "Inhale at center start → Exhale forcefully as you drive pads outward → Inhale as knees return.",
+  },
+  calf_raise: {
+    image: "/anatomy/calf_raise.jpg",
+    title: "Standing & Seated Calf Raise",
+    primaryMuscles: ["Gastrocnemius (Medial & Lateral Heads)", "Soleus"],
+    secondaryMuscles: ["Achilles Tendon", "Tibialis Posterior", "Peroneus Longus & Brevis", "Flexor Hallucis Longus"],
+    biomechanicsCue: "Drop heels deep below platform edge for a full 2-second stretch. Drive straight up onto the balls of big toes, squeezing apex for 1 second.",
+    steps: [
+      "Set Up: Place balls of feet on platform with heels hanging freely. Shoulders under pads (standing) or pad over lower quads (seated).",
+      "Full Stretch: Lower heels down into deep ankle dorsiflexion under control; pause for 1 second at the bottom.",
+      "Plantarflexion: Drive straight up through big toe metatarsals to maximum height.",
+      "Peak Squeeze: Hold peak contraction at apex for 1 full count without rolling ankles outward.",
+    ],
+    commonMistakes: [
+      "Bouncing fast at bottom of movement — transfers load to Achilles tendon recoil rather than muscle fibers.",
+      "Rolling weight onto outer pinky toes (supination) — keep pressure balanced through big toe.",
+      "Bending knees on standing calf raises — maintain straight knees to target gastrocnemius.",
+    ],
+    breathingPattern: "Inhale on deep bottom stretch → Exhale as you press up onto toes → Inhale on descent.",
+  },
   hammer_curl: {
     image: "/anatomy/hammer_curl.jpg",
-    title: "Dumbbell Hammer Curl",
+    title: "Dumbbell Hammer Curl & Forearms",
     primaryMuscles: ["Brachialis", "Brachioradialis", "Biceps Brachii (Long Head)"],
     secondaryMuscles: ["Pronator Teres", "Flexor Carpi Radialis", "Anterior Deltoid (isometric stabilizer)"],
     biomechanicsCue: "Maintain strict neutral grip (palms facing each other). Keep elbows pinned against your ribcage to isolate elbow flexion without anterior shoulder elevation.",
@@ -115,7 +191,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
   },
   barbell_row: {
     image: "/anatomy/lat_pulldown.jpg",
-    title: "Bent-Over Barbell & Dumbbell Row",
+    title: "Bent-Over Row & Upper Back",
     primaryMuscles: ["Latissimus Dorsi", "Rhomboids", "Middle & Lower Trapezius", "Posterior Deltoids"],
     secondaryMuscles: ["Erector Spinae", "Biceps Brachii", "Brachialis", "Forearm Flexors", "Hamstrings (isometric)"],
     biomechanicsCue: "Hinge at hips to a 45–60° torso angle. Pull bar toward lower ribcage / belly button while driving elbows past the torso.",
@@ -190,7 +266,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
   },
   squat: {
     image: "/anatomy/squat.jpg",
-    title: "Barbell Back Squat",
+    title: "Barbell Back Squat & Leg Press",
     primaryMuscles: ["Quadriceps Femoris (Rectus Femoris, Vastus Lateralis/Medialis)", "Gluteus Maximus"],
     secondaryMuscles: ["Hamstring Complex", "Adductor Magnus", "Erector Spinae", "Soleus"],
     biomechanicsCue: "Keep bar directly over mid-foot throughout descent. Drive knees outward over toes and maintain 360° intra-abdominal pressure.",
@@ -209,7 +285,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
   },
   bench: {
     image: "/anatomy/bench.jpg",
-    title: "Barbell Bench Press",
+    title: "Barbell Bench Press & Chest Press",
     primaryMuscles: ["Pectoralis Major (Sternal & Clavicular Heads)", "Anterior Deltoids"],
     secondaryMuscles: ["Triceps Brachii (Lateral & Long Heads)", "Serratus Anterior", "Latissimus Dorsi"],
     biomechanicsCue: "Retract and depress scapulae into bench padding. Maintain 45° elbow angle relative to torso and touch lower-mid sternum.",
@@ -247,7 +323,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
   },
   press: {
     image: "/anatomy/overhead_press.jpg",
-    title: "Overhead Barbell Press",
+    title: "Overhead Barbell Press & Shoulders",
     primaryMuscles: ["Anterior Deltoids", "Lateral Deltoids", "Triceps Brachii"],
     secondaryMuscles: ["Upper Trapezius", "Serratus Anterior", "Upper Pectoralis", "Core Stabilizers"],
     biomechanicsCue: "Squeeze glutes and brace core. Press straight up in vertical trajectory, pushing head through the window at lockout.",
@@ -332,223 +408,112 @@ export async function POST(req: NextRequest) {
     const exerciseName = sanitizeText(body.exerciseName || "Squat", 150);
     const norm = exerciseName.toLowerCase();
 
-    // Exhaustive movement categorization across all 170+ exercise library entries & custom variations
+    // High-Precision Kinesiological Token Matching
     let matchedKey: string | null = null;
 
     // 1. Stretches & Mobility (Highest specificity)
     if (
-      norm.includes("pigeon") ||
-      norm.includes("hip flexor") ||
-      norm.includes("couch stretch") ||
-      norm.includes("figure 4") ||
-      norm.includes("piriformis") ||
-      norm.includes("hip opener")
+      /\b(pigeon|couch stretch|figure 4|piriformis|hip opener|frog stretch)\b/i.test(norm)
     ) {
       matchedKey = "pigeon";
     } else if (
-      norm.includes("doorway") ||
-      norm.includes("pec stretch") ||
-      norm.includes("chest stretch") ||
-      norm.includes("dislocate") ||
-      norm.includes("wall slide")
+      /\b(doorway|pec stretch|chest stretch|dislocate|wall slide|cross-body stretch)\b/i.test(norm)
     ) {
       matchedKey = "chest_stretch";
     } else if (
-      norm.includes("cat") ||
-      norm.includes("cow") ||
-      norm.includes("spine") ||
-      norm.includes("foam roll") ||
-      norm.includes("mobility") ||
-      norm.includes("warmup") ||
-      norm.includes("warm-up") ||
-      norm.includes("warm") ||
-      norm.includes("cool") ||
-      norm.includes("recovery") ||
-      norm.includes("rest") ||
-      norm.includes("sleep") ||
-      norm.includes("breathwork") ||
-      norm.includes("sauna")
+      /\b(cat|cow|spine|foam roll|mobility|warmup|warm-up|recovery|breathwork|sauna|yoga)\b/i.test(norm)
     ) {
       matchedKey = "cat_cow";
     }
-    // 2. Vertical Back Pulls (Lat Pulldowns, Pull-Ups, Chin-Ups, Straight Arm Pulldown)
-    else if (
-      norm.includes("pulldown") ||
-      norm.includes("pull up") ||
-      norm.includes("pull-up") ||
-      norm.includes("chin up") ||
-      norm.includes("chin-up") ||
-      norm.includes("lat pull")
-    ) {
-      matchedKey = "lat_pulldown";
+    // 2. Hip Abduction & Glute Medius (Explicitly before core to prevent "ab" substring collision!)
+    else if (/\b(abduct|abductor|abduction|clamshell|outer hip|hip abductor)\b/i.test(norm)) {
+      matchedKey = "hip_abduction";
     }
-    // 3. Hammer Curl & Forearm Curls
-    else if (norm.includes("hammer") || norm.includes("reverse curl") || norm.includes("wrist") || norm.includes("farmer")) {
-      matchedKey = "hammer_curl";
+    // 3. Calves & Lower Leg (Calf Raise, Donkey Raise, Soleus)
+    else if (/\b(calf|calves|soleus|gastrocnemius|tibialis|toe raise)\b/i.test(norm)) {
+      matchedKey = "calf_raise";
     }
-    // 4. Biceps (Supinated, Preacher, Incline, Concentration, Cables)
-    else if (
-      norm.includes("bicep") ||
-      norm.includes("preacher") ||
-      norm.includes("concentration") ||
-      (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))
-    ) {
-      matchedKey = "bicep_curl";
+    // 4. Quad Isolation (Leg Extension, Sissy Squat, Quad Extension)
+    else if (/\b(leg extension|quad extension|sissy squat|knee extension)\b/i.test(norm) || (norm.includes("extension") && (norm.includes("leg") || norm.includes("quad")))) {
+      matchedKey = "leg_extension";
     }
-    // 5. Triceps (Pushdowns, Extensions, Skull Crushers, Dips, Close-Grip Bench, Kickbacks)
-    else if (
-      norm.includes("tricep") ||
-      norm.includes("pushdown") ||
-      norm.includes("skull crusher") ||
-      norm.includes("skullcrusher") ||
-      norm.includes("close-grip") ||
-      norm.includes("close grip") ||
-      norm.includes("kickback") ||
-      (norm.includes("extension") && (norm.includes("overhead") || norm.includes("arm") || norm.includes("cable") || norm.includes("dumbbell")))
-    ) {
-      matchedKey = "tricep_pushdown";
+    // 5. Hamstring Isolation (Leg Curl, Hamstring Curl, Nordic Curl, Lying Leg Curl, Seated Leg Curl)
+    else if (/\b(leg curl|hamstring curl|nordic curl|nordic|lying curl|seated leg curl|ham curl)\b/i.test(norm) || (norm.includes("curl") && (norm.includes("leg") || norm.includes("hamstring")))) {
+      matchedKey = "leg_curl";
     }
-    // 6. Lateral, Front, and Rear Deltoids (Side Raises, Upright Rows, Face Pulls, Rear Delt Flyes)
-    else if (
-      norm.includes("lateral raise") ||
-      norm.includes("side raise") ||
-      norm.includes("front raise") ||
-      norm.includes("rear delt") ||
-      norm.includes("face pull") ||
-      norm.includes("facepull") ||
-      norm.includes("upright row") ||
-      norm.includes("reverse pec deck") ||
-      norm.includes("deltoid fly")
-    ) {
-      matchedKey = "lateral_raise";
-    }
-    // 7. Horizontal Rows & Upper Back (Barbell Row, DB Row, T-Bar, Pendlay, Seated Cable Row, Shrugs, Inverted Row)
-    else if (
-      norm.includes("row") ||
-      norm.includes("t-bar") ||
-      norm.includes("pendlay") ||
-      norm.includes("shrug") ||
-      norm.includes("rhomboid")
-    ) {
-      matchedKey = "barbell_row";
-    }
-    // 8. Posterior Chain: Hamstrings & Hip Hinge (RDL, Stiff-Leg, Leg Curls, Nordic Curls, Good Mornings)
-    else if (
-      norm.includes("rdl") ||
-      norm.includes("romanian") ||
-      norm.includes("leg curl") ||
-      norm.includes("hamstring") ||
-      norm.includes("good morning") ||
-      norm.includes("nordic") ||
-      norm.includes("stiff leg")
-    ) {
-      matchedKey = "rdl";
-    }
-    // 9. Posterior Chain: Glute Dominant & Pelvic Extension (Hip Thrust, Glute Bridge, Kickbacks, Abductors)
-    else if (
-      norm.includes("hip thrust") ||
-      norm.includes("glute bridge") ||
-      norm.includes("kickback") ||
-      norm.includes("abductor") ||
-      norm.includes("glute")
-    ) {
+    // 6. Posterior Chain: Hip Thrust & Glutes (Hip Thrust, Glute Bridge, Kickback, Reverse Hyper)
+    else if (/\b(hip thrust|glute bridge|kickback|reverse hyper|glute kickback|glutes|adductor|adduction)\b/i.test(norm)) {
       matchedKey = "hip_thrust";
     }
-    // 10. Chest & Horizontal Push (Bench Press, Incline Press, Decline Press, Dumbbell Press, Chest Flyes, Push-Ups, Dips, Pec Deck, Landmine Chest)
-    else if (
-      norm.includes("bench") ||
-      norm.includes("push up") ||
-      norm.includes("push-up") ||
-      norm.includes("pushup") ||
-      norm.includes("chest press") ||
-      norm.includes("fly") ||
-      norm.includes("crossover") ||
-      norm.includes("dip") ||
-      norm.includes("pec deck") ||
-      norm.includes("landmine chest") ||
-      norm.includes("chest")
-    ) {
-      matchedKey = "bench";
+    // 7. Posterior Chain: Hamstrings & Hip Hinge (RDL, Romanian, Stiff Leg, Good Morning)
+    else if (/\b(rdl|romanian|good morning|stiff leg|stiff-leg)\b/i.test(norm)) {
+      matchedKey = "rdl";
     }
-    // 11. Shoulders & Vertical Push (Overhead Press, Military Press, DB Shoulder Press, Arnold Press, Push Press, Landmine Shoulder Press)
-    else if (
-      norm.includes("overhead") ||
-      norm.includes("shoulder press") ||
-      norm.includes("arnold press") ||
-      norm.includes("military press") ||
-      norm.includes("push press") ||
-      norm.includes("ohp") ||
-      norm.includes("shoulder")
-    ) {
+    // 8. Vertical Back Pulls (Lat Pulldowns, Pull-Ups, Chin-Ups, Straight Arm Pulldown)
+    else if (/\b(pulldown|pull-up|pull up|chin-up|chin up|lat pull|lat pulldown|straight arm pulldown)\b/i.test(norm)) {
+      matchedKey = "lat_pulldown";
+    }
+    // 9. Horizontal Rows & Upper Back (Barbell Row, Dumbbell Row, Cable Row, T-Bar, Pendlay, Shrugs, Face Pulls)
+    else if (/\b(row|rowing|t-bar|pendlay|shrug|shrugs|rhomboid|inverted row|seal row|meadows row)\b/i.test(norm)) {
+      matchedKey = "barbell_row";
+    }
+    // 10. Forearms & Hammer Curls
+    else if (/\b(hammer|reverse curl|wrist curl|farmer|grip|forearm)\b/i.test(norm)) {
+      matchedKey = "hammer_curl";
+    }
+    // 11. Biceps (Supinated, Preacher, Incline, Concentration, Cables)
+    else if (/\b(bicep|preacher|concentration|spider curl|ez bar curl|incline curl)\b/i.test(norm) || (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))) {
+      matchedKey = "bicep_curl";
+    }
+    // 12. Triceps (Pushdowns, Extensions, Skull Crushers, Dips, Close-Grip Bench, Kickbacks)
+    else if (/\b(tricep|pushdown|skull crusher|skullcrusher|close-grip|close grip|french press|jm press|dips?)\b/i.test(norm) || (norm.includes("extension") && !norm.includes("leg") && !norm.includes("quad") && !norm.includes("back"))) {
+      matchedKey = "tricep_pushdown";
+    }
+    // 13. Lateral, Front, and Rear Deltoids (Side Raises, Upright Rows, Face Pulls, Rear Delt Flyes)
+    else if (/\b(lateral raise|side raise|front raise|rear delt|face pull|facepull|upright row|reverse pec deck|deltoid fly)\b/i.test(norm)) {
+      matchedKey = "lateral_raise";
+    }
+    // 14. Shoulders & Vertical Push (Overhead Press, Military Press, DB Shoulder Press, Arnold Press, Push Press)
+    else if (/\b(overhead|shoulder press|arnold press|military press|push press|ohp|deltoid press|handstand)\b/i.test(norm)) {
       matchedKey = "press";
     }
-    // 12. Core & Abdominals (Plank, Side Plank, Leg Raises, Knee Raises, Ab Wheel, Woodchopper, Crunches, Russian Twists, Sit-Ups, Dead Bug, Pallof Press, Mountain Climbers, Hollow Body)
-    else if (
-      norm.includes("plank") ||
-      norm.includes("ab") ||
-      norm.includes("crunch") ||
-      norm.includes("leg raise") ||
-      norm.includes("knee raise") ||
-      norm.includes("woodchopper") ||
-      norm.includes("twist") ||
-      norm.includes("sit-up") ||
-      norm.includes("situp") ||
-      norm.includes("rollout") ||
-      norm.includes("hollow body") ||
-      norm.includes("dead bug") ||
-      norm.includes("deadbug") ||
-      norm.includes("pallof") ||
-      norm.includes("climber")
-    ) {
+    // 15. Chest & Horizontal Push (Bench Press, Incline Press, Decline Press, Dumbbell Press, Chest Flyes, Push-Ups, Pec Deck)
+    else if (/\b(bench|push-up|push up|pushup|chest press|chest fly|pec fly|flye|crossover|pec deck|floor press|svend press)\b/i.test(norm) || norm.includes("chest")) {
+      matchedKey = "bench";
+    }
+    // 16. Core & Abdominals (Plank, Ab Wheel, Crunch, Leg Raise, Knee Raise, Woodchopper, Sit-Up, Dead Bug, Pallof)
+    else if (/\b(plank|crunch|leg raise|knee raise|woodchopper|woodchop|russian twist|sit-up|situp|ab wheel|rollout|dead bug|deadbug|pallof|hollow body|v-up|hanging leg)\b/i.test(norm) || (/\b(abs|abdominals|core)\b/i.test(norm) && !norm.includes("abduct"))) {
       matchedKey = "plank";
     }
-    // 13. Quads & Knee-Dominant Lower Body (Squat, Front Squat, Box Squat, Goblet Squat, Bulgarian Split Squat, Lunges, Leg Press, Hack Squat, Leg Extension, Calves, Step-Ups, Sled Push, Wall Sit)
-    else if (
-      norm.includes("squat") ||
-      norm.includes("lunge") ||
-      norm.includes("leg press") ||
-      norm.includes("hack") ||
-      norm.includes("step-up") ||
-      norm.includes("step up") ||
-      norm.includes("split squat") ||
-      norm.includes("leg extension") ||
-      norm.includes("calf") ||
-      norm.includes("sled") ||
-      norm.includes("prowler") ||
-      norm.includes("wall sit")
-    ) {
+    // 17. Quads & Knee-Dominant Lower Body (Squat, Front Squat, Box Squat, Goblet Squat, Bulgarian Split Squat, Lunges, Leg Press, Hack Squat, Step-Ups)
+    else if (/\b(squat|lunge|leg press|hack squat|hack|step-up|step up|split squat|bulgarian|goblet|zercher|wall sit|sled|prowler)\b/i.test(norm) || norm.includes("quad")) {
       matchedKey = "squat";
     }
-    // 14. Explosive & Olympic Lifts / Full Body (Deadlift, Sumo Deadlift, Rack Pull, Power Clean, Clean & Jerk, Snatch, KB Swing, Turkish Get-Up, Burpee, Box Jump, Med Ball Slam, Cardio)
-    else if (
-      norm.includes("deadlift") ||
-      norm.includes("rack pull") ||
-      norm.includes("clean") ||
-      norm.includes("snatch") ||
-      norm.includes("swing") ||
-      norm.includes("turkish") ||
-      norm.includes("burpee") ||
-      norm.includes("box jump") ||
-      norm.includes("slam") ||
-      norm.includes("jump") ||
-      norm.includes("run") ||
-      norm.includes("bike") ||
-      norm.includes("rowing") ||
-      norm.includes("stair") ||
-      norm.includes("elliptical") ||
-      norm.includes("swim")
-    ) {
+    // 18. Posterior Chain & Full Body Explosive (Deadlift, Sumo Deadlift, Rack Pull, Power Clean, Snatch, Kettlebell Swing)
+    else if (/\b(deadlift|rack pull|clean|snatch|kettlebell swing|kb swing|burpee|box jump|slam ball|turkish get-up)\b/i.test(norm) || norm.includes("back")) {
       matchedKey = "deadlift";
     }
 
-    const chart = (matchedKey && ANATOMY_CHARTS[matchedKey]) || ANATOMY_CHARTS.squat;
+    // Dynamic Intelligent Fallback: If coach added a custom exercise without direct keyword, synthesize based on root words
+    if (!matchedKey) {
+      if (norm.includes("press")) matchedKey = "bench";
+      else if (norm.includes("pull")) matchedKey = "lat_pulldown";
+      else if (norm.includes("raise")) matchedKey = "lateral_raise";
+      else if (norm.includes("squat") || norm.includes("leg")) matchedKey = "squat";
+      else if (norm.includes("curl")) matchedKey = "bicep_curl";
+      else if (norm.includes("thrust") || norm.includes("glute")) matchedKey = "hip_thrust";
+      else if (norm.includes("hinge") || norm.includes("dead")) matchedKey = "deadlift";
+      else matchedKey = "squat";
+    }
+
+    const chart = ANATOMY_CHARTS[matchedKey] || ANATOMY_CHARTS.squat;
 
     return NextResponse.json({
       success: true,
       exerciseName,
       chart: {
         ...chart,
-        title: chart.title.includes(exerciseName) ? chart.title : `${exerciseName} — Visual Anatomy Guide`,
+        title: chart.title.toLowerCase().includes(exerciseName.toLowerCase()) ? chart.title : `${exerciseName} — Visual Anatomy Guide`,
         queryName: exerciseName,
       },
     });
