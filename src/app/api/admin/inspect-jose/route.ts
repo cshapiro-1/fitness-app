@@ -6,7 +6,12 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   try {
     const jose = await prisma.user.findFirst({
-      where: { email: "chisailor67@gmail.com" },
+      where: {
+        OR: [
+          { email: { contains: "chisailor67", mode: "insensitive" } },
+          { name: { contains: "Jose", mode: "insensitive" } },
+        ],
+      },
       include: {
         clients: {
           include: {
@@ -34,7 +39,8 @@ export async function GET(req: NextRequest) {
     });
 
     if (!jose) {
-      return NextResponse.json({ error: "Jose Dildine not found in database" }, { status: 404 });
+      const allUsers = await prisma.user.findMany({ select: { id: true, name: true, email: true, role: true } });
+      return NextResponse.json({ error: "Jose Dildine not found in database", allUsers }, { status: 404 });
     }
 
     const clientSummaries = jose.clients.map((c) => {
