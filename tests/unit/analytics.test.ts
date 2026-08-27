@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeAnalytics, getMuscleGroup } from "@/app/dashboard/utils/analytics";
+import { computeAnalytics, getMuscleGroup, getWorkoutExerciseMilestones } from "@/app/dashboard/utils/analytics";
 import { WorkoutSession } from "@/app/dashboard/types";
 
 describe("Analytics Utility", () => {
@@ -135,6 +135,47 @@ describe("Analytics Utility", () => {
       expect(benchPlateau).toBeDefined();
       expect(benchPlateau?.sessionsStagnant).toBe(3);
       expect(benchPlateau?.actionableCue).toContain("Recommendation");
+    });
+  });
+
+  describe("getWorkoutExerciseMilestones", () => {
+    it("should accurately detect new weight PRs and calculate percentage gain relative to previous sessions", () => {
+      const workouts: WorkoutSession[] = [
+        {
+          id: "w1",
+          clientId: "c1",
+          status: "COMPLETED",
+          startedAt: "2026-08-01T10:00:00Z",
+          completedAt: "2026-08-01T11:00:00Z",
+          createdAt: "2026-08-01T10:00:00Z",
+          exercises: [
+            { id: "e1", order: 0, name: "Barbell Bench Press", sets: [{ id: "s1", order: 0, weight: 200, reps: 5, notes: null }] },
+          ],
+        },
+        {
+          id: "w2",
+          clientId: "c1",
+          status: "COMPLETED",
+          startedAt: "2026-08-08T10:00:00Z",
+          completedAt: "2026-08-08T11:00:00Z",
+          createdAt: "2026-08-08T10:00:00Z",
+          exercises: [
+            { id: "e2", order: 0, name: "Barbell Bench Press", sets: [{ id: "s2", order: 0, weight: 230, reps: 5, notes: null }] },
+          ],
+        },
+      ];
+
+      const milestones = getWorkoutExerciseMilestones(workouts);
+      const w1Milestone = milestones.get("w1")?.get("Barbell Bench Press");
+      expect(w1Milestone).toBeUndefined(); // First session is initial baseline
+
+      const w2Milestone = milestones.get("w2")?.get("Barbell Bench Press");
+      expect(w2Milestone).toBeDefined();
+      expect(w2Milestone?.type).toBe("weight_pr");
+      expect(w2Milestone?.percentGain).toBe(15);
+      expect(w2Milestone?.diffWeight).toBe(30);
+      expect(w2Milestone?.badgeText).toBe("🏆 NEW PR (+15%)");
+      expect(w2Milestone?.celebrationText).toBe("You hit a new PR! This is 15% (+30 lbs) more weight than your previous best (200 lbs).");
     });
   });
 });

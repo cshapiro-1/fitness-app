@@ -6,7 +6,7 @@ import {
   Sparkles, AlertTriangle, Info, ChevronDown, ChevronUp
 } from "lucide-react";
 import { WorkoutSession } from "../types";
-import { getMuscleGroup, computeAnalytics } from "../utils/analytics";
+import { getMuscleGroup, computeAnalytics, getWorkoutExerciseMilestones } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutHistoryProps {
@@ -188,6 +188,7 @@ export function WorkoutHistory({
 
   const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
   const plateaus = analytics.plateaus;
+  const milestonesMap = useMemo(() => getWorkoutExerciseMilestones(completedWorkouts), [completedWorkouts]);
   const [showInsights, setShowInsights] = useState(true);
 
   return (
@@ -604,12 +605,32 @@ export function WorkoutHistory({
             {workout.exercises.map((exercise) => {
               const mg = getMuscleGroup(exercise.name);
               const isBW = exercise.isBodyweight || exercise.category === "BODYWEIGHT" || isDefaultBodyweight(exercise.name);
+              const milestone = milestonesMap.get(workout.id)?.get(exercise.name.trim());
 
               return (
                 <div key={exercise.id} className="history-exercise">
-                  <div className="history-exercise-name" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <div className="history-exercise-name" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                       <span>{exercise.name}</span>
+                      {milestone && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            background: milestone.type === "weight_pr" ? "#fef3c7" : "#eff6ff",
+                            color: milestone.type === "weight_pr" ? "#92400e" : "#1d4ed8",
+                            border: `1px solid ${milestone.type === "weight_pr" ? "#fde68a" : "#bfdbfe"}`,
+                            padding: "1px 6px",
+                            borderRadius: "5px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+                          }}
+                        >
+                          {milestone.badgeText}
+                        </span>
+                      )}
                       {isBW && (
                         <span
                           style={{
@@ -631,26 +652,70 @@ export function WorkoutHistory({
                       {mg}
                     </span>
                   </div>
+
+                  {/* Supportive Milestone Celebration Banner */}
+                  {milestone && (
+                    <div
+                      style={{
+                        background: milestone.type === "weight_pr" ? "#fffbeb" : "#f0fdf4",
+                        border: `1px solid ${milestone.type === "weight_pr" ? "#fde68a" : "#bbf7d0"}`,
+                        borderRadius: "7px",
+                        padding: "6px 10px",
+                        marginTop: "5px",
+                        marginBottom: "8px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        color: milestone.type === "weight_pr" ? "#92400e" : "#166534",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <Sparkles size={14} style={{ color: milestone.type === "weight_pr" ? "#d97706" : "#16a34a", flexShrink: 0 }} />
+                      <span>{milestone.celebrationText}</span>
+                    </div>
+                  )}
+
                   <div className="history-set-list">
-                    {exercise.sets.map((setEntry) => (
-                      <div key={setEntry.id} className="history-set-row">
-                        <span>Set {setEntry.order + 1}</span>
-                        <span>
-                          {exercise.category === "STRETCHING" || exercise.name.toLowerCase().includes("stretch") || exercise.name.toLowerCase().includes("warm") || exercise.name.toLowerCase().includes("pose") || exercise.name.toLowerCase().includes("roll") ? (
-                            <><b>{setEntry.reps}s</b> hold / duration</>
-                          ) : isBW ? (
-                            setEntry.weight > 0 ? (
-                              <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                    {exercise.sets.map((setEntry) => {
+                      const isPRSet = milestone && setEntry.weight === milestone.currentWeight;
+
+                      return (
+                        <div key={setEntry.id} className="history-set-row" style={{ background: isPRSet ? "#fefce8" : undefined }}>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <span>Set {setEntry.order + 1}</span>
+                            {isPRSet && (
+                              <span
+                                style={{
+                                  fontSize: "9px",
+                                  fontWeight: 800,
+                                  color: "#854d0e",
+                                  background: "#fef08a",
+                                  padding: "0 4px",
+                                  borderRadius: "3px",
+                                }}
+                              >
+                                PR SET
+                              </span>
+                            )}
+                          </span>
+                          <span>
+                            {exercise.category === "STRETCHING" || exercise.name.toLowerCase().includes("stretch") || exercise.name.toLowerCase().includes("warm") || exercise.name.toLowerCase().includes("pose") || exercise.name.toLowerCase().includes("roll") ? (
+                              <><b>{setEntry.reps}s</b> hold / duration</>
+                            ) : isBW ? (
+                              setEntry.weight > 0 ? (
+                                <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                              ) : (
+                                <><b>BW</b> × {setEntry.reps} reps</>
+                              )
                             ) : (
-                              <><b>BW</b> × {setEntry.reps} reps</>
-                            )
-                          ) : (
-                            <><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</>
-                          )}
-                        </span>
-                        <span>{setEntry.notes || "-"}</span>
-                      </div>
-                    ))}
+                              <><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                            )}
+                          </span>
+                          <span>{setEntry.notes || "-"}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

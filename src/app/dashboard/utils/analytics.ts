@@ -87,6 +87,16 @@ export type MultiLiftComparison = {
   timeline: MultiLiftTrendPoint[];
 };
 
+export type ExerciseMilestoneBadge = {
+  type: "weight_pr" | "1rm_pr" | "first_record" | "high_rep_pr";
+  badgeText: string;
+  celebrationText: string;
+  diffWeight?: number;
+  percentGain?: number;
+  previousWeight?: number;
+  currentWeight: number;
+};
+
 export type PlateauInsight = {
   exercise: string;
   sessionsStagnant: number;
@@ -584,4 +594,81 @@ export function computeAnalytics(workouts: WorkoutSession[]): DashboardAnalytics
       mostTrainedExercise: exercises[0] ? { exercise: exercises[0].name, sessions: exercises[0].sessions } : null,
     },
   };
+}
+
+export function getWorkoutExerciseMilestones(
+  workouts: WorkoutSession[]
+): Map<string, Map<string, ExerciseMilestoneBadge>> {
+  const milestoneMap = new Map<string, Map<string, ExerciseMilestoneBadge>>();
+
+  // Sort workouts chronologically from earliest to latest
+  const chronological = [...workouts].sort((a, b) => {
+    const tA = new Date(a.completedAt || a.startedAt || a.createdAt).getTime();
+    const tB = new Date(b.completedAt || b.startedAt || b.createdAt).getTime();
+    return tA - tB;
+  });
+
+  const allTimeMaxWeight = new Map<string, number>();
+  const allTimeMax1RM = new Map<string, number>();
+
+  chronological.forEach((workout) => {
+    const exerciseMilestones = new Map<string, ExerciseMilestoneBadge>();
+
+    workout.exercises.forEach((exercise) => {
+      if (!exercise.sets || exercise.sets.length === 0) return;
+
+      const normName = exercise.name.trim();
+      let topWeight = 0;
+      let topReps = 0;
+      let top1RM = 0;
+
+      exercise.sets.forEach((setEntry) => {
+        if (setEntry.weight > topWeight || (setEntry.weight === topWeight && setEntry.reps > topReps)) {
+          topWeight = setEntry.weight;
+          topReps = setEntry.reps;
+        }
+        const e1RM = calculate1RM(setEntry.weight, setEntry.reps);
+        if (e1RM > top1RM) top1RM = e1RM;
+      });
+
+      const prevMaxWeight = allTimeMaxWeight.get(normName);
+      const prevMax1RM = allTimeMax1RM.get(normName);
+
+      if (prevMaxWeight !== undefined && prevMaxWeight > 0) {
+        if (topWeight > prevMaxWeight) {
+          const diff = topWeight - prevMaxWeight;
+          const pct = Math.round((diff / prevMaxWeight) * 100);
+          exerciseMilestones.set(normName, {
+            type: "weight_pr",
+            badgeText: `🏆 NEW PR (+${pct}%)`,
+            celebrationText: `You hit a new PR! This is ${pct}% (+${diff} lbs) more weight than your previous best (${prevMaxWeight} lbs).`,
+            diffWeight: diff,
+            percentGain: pct,
+            previousWeight: prevMaxWeight,
+            currentWeight: topWeight,
+          });
+        } else if (prevMax1RM !== undefined && top1RM > prevMax1RM && top1RM - prevMax1RM >= 5) {
+          const diff = top1RM - prevMax1RM;
+          const pct = Math.round((diff / prevMax1RM) * 100);
+          exerciseMilestones.set(normName, {
+            type: "1rm_pr",
+            badgeText: `⚡ 1RM RECORD (+${pct}%)`,
+            celebrationText: `You hit a new 1RM record! Est. 1-Rep Max increased to ${top1RM} lbs (+${pct}% / +${diff} lbs).`,
+            diffWeight: diff,
+            percentGain: pct,
+            previousWeight: prevMax1RM,
+            currentWeight: top1RM,
+          });
+        }
+      }
+
+      // Update all-time peaks
+      allTimeMaxWeight.set(normName, Math.max(prevMaxWeight || 0, topWeight));
+      allTimeMax1RM.set(normName, Math.max(prevMax1RM || 0, top1RM));
+    });
+
+    milestoneMap.set(workout.id, exerciseMilestones);
+  });
+
+  return milestoneMap;
 }
