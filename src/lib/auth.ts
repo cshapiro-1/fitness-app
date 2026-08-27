@@ -5,7 +5,7 @@ import AppleProvider from "next-auth/providers/apple";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
-if (process.env.NEXTAUTH_URL && (process.env.NEXTAUTH_URL.includes("[SENSITIVE]") || !process.env.NEXTAUTH_URL.startsWith("http"))) {
+if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes("[SENSITIVE]")) {
   process.env.NEXTAUTH_URL = "https://strkyr.fit";
 }
 
@@ -212,6 +212,21 @@ export const authOptions: NextAuthOptions = {
         }
       }
       return token;
+    },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      try {
+        const parsedUrl = new URL(url);
+        const parsedBase = new URL(baseUrl);
+        if (
+          parsedUrl.hostname === parsedBase.hostname ||
+          parsedUrl.hostname.endsWith("strkyr.fit") ||
+          parsedUrl.hostname === "localhost"
+        ) {
+          return url;
+        }
+      } catch {}
+      return baseUrl;
     },
     async session({ session, token }) {
       if (session.user) {

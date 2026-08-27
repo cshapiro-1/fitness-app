@@ -22,15 +22,15 @@ export function middleware(request: NextRequest) {
   // 6. Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' data: https: blob:;
+    img-src 'self' data: https: blob: https://*.googleusercontent.com https://lh3.googleusercontent.com https://*.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.supabase.co https://*.neon.tech;
-    frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+    connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.supabase.co https://*.neon.tech https://*.google.com https://accounts.google.com https://www.googleapis.com https://*.googleusercontent.com https://lh3.googleusercontent.com;
+    frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://accounts.google.com;
     object-src 'none';
     base-uri 'self';
-    form-action 'self';
+    form-action 'self' https://accounts.google.com https://*.google.com;
     frame-ancestors 'self';
   `.replace(/\s{2,}/g, " ").trim();
 

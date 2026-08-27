@@ -31,6 +31,8 @@ function SignInContent() {
   const callbackUrl = getCleanCallbackUrl(rawCallback);
   const isInviteFlow = callbackUrl.includes("/invite/");
 
+  const authError = searchParams.get("error");
+
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
   const [loadingService, setLoadingService] = useState(false);
@@ -115,6 +117,33 @@ function SignInContent() {
             Unified strength &amp; performance platform for coaches and athletes
           </p>
         </div>
+
+        {/* Auth Notice / Error Banner */}
+        {authError && (
+          <div
+            style={{
+              background: "#fef2f2",
+              border: "1px solid #fecaca",
+              color: "#991b1b",
+              padding: "10px 14px",
+              borderRadius: "10px",
+              fontSize: "12px",
+              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "1.25rem",
+              textAlign: "left",
+            }}
+          >
+            <AlertCircle size={16} style={{ color: "#dc2626", flexShrink: 0 }} />
+            <span>
+              {authError === "Callback"
+                ? "Sign-in authorization session expired or domain mismatched. Please click Continue with Google below to proceed."
+                : `Authentication notice: ${authError}`}
+            </span>
+          </div>
+        )}
 
         {/* Invite Flow Alert Banner */}
         {isInviteFlow && (
