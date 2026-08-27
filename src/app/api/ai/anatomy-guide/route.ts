@@ -397,8 +397,27 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     ],
     breathingPattern: "Inhale completely during Cow extension → Exhale completely during Cat flexion.",
   },
+  bulgarian_split_squat: {
+    image: "/anatomy/bulgarian_split_squat.svg",
+    title: "Bulgarian Split Squat (Rear-Foot Elevated)",
+    primaryMuscles: ["Quadriceps Femoris (Rectus Femoris, Vastus Lateralis, Vastus Medialis)", "Gluteus Maximus", "Gluteus Medius"],
+    secondaryMuscles: ["Hamstrings (Biceps Femoris)", "Adductor Magnus", "Soleus", "Core Stabilizers"],
+    biomechanicsCue: "Elevate rear foot on bench (laces down). Maintain a slight 15° forward torso lean to maximize glute tension. Descend until front thigh is parallel to floor with front knee tracking directly over toes.",
+    steps: [
+      "Set Up: Stand 2-3 feet in front of a flat bench. Rest the top of your rear foot on the bench.",
+      "Descent: Lower your hips straight down and slightly back, bending front knee to a 90° angle while rear knee drops toward floor.",
+      "Depth: Descend until front thigh is parallel to the ground, keeping front heel glued to the floor.",
+      "Drive: Drive through front mid-foot and heel to return to standing lockout without hyperextending front knee.",
+    ],
+    commonMistakes: [
+      "Front foot too close to bench — causes excessive forward knee travel and heel elevation.",
+      "Torso leaning too upright on glute-biased sets — maintain slight 15° forward hinge for glute max loading.",
+      "Front knee caving inward (valgus collapse) — keep knee tracking strictly in line with second toe.",
+    ],
+    breathingPattern: "Inhale & brace core during descent → Exhale forcefully driving through front heel to top lockout.",
+  },
   back_hyperextension: {
-    image: "/anatomy/rdl.jpg",
+    image: "/anatomy/back_hyperextension.svg",
     title: "Back Hyperextensions (45° Roman Chair & Glute-Ham)",
     primaryMuscles: ["Erector Spinae (Spinalis, Longissimus, Iliocostalis)", "Gluteus Maximus"],
     secondaryMuscles: ["Hamstrings (Biceps Femoris, Semitendinosus)", "Quadratus Lumborum (QL)"],
@@ -417,7 +436,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale on descent → Exhale as you extend to apex neutral.",
   },
   ql_extension: {
-    image: "/anatomy/plank.jpg",
+    image: "/anatomy/ql_extension.svg",
     title: "QL Extensions & Lateral Trunk Flexion (Quadratus Lumborum)",
     primaryMuscles: ["Quadratus Lumborum (Deep Lumbar Stabilizer)", "Internal & External Obliques"],
     secondaryMuscles: ["Transverse Abdominis", "Multifidus", "Gluteus Medius"],
@@ -436,7 +455,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale on lateral descent → Exhale forcefully on lateral contraction.",
   },
   reverse_lunge: {
-    image: "/anatomy/squat.jpg",
+    image: "/anatomy/bulgarian_split_squat.svg",
     title: "Reverse Lunge & Split Squats (Unilateral Knee & Glute)",
     primaryMuscles: ["Quadriceps Femoris (Rectus Femoris, Vastus Lateralis/Medialis)", "Gluteus Maximus"],
     secondaryMuscles: ["Gluteus Medius (Pelvic Stabilizer)", "Hamstrings", "Adductor Magnus", "Soleus"],
@@ -455,7 +474,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale as you step back and descend → Exhale forcefully driving up through front heel.",
   },
   dips: {
-    image: "/anatomy/bench.jpg",
+    image: "/anatomy/dips.svg",
     title: "Parallel Bar Dips (Pectoral & Tricep Power)",
     primaryMuscles: ["Pectoralis Major (Lower Sternal Head)", "Triceps Brachii", "Anterior Deltoids"],
     secondaryMuscles: ["Pectoralis Minor", "Rhomboids", "Serratus Anterior", "Core Stabilizers"],
@@ -473,7 +492,7 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     breathingPattern: "Inhale on descent → Exhale pressing to lockout.",
   },
   face_pull: {
-    image: "/anatomy/lateral_raise.jpg",
+    image: "/anatomy/face_pull.svg",
     title: "Cable Face Pull (Rear Deltoid & Rotator Cuff)",
     primaryMuscles: ["Posterior Deltoids", "Infraspinatus & Teres Minor (External Rotators)", "Middle & Lower Trapezius"],
     secondaryMuscles: ["Rhomboids", "Lateral Deltoids", "Biceps Brachii"],
@@ -518,6 +537,10 @@ export async function POST(req: NextRequest) {
       /\b(cat|cow|spine|foam roll|mobility|warmup|warm-up|recovery|breathwork|sauna|yoga)\b/i.test(norm)
     ) {
       matchedKey = "cat_cow";
+    }
+    // 2. Bulgarian Split Squat (Explicitly checked first before general squat)
+    else if (/\b(bulgarian|bulgarian split squat|split squats?|rear-foot elevated|rear foot elevated|rfe split squat)\b/i.test(norm)) {
+      matchedKey = "bulgarian_split_squat";
     }
     // 2. QL & Deep Quadratus Lumborum / Oblique Extensions (Checked before general extensions)
     else if (/\b(ql|quadratus|quadratus lumborum|side bends?|oblique extensions?|lateral flexion|lateral trunk)\b/i.test(norm) || norm.includes("ql")) {

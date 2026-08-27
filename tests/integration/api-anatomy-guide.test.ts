@@ -74,8 +74,8 @@ describe("Anatomy & Kinesiology Visual Guide API", () => {
 
     const json = await res.json();
     expect(json.success).toBe(true);
-    expect(json.chart.image).toBe("/anatomy/squat.jpg");
-    expect(json.chart.title).toContain("Deficit Reverse Bulgarian Split Squat");
+    expect(json.chart.image).toBe("/anatomy/bulgarian_split_squat.svg");
+    expect(json.chart.title).toContain("Bulgarian Split Squat");
   });
 
   it("should accurately match Back Hyperextensions to erector spinae chart", async () => {
@@ -104,7 +104,7 @@ describe("Anatomy & Kinesiology Visual Guide API", () => {
 
     const json = await res.json();
     expect(json.success).toBe(true);
-    expect(json.chart.image).toBe("/anatomy/plank.jpg");
+    expect(json.chart.image).toBe("/anatomy/ql_extension.svg");
     expect(json.chart.primaryMuscles.some((m: string) => m.includes("Quadratus Lumborum"))).toBe(true);
   });
 

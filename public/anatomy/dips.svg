@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%" style="background:#090d16; font-family:system-ui, -apple-system, sans-serif;">
+  <defs>
+    <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <linearGradient id="pec-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" /><stop offset="70%" stop-color="#dc2626" /><stop offset="100%" stop-color="#991b1b" />
+    </linearGradient>
+    <linearGradient id="tricep-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" /><stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title Badge -->
+  <g transform="translate(30, 30)">
+    <rect width="360" height="42" rx="8" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
+    <circle cx="20" cy="21" r="6" fill="#ef4444" filter="url(#glow-orange)"/>
+    <text x="36" y="26" fill="#f8fafc" font-size="15" font-weight="800" letter-spacing="0.5">PARALLEL BAR DIPS</text>
+    <text x="235" y="25" fill="#38bdf8" font-size="11" font-weight="700">CHEST &amp; TRICEPS</text>
+  </g>
+
+  <!-- Parallel Dip Bars Apparatus -->
+  <g stroke="#475569" stroke-width="12" stroke-linecap="round">
+    <line x1="220" y1="280" x2="220" y2="540" />
+    <line x1="580" y1="280" x2="580" y2="540" />
+    <line x1="180" y1="280" x2="620" y2="280" stroke="#64748b" stroke-width="16"/>
+  </g>
+
+  <!-- Suspended Athlete Figure (90 Degree Elbow Flexion) -->
+  <!-- Head & Neck -->
+  <circle cx="400" cy="140" r="28" fill="#334155" stroke="#475569" stroke-width="2"/>
+  
+  <!-- Torso (15 Degree Forward Lean for Sternal Pec Bias) -->
+  <path d="M 380 180 Q 360 280 370 380 L 430 380 Q 440 280 420 180 Z" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+
+  <!-- Lower Pectoralis Major (Glowing Red) -->
+  <g filter="url(#glow-red)">
+    <path d="M 385 200 Q 400 240 435 240 Q 430 210 395 195 Z" fill="url(#pec-grad)" stroke="#f87171" stroke-width="1.5"/>
+    <path d="M 390 215 Q 410 230 425 225" stroke="#fca5a5" stroke-width="1.5" fill="none"/>
+  </g>
+
+  <!-- Anterior Deltoid & Triceps Brachii (Glowing Orange) -->
+  <g filter="url(#glow-orange)">
+    <!-- Anterior Shoulder -->
+    <circle cx="365" cy="190" r="16" fill="#f97316" stroke="#fca5a5" stroke-width="1.5"/>
+    <!-- Triceps Upper Arm -->
+    <path d="M 355 195 L 300 260 Q 310 270 345 230 Z" fill="url(#tricep-grad)" stroke="#f97316" stroke-width="2"/>
+    <path d="M 435 195 L 490 260 Q 480 270 445 230 Z" fill="url(#tricep-grad)" stroke="#f97316" stroke-width="2"/>
+  </g>
+
+  <!-- Forearms Gripping Bars at 90° -->
+  <path d="M 300 260 L 300 280" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
+  <path d="M 490 260 L 490 280" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
+  <!-- Hands on Bar -->
+  <circle cx="300" cy="280" r="12" fill="#64748b"/>
+  <circle cx="490" cy="280" r="12" fill="#64748b"/>
+
+  <!-- Legs Crossed and Bent Backwards -->
+  <path d="M 370 380 Q 360 440 390 490 Q 420 520 400 540" fill="none" stroke="#334155" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Anatomical Callouts -->
+  <g transform="translate(480, 160)">
+    <line x1="0" y1="50" x2="60" y2="10" stroke="#f97316" stroke-width="2"/>
+    <rect x="60" y="0" width="220" height="46" rx="8" fill="#111827" stroke="#f97316" stroke-width="1.5"/>
+    <text x="12" y="20" fill="#f97316" font-size="13" font-weight="800">Triceps Brachii</text>
+    <text x="12" y="34" fill="#cbd5e1" font-size="10">Lateral, Long &amp; Medial Heads</text>
+  </g>
+
+  <g transform="translate(100, 200)">
+    <line x1="280" y1="30" x2="200" y2="0" stroke="#ef4444" stroke-width="2"/>
+    <rect x="0" y="-10" width="200" height="46" rx="8" fill="#111827" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="12" y="10" fill="#ef4444" font-size="13" font-weight="800">Lower Pectoralis Major</text>
+    <text x="12" y="24" fill="#cbd5e1" font-size="10">Costal &amp; Sternal Head Power</text>
+  </g>
+</svg>
