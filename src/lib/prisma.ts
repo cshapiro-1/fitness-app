@@ -7,7 +7,13 @@ const globalForPrisma = globalThis as unknown as {
   pgPool: Pool;
 };
 
-const getConnectionString = () => process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/fitness";
+const getConnectionString = () => {
+  const raw = process.env.DATABASE_URL;
+  if (!raw || raw.includes("[SENSITIVE]") || (!raw.startsWith("postgres://") && !raw.startsWith("postgresql://"))) {
+    return "postgresql://postgres:postgres@localhost:5432/fitness";
+  }
+  return raw;
+};
 
 if (!globalForPrisma.pgPool) {
   globalForPrisma.pgPool = new Pool({ connectionString: getConnectionString() });

@@ -5,6 +5,10 @@ import AppleProvider from "next-auth/providers/apple";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
+if (process.env.NEXTAUTH_URL && (process.env.NEXTAUTH_URL.includes("[SENSITIVE]") || !process.env.NEXTAUTH_URL.startsWith("http"))) {
+  process.env.NEXTAUTH_URL = "https://strkyr.fit";
+}
+
 // Type-safe mapper to bridge flexible Prisma Enum to strict frontend types
 const mapRole = (role?: string | null): "TRAINER" | "CLIENT" => {
   if (!role) return "TRAINER";

@@ -11,19 +11,17 @@ import { GoogleIcon } from "@/components/GoogleIcon";
 
 function getCleanCallbackUrl(raw: string | null): string {
   if (!raw || typeof raw !== "string") return "/dashboard";
-  let decoded = raw;
+  if (raw.startsWith("/")) return raw;
   try {
-    decoded = decodeURIComponent(raw);
-  } catch {}
-  if (decoded.startsWith("/")) return decoded;
-  try {
-    const parsed = new URL(decoded, "https://strkyr.fit");
-    if (parsed.pathname && parsed.pathname.startsWith("/")) {
-      return parsed.pathname + (parsed.search || "");
+    const decoded = decodeURIComponent(raw);
+    if (decoded.startsWith("/")) return decoded;
+    if (/^https?:\/\/[a-zA-Z0-9.-]+/i.test(decoded)) {
+      const parsed = new URL(decoded);
+      if (parsed.pathname && parsed.pathname.startsWith("/")) {
+        return parsed.pathname + (parsed.search || "");
+      }
     }
-  } catch {
-    return "/dashboard";
-  }
+  } catch {}
   return "/dashboard";
 }
 

@@ -18,13 +18,13 @@ import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 export interface RepeatExerciseSet {
   weight: number | string;
   reps: number | string;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface RepeatExercise {
   name: string;
-  category?: string;
-  isBodyweight?: boolean;
+  category?: string | null;
+  isBodyweight?: boolean | null;
   sets: RepeatExerciseSet[];
 }
 
@@ -37,8 +37,8 @@ export interface RepeatWorkoutModalProps {
     createdAt?: string;
     exercises: Array<{
       name: string;
-      category?: string;
-      isBodyweight?: boolean;
+      category?: string | null;
+      isBodyweight?: boolean | null;
       sets: Array<{
         weight: number | string;
         reps: number | string;
