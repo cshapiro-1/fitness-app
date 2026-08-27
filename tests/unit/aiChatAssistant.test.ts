@@ -120,17 +120,52 @@ describe("AI Chat Assistant Intelligence Engine", () => {
     expect(res.action?.data.exercises[0].name).toBe("Barbell Bench Press");
   });
 
-  it("should generate 1-click anatomy viewer action when answering progression queries", () => {
+  it("should calculate exact realistic progressive overload recommendations for deadlift (+5 to +10 lbs from 205 lbs to 210-215 lbs, never 600 lbs)", () => {
     const context: AIChatContext = {
       requesterRole: "CLIENT",
-      requesterName: "Sarah",
-      targetName: "Sarah",
+      requesterName: "Collin",
+      targetName: "Collin",
+      workouts: [
+        {
+          id: "w-deadlift",
+          completedAt: "2026-08-26T12:00:00Z",
+          exercises: [
+            {
+              name: "Conventional Deadlift",
+              sets: [
+                { weight: 205, reps: 5 },
+                { weight: 205, reps: 5 },
+                { weight: 205, reps: 5 },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = answerFitnessQuery("What is a reasonable increase for deadlift after completing 205 lbs?", context);
+    expect(res.answer).toContain("Progressive Overload Recommendation");
+    expect(res.answer).toContain("210 lbs");
+    expect(res.answer).toContain("215 lbs");
+    expect(res.answer).not.toContain("go to 600 lbs");
+    expect(res.answer).toContain("NSCA 2-for-2 Rule");
+    expect(res.action).toBeDefined();
+    expect(res.action?.type).toBe("LOAD_INTO_BUILDER");
+    expect(res.action?.data.exercises[0].sets.some((s) => s.weight === "210")).toBe(true);
+  });
+
+  it("should calculate realistic micro-loading for bench press (+2.5 to +5 lbs)", () => {
+    const context: AIChatContext = {
+      requesterRole: "CLIENT",
+      requesterName: "Collin",
+      targetName: "Collin",
       workouts: sampleWorkouts,
     };
 
-    const res = answerFitnessQuery("How is my bench press progressing?", context);
-    expect(res.action).toBeDefined();
-    expect(res.action?.type).toBe("VIEW_ANATOMY");
-    expect(res.action?.data.exerciseName).toBe("Barbell Bench Press");
+    const res = answerFitnessQuery("How much should I increase bench press at 225?", context);
+    expect(res.answer).toContain("Barbell Bench Press");
+    expect(res.answer).toContain("227.5 lbs");
+    expect(res.answer).toContain("230 lbs");
+    expect(res.answer).toContain("+2.5 to +5 lbs");
   });
 });

@@ -335,7 +335,126 @@ export function answerFitnessQuery(query: string, context: AIChatContext): AICha
   });
 
   // ==========================================
-  // INTENT 3: PROGRESSION / 1RM METRICS
+  // INTENT 3: PROGRESSIVE OVERLOAD & LOAD ADVANCEMENT ADVISOR
+  // ==========================================
+  const isOverloadInquiry =
+    normalizedQuery.includes("reasonable increase") ||
+    normalizedQuery.includes("how much increase") ||
+    normalizedQuery.includes("how much weight should i add") ||
+    normalizedQuery.includes("how much should i add") ||
+    normalizedQuery.includes("how much should i increase") ||
+    normalizedQuery.includes("weight increase") ||
+    normalizedQuery.includes("load increase") ||
+    normalizedQuery.includes("overload increase") ||
+    normalizedQuery.includes("next jump") ||
+    normalizedQuery.includes("next weight") ||
+    (normalizedQuery.includes("increase") &&
+      (normalizedQuery.includes("deadlift") ||
+        normalizedQuery.includes("squat") ||
+        normalizedQuery.includes("bench") ||
+        normalizedQuery.includes("press") ||
+        normalizedQuery.includes("row") ||
+        normalizedQuery.includes("curl") ||
+        normalizedQuery.includes("weight") ||
+        normalizedQuery.includes("load")));
+
+  if (isOverloadInquiry) {
+    // 1. Identify Target Exercise
+    let targetExName = "Deadlift";
+    let isLowerCompound = true;
+    let isUpperCompound = false;
+    let isIsolation = false;
+
+    if (normalizedQuery.includes("bench") || normalizedQuery.includes("incline press") || normalizedQuery.includes("chest press")) {
+      targetExName = "Barbell Bench Press";
+      isLowerCompound = false;
+      isUpperCompound = true;
+    } else if (normalizedQuery.includes("overhead") || normalizedQuery.includes("ohp") || normalizedQuery.includes("military") || normalizedQuery.includes("shoulder press")) {
+      targetExName = "Overhead Barbell Press";
+      isLowerCompound = false;
+      isUpperCompound = true;
+    } else if (normalizedQuery.includes("squat")) {
+      targetExName = "Barbell Squat";
+      isLowerCompound = true;
+    } else if (normalizedQuery.includes("row")) {
+      targetExName = "Barbell Bent-Over Row";
+      isLowerCompound = false;
+      isUpperCompound = true;
+    } else if (normalizedQuery.includes("deadlift") || normalizedQuery.includes("rdl")) {
+      targetExName = "Conventional Deadlift";
+      isLowerCompound = true;
+    } else if (normalizedQuery.includes("lateral raise") || normalizedQuery.includes("bicep") || normalizedQuery.includes("tricep") || normalizedQuery.includes("curl")) {
+      targetExName = "Dumbbell Movement";
+      isLowerCompound = false;
+      isIsolation = true;
+    } else if (matchedExercises.length > 0) {
+      targetExName = matchedExercises[0].name;
+      const mg = matchedExercises[0].muscleGroup.toLowerCase();
+      isLowerCompound = mg.includes("leg") || mg.includes("back");
+      isUpperCompound = mg.includes("chest") || mg.includes("shoulder");
+    }
+
+    // 2. Extract Base Weight
+    let baseWeight = 205;
+    const weightMatch = normalizedQuery.match(/\b(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds?|kilos?|kg)?\b/);
+    if (weightMatch && weightMatch[1]) {
+      baseWeight = parseFloat(weightMatch[1]);
+    } else if (matchedExercises.length > 0 && matchedExercises[0].maxWeight > 0) {
+      baseWeight = matchedExercises[0].maxWeight;
+    }
+
+    // 3. Compute Biomechanically Sound Increments
+    let stepLow = 5;
+    let stepHigh = 10;
+    let stepText = "+5 to +10 lbs (+2.5% to +5%)";
+
+    if (isUpperCompound) {
+      stepLow = 2.5;
+      stepHigh = 5;
+      stepText = "+2.5 to +5 lbs (+1.5% to +2.5%)";
+    } else if (isIsolation) {
+      stepLow = 2.5;
+      stepHigh = 5;
+      stepText = "+2.5 to +5 lbs (or add +1–2 reps before increasing load)";
+    }
+
+    const nextLow = baseWeight + stepLow;
+    const nextHigh = baseWeight + stepHigh;
+
+    referencedExercises.push(targetExName);
+
+    return {
+      answer: `📈 **Progressive Overload Recommendation for ${targetExName}:**\n\nAfter completing **${baseWeight} lbs**, the standard, exercise-science-backed increase is **${stepText}**:\n\n• **Conservative Target (Recommended):** **${nextLow} lbs** (${stepLow > 0 ? `+${stepLow} lbs` : ""})\n• **Aggressive Target (If RPE ≤ 7):** **${nextHigh} lbs** (+${stepHigh} lbs)\n\n📌 **The NSCA 2-for-2 Rule:**\nOnly advance the load when you can complete **2 or more extra clean reps** on your final working set across **two consecutive training sessions** without technical breakdown.\n\n⚠️ *Coaching Note:* Never make massive jumps (e.g. +20 lbs or jumping to hundreds of pounds beyond your current working set). Incremental micro-loading protects spinal disc health, strengthens connective tendons, and guarantees long-term linear progression.`,
+      referencedExercises,
+      action: {
+        type: "LOAD_INTO_BUILDER",
+        label: `⚡ Load Next Progression (${nextLow} lbs ${targetExName}) into Logger`,
+        data: {
+          routineName: `${targetExName} Progression (${nextLow} lbs)`,
+          exercises: [
+            {
+              name: targetExName,
+              category: "STRENGTH",
+              isBodyweight: false,
+              sets: [
+                { weight: String(Math.round(baseWeight * 0.6 / 5) * 5), reps: "8", notes: "Warmup Set 1" },
+                { weight: String(Math.round(baseWeight * 0.8 / 5) * 5), reps: "5", notes: "Warmup Set 2" },
+                { weight: String(nextLow), reps: "5", notes: `Target Working Set (+${stepLow} lbs Overload)` },
+                { weight: String(nextLow), reps: "5", notes: "Working Set (Focus on bar speed)" },
+              ],
+            },
+          ],
+        },
+      },
+      metricsFound: {
+        totalWorkoutsAnalyzed: totalWorkouts,
+        topLift: `${baseWeight} lbs ${targetExName}`,
+      },
+    };
+  }
+
+  // ==========================================
+  // INTENT 4: PROGRESSION / 1RM METRICS
   // ==========================================
   if (
     matchedExercises.length > 0 &&
@@ -355,7 +474,7 @@ export function answerFitnessQuery(query: string, context: AIChatContext): AICha
       const first = trendPoints[0];
       const last = trendPoints[trendPoints.length - 1];
       const changeSign = ex.weightChangePercent >= 0 ? "+" : "";
-      details = `${targetLabel}'s **${ex.name}** has progressed from **${first.topWeight} lbs** to **${last.topWeight} lbs** (${changeSign}${ex.weightChangePercent}%) across ${ex.sessions} logged sessions. Current estimated 1-Rep Max is **${ex.maxEstimated1RM} lbs** with a lifetime logged volume of **${ex.totalVolume.toLocaleString()} lbs** across ${ex.totalSets} sets.`;
+      details = `${targetLabel}'s **${ex.name}** has progressed from **${first.topWeight} lbs** to **${last.topWeight} lbs** (${changeSign}${ex.weightChangePercent}%) across ${ex.sessions} logged sessions. Current estimated 1-Rep Max is **${ex.maxEstimated1RM} lbs** with a cumulative volume of **${ex.totalVolume.toLocaleString()} lbs** across ${ex.totalSets} sets.`;
     } else {
       details = `${targetLabel} has logged **${ex.name}** with a peak top set of **${ex.maxWeight} lbs** (Estimated 1RM: **${ex.maxEstimated1RM} lbs**) across ${ex.totalSets} total sets.`;
     }
