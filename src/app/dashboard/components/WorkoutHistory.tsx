@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus, Edit3 } from "lucide-react";
+import {
+  Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus, Edit3,
+  Sparkles, AlertTriangle, Info, ChevronDown, ChevronUp
+} from "lucide-react";
 import { WorkoutSession } from "../types";
-import { getMuscleGroup } from "../utils/analytics";
+import { getMuscleGroup, computeAnalytics } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutHistoryProps {
@@ -183,6 +186,10 @@ export function WorkoutHistory({
     setNotesSearch("");
   };
 
+  const analytics = useMemo(() => computeAnalytics(completedWorkouts), [completedWorkouts]);
+  const plateaus = analytics.plateaus;
+  const [showInsights, setShowInsights] = useState(true);
+
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
@@ -230,6 +237,72 @@ export function WorkoutHistory({
           ))}
         </div>
       </div>
+
+      {/* Progressive Overload Surges & Training Insights Feed */}
+      {plateaus.length > 0 && (
+        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Sparkles size={18} style={{ color: "#16a34a" }} />
+              <h4 style={{ margin: 0, fontSize: "14px", fontWeight: 800, color: "#0f172a" }}>
+                Progressive Overload Milestones &amp; Training Insights ({plateaus.length})
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowInsights(!showInsights)}
+              style={{ display: "flex", alignItems: "center", gap: "4px", background: "none", border: "none", color: "#2563eb", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+            >
+              <span>{showInsights ? "Collapse" : "Expand Insights"}</span>
+              {showInsights ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+          </div>
+
+          {showInsights && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+              {plateaus.map((p, idx) => {
+                const isPlateau = p.insightType === "plateau" || p.insightType === "deload_needed";
+                const isBreakthrough = p.insightType === "breakthrough";
+
+                return (
+                  <div
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "10px",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      background: isPlateau ? "#fffbeb" : isBreakthrough ? "#f0fdf4" : "#eff6ff",
+                      border: `1px solid ${isPlateau ? "#fde68a" : isBreakthrough ? "#bbf7d0" : "#bfdbfe"}`,
+                    }}
+                  >
+                    <div style={{ color: isPlateau ? "#d97706" : isBreakthrough ? "#16a34a" : "#2563eb", marginTop: "2px", flexShrink: 0 }}>
+                      {isPlateau ? <AlertTriangle size={16} /> : isBreakthrough ? <Sparkles size={16} /> : <Info size={16} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "4px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 800, color: isPlateau ? "#92400e" : isBreakthrough ? "#166534" : "#1e40af", textTransform: "uppercase" }}>
+                          {isPlateau ? "⚡ Microcycle Plateau Alert" : isBreakthrough ? "🚀 Progressive Overload Surge" : "Periodization Insight"}
+                        </span>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b" }}>
+                          {p.exercise} · Current Max: {p.currentMaxWeight} lbs
+                        </span>
+                      </div>
+                      <p style={{ margin: "2px 0 4px 0", fontSize: "12px", fontWeight: 600, color: "#0f172a" }}>
+                        {p.message}
+                      </p>
+                      <div style={{ fontSize: "11px", color: isPlateau ? "#b45309" : isBreakthrough ? "#15803d" : "#2563eb", fontWeight: 500 }}>
+                        💡 <b>Coach Cue:</b> {p.actionableCue}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Filter Control Bar */}
       <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>

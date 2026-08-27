@@ -32,7 +32,6 @@ import {
   SymmetryData,
   IntensityDistribution,
   MultiLiftComparison,
-  PlateauInsight,
 } from "../utils/analytics";
 
 interface AnalyticsViewProps {
@@ -41,71 +40,6 @@ interface AnalyticsViewProps {
 
 type LineMetricType = "topWeight" | "estimatedOneRepMax" | "totalVolume";
 type BarMetricType = "maxWeight" | "maxEstimated1RM" | "totalVolume" | "totalSets" | "sessions";
-
-// ==========================================
-// 1. AI Periodization & Plateau Alerts
-// ==========================================
-function PlateauInsightBanner({ plateaus }: { plateaus?: PlateauInsight[] }) {
-  if (!plateaus || plateaus.length === 0) return null;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-      {plateaus.map((p, idx) => {
-        const isPlateau = p.insightType === "plateau" || p.insightType === "deload_needed";
-        const isBreakthrough = p.insightType === "breakthrough";
-
-        return (
-          <div
-            key={idx}
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "12px",
-              padding: "14px 16px",
-              borderRadius: "12px",
-              background: isPlateau ? "#fffbeb" : isBreakthrough ? "#f0fdf4" : "#eff6ff",
-              border: `1px solid ${isPlateau ? "#fde68a" : isBreakthrough ? "#bbf7d0" : "#bfdbfe"}`,
-            }}
-          >
-            <div
-              style={{
-                color: isPlateau ? "#d97706" : isBreakthrough ? "#16a34a" : "#2563eb",
-                marginTop: "2px",
-                flexShrink: 0,
-              }}
-            >
-              {isPlateau ? <AlertTriangle size={18} /> : isBreakthrough ? <Sparkles size={18} /> : <Info size={18} />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 800,
-                    color: isPlateau ? "#92400e" : isBreakthrough ? "#166534" : "#1e40af",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {isPlateau ? "⚡ Microcycle Plateau Alert" : isBreakthrough ? "🚀 Progressive Overload Surge" : "Periodization Insight"}
-                </span>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b" }}>
-                  {p.exercise} · Current Max: {p.currentMaxWeight} lbs
-                </span>
-              </div>
-              <p style={{ margin: "4px 0 6px 0", fontSize: "13px", fontWeight: 600, color: "#0f172a" }}>
-                {p.message}
-              </p>
-              <div style={{ fontSize: "12px", color: isPlateau ? "#b45309" : isBreakthrough ? "#15803d" : "#2563eb", fontWeight: 500 }}>
-                💡 <b>Coach Cue:</b> {p.actionableCue}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ==========================================
 // 2. ACWR Fatigue & Readiness Gauge Card
@@ -824,9 +758,6 @@ export function AnalyticsView({ analytics }: AnalyticsViewProps) {
         <div className="empty-state">Log workouts to unlock progress graphs, muscle group charts, and strength analytics.</div>
       ) : (
         <>
-          {/* AI Periodization & Plateau Alerts */}
-          <PlateauInsightBanner plateaus={analytics.plateaus} />
-
           {/* Top Overall Summary Grid */}
           <div className="analytics-summary-grid">
             <div className="analytics-summary-card">
