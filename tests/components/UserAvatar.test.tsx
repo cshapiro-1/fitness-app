@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { UserAvatar } from "@/components/UserAvatar";
 
 describe("UserAvatar Component", () => {
-  it("should render image immediately with no-referrer policy when Google avatar URL is provided", () => {
+  it("should render image immediately with no-referrer policy without CORS blockage when Google avatar URL is provided", () => {
     const googleUrl = "https://lh3.googleusercontent.com/a/ACg8ocL123456789=s96-c";
     render(<UserAvatar src={googleUrl} name="Collin Shapiro" size={40} />);
 
@@ -12,7 +12,7 @@ describe("UserAvatar Component", () => {
     expect(img).toBeDefined();
     expect(img.getAttribute("src")).toBe(googleUrl);
     expect(img.getAttribute("referrerpolicy")).toBe("no-referrer");
-    expect(img.getAttribute("crossorigin")).toBe("anonymous");
+    expect(img.getAttribute("crossorigin")).toBeNull();
   });
 
   it("should fallback to name initial if no image src is provided or if src is string literal 'null'", () => {

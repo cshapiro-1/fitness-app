@@ -82,7 +82,6 @@ export function UserAvatar({
           src={cleanSrc}
           alt={name || "User Avatar"}
           referrerPolicy="no-referrer"
-          crossOrigin="anonymous"
           loading="eager"
           onError={() => setHasError(true)}
           style={{

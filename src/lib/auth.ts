@@ -238,11 +238,21 @@ export const authOptions: NextAuthOptions = {
               select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true },
             });
             if (dbUser) {
+              const effectiveImage = dbUser.image || (token.picture as string) || (session.user as any).image || null;
+              if (effectiveImage && !dbUser.image) {
+                try {
+                  await prisma.user.update({
+                    where: { id: dbUser.id },
+                    data: { image: effectiveImage },
+                  });
+                  dbUser.image = effectiveImage;
+                } catch {}
+              }
               (session.user as any).id = dbUser.id;
               (session.user as any).role = mapRole(dbUser.role);
               (session.user as any).isAdmin = !!dbUser.isAdmin;
               (session.user as any).clientProfileId = dbUser.clientProfileId;
-              session.user.image = dbUser.image || (token.picture as string) || (session.user as any).image || null;
+              session.user.image = dbUser.image || effectiveImage;
               if (dbUser.name) session.user.name = dbUser.name;
               return session;
             }
