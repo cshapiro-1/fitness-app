@@ -3,16 +3,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
-  Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity
+  Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
+  Briefcase, User
 } from "lucide-react";
 import Link from "next/link";
 
-interface AdminUser {
+interface AdminTrainer {
   id: string;
   name: string | null;
   email: string;
   image: string | null;
-  role: "TRAINER" | "CLIENT";
+  role: "TRAINER" | "CLIENT" | "ADMIN";
   isAdmin: boolean;
   subscriptionStatus: string | null;
   computedStatus: "trial" | "active" | "expired" | "client_free";
@@ -20,6 +21,20 @@ interface AdminUser {
   subscribedUntil: string | null;
   createdAt: string;
   clientCount: number;
+  workoutsLoggedForClients: number;
+}
+
+interface AdminClient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  image: string | null;
+  createdAt: string;
+  trainerId?: string;
+  trainerName: string;
+  workoutsLogged: number;
+  isRegistered: boolean;
 }
 
 interface AdminStats {
@@ -74,10 +89,11 @@ interface StripeBillingData {
 export function AdminPortal({ userName }: { userName: string }) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [stripeBilling, setStripeBilling] = useState<StripeBillingData | null>(null);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [trainers, setTrainers] = useState<AdminTrainer[]>([]);
+  const [clients, setClients] = useState<AdminClient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"trainers" | "clients">("trainers");
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [actionUserId, setActionUserId] = useState<string | null>(null);
 
@@ -89,7 +105,8 @@ export function AdminPortal({ userName }: { userName: string }) {
         const data = await res.json();
         setStats(data.stats);
         setStripeBilling(data.stripeBilling || null);
-        setUsers(data.users);
+        setTrainers(data.trainers || data.users || []);
+        setClients(data.clients || []);
       } else {
         alert("Failed to load admin statistics.");
       }
@@ -125,19 +142,27 @@ export function AdminPortal({ userName }: { userName: string }) {
     }
   };
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+  const filteredTrainers = useMemo(() => {
+    return trainers.filter((t) => {
       const query = searchQuery.toLowerCase();
-      const nameMatch = u.name?.toLowerCase().includes(query) || false;
-      const emailMatch = u.email.toLowerCase().includes(query);
+      const nameMatch = t.name?.toLowerCase().includes(query) || false;
+      const emailMatch = t.email.toLowerCase().includes(query);
       const matchesSearch = nameMatch || emailMatch;
 
-      const matchesRole = roleFilter === "ALL" || u.role === roleFilter;
-      const matchesStatus = statusFilter === "ALL" || u.computedStatus === statusFilter.toLowerCase();
-
-      return matchesSearch && matchesRole && matchesStatus;
+      const matchesStatus = statusFilter === "ALL" || t.computedStatus === statusFilter.toLowerCase();
+      return matchesSearch && matchesStatus;
     });
-  }, [users, searchQuery, roleFilter, statusFilter]);
+  }, [trainers, searchQuery, statusFilter]);
+
+  const filteredClients = useMemo(() => {
+    return clients.filter((c) => {
+      const query = searchQuery.toLowerCase();
+      const nameMatch = c.name.toLowerCase().includes(query);
+      const emailMatch = c.email.toLowerCase().includes(query);
+      const trainerMatch = c.trainerName.toLowerCase().includes(query);
+      return nameMatch || emailMatch || trainerMatch;
+    });
+  }, [clients, searchQuery]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -148,149 +173,124 @@ export function AdminPortal({ userName }: { userName: string }) {
             <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
             <div>
               <h1 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>STRKYR Master Admin Portal</h1>
-              <span style={{ fontSize: "11px", color: "#94a3b8" }}>Authenticated as {userName}</span>
+              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Master Operations, User Telemetry &amp; Stripe Financials</div>
             </div>
           </div>
-          <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", background: "#1e293b", color: "#f8fafc", padding: "6px 12px", borderRadius: "6px", textDecoration: "none" }}>
-            <ArrowLeft size={14} /> Back to Dashboard
-          </Link>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <Link
+              href="/dashboard"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                background: "#1e293b",
+                color: "#f8fafc",
+                padding: "6px 12px",
+                borderRadius: "8px",
+                fontSize: "12px",
+                textDecoration: "none",
+                fontWeight: 600,
+                border: "1px solid #334155",
+              }}
+            >
+              <ArrowLeft size={14} /> Back to Dashboard
+            </Link>
+          </div>
         </div>
       </header>
 
-      <div style={{ maxWidth: "1200px", margin: "24px auto", padding: "0 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
-        {/* Metric Cards Grid */}
-        {stats && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {/* Top Row: Financial & Subscriber Growth */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 600 }}>
-                  <DollarSign size={16} /> Real Stripe MRR
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "24px" }}>
-                  ${stats.estimatedMRR} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/mo</span>
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
-                  ARR: ${(stripeBilling?.projectedARR || stats.estimatedMRR * 12).toLocaleString()}/yr
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>
-                  <Users size={16} /> Platform Trainers
-                </div>
-                <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalTrainers}</span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
-                  {stats.activeSubscriptions} Paid · {stats.trialingUsers} Trialing
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0891b2", fontSize: "12px", fontWeight: 600 }}>
-                  <UserCheck size={16} /> Total Athletes / Clients
-                </div>
-                <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalClients}</span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
-                  Avg ~{stats.avgClientsPerTrainer ?? (stats.totalTrainers > 0 ? (stats.totalClients / stats.totalTrainers).toFixed(1) : 0)} clients / coach
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 600 }}>
-                  <TrendingUp size={16} /> Paid Conversion
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#6d28d9", fontSize: "24px" }}>
-                  {stats.conversionRate}%
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
-                  Active Subscriber Rate
-                </div>
-              </div>
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
+        {/* KPI Telemetry Grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+          {/* Active Paid Trainers */}
+          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+              <span>ACTIVE SUBSCRIBERS</span>
+              <DollarSign size={16} style={{ color: "#16a34a" }} />
             </div>
-
-            {/* Second Row: User Activity & Platform Utilization */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#ea580c", fontSize: "12px", fontWeight: 700 }}>
-                  <Zap size={15} /> Daily Active (DAU)
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#c2410c", fontSize: "22px" }}>
-                  {stats.dau ?? 1}
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                  Active in last 24h
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0284c7", fontSize: "12px", fontWeight: 700 }}>
-                  <Clock size={15} /> Weekly Active (WAU)
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#0369a1", fontSize: "22px" }}>
-                  {stats.wau ?? stats.dau ?? 1}
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                  Active in last 7 days
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#4f46e5", fontSize: "12px", fontWeight: 700 }}>
-                  <TrendingUp size={15} /> Monthly Active (MAU)
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#4338ca", fontSize: "22px" }}>
-                  {stats.mau ?? stats.wau ?? 1}
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                  Stickiness: {stats.stickinessRatio ?? 100}%
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 700 }}>
-                  <CheckCircle2 size={15} /> Completion Rate
-                </div>
-                <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "22px" }}>
-                  {stats.completionRate ?? 100}%
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                  {stats.totalCompletedWorkouts ?? stats.totalWorkouts} of {stats.totalWorkouts} sessions
-                </div>
-              </div>
-
-              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#dc2626", fontSize: "12px", fontWeight: 700 }}>
-                  <Activity size={15} /> Live In-Progress
-                </div>
-                <span className="analytics-summary-value" style={{ color: (stats.inProgressSessions ?? 0) > 0 ? "#dc2626" : "#475569", fontSize: "22px" }}>
-                  {stats.inProgressSessions ?? 0}
-                </span>
-                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                  Active workouts now
-                </div>
-              </div>
+            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+              {stats?.activeSubscriptions ?? 0}
+            </div>
+            <div style={{ fontSize: "12px", color: "#16a34a", marginTop: "4px", fontWeight: 600 }}>
+              ${stats?.estimatedMRR ?? 0} Real MRR
             </div>
           </div>
-        )}
 
-        {/* Live Stripe Financials & Payouts Panel */}
-        {stripeBilling && stripeBilling.connected && (
-          <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "8px" }}>
+          {/* Total Trainers */}
+          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+              <span>TOTAL TRAINERS</span>
+              <Briefcase size={16} style={{ color: "#2563eb" }} />
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+              {trainers.length || stats?.totalTrainers || 0}
+            </div>
+            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+              {stats?.trialingUsers ?? 0} trialing · {stats?.expiredUsers ?? 0} expired
+            </div>
+          </div>
+
+          {/* Total Managed Athletes / Clients */}
+          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+              <span>TOTAL CLIENTS / ATHLETES</span>
+              <Users size={16} style={{ color: "#7c3aed" }} />
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+              {clients.length || stats?.totalClients || 0}
+            </div>
+            <div style={{ fontSize: "12px", color: "#7c3aed", marginTop: "4px", fontWeight: 600 }}>
+              {stats?.avgClientsPerTrainer ?? 0} clients / trainer
+            </div>
+          </div>
+
+          {/* Workouts Completed */}
+          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+              <span>WORKOUT LOGS</span>
+              <Dumbbell size={16} style={{ color: "#ea580c" }} />
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+              {stats?.totalWorkouts ?? 0}
+            </div>
+            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+              {stats?.totalCompletedWorkouts ?? 0} finished ({stats?.completionRate ?? 0}%)
+            </div>
+          </div>
+
+          {/* Daily Active Users (DAU / MAU) */}
+          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+              <span>ACTIVE USERS (DAU/MAU)</span>
+              <Activity size={16} style={{ color: "#0891b2" }} />
+            </div>
+            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+              {stats?.dau ?? 1} <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ {stats?.mau ?? 1}</span>
+            </div>
+            <div style={{ fontSize: "12px", color: "#0891b2", marginTop: "4px", fontWeight: 600 }}>
+              {stats?.stickinessRatio ?? 100}% Stickiness Ratio
+            </div>
+          </div>
+        </div>
+
+        {/* Live Stripe Merchant Dashboard */}
+        {stripeBilling?.connected && (
+          <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ background: "#635bff", color: "#ffffff", fontSize: "11px", fontWeight: 800, padding: "3px 8px", borderRadius: "6px" }}>
-                  STRIPE LIVE
-                </span>
+                <DollarSign size={20} style={{ color: "#635bff" }} />
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
-                  Live Treasury & Payout Status (Morgan Stanley Linked)
+                  Stripe Merchant Financial Telemetry
                 </h3>
               </div>
-              <span style={{ fontSize: "11px", color: "#64748b" }}>Direct API Sync</span>
+              <span style={{ fontSize: "11px", fontWeight: 700, background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "3px 8px", borderRadius: "6px" }}>
+                ✓ Live Account Connected
+              </span>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "16px" }}>
               <div style={{ background: "#f8fafc", padding: "12px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>AVAILABLE FOR PAYOUT</div>
+                <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>AVAILABLE BALANCE</div>
                 <div style={{ fontSize: "20px", fontWeight: 800, color: "#16a34a", marginTop: "4px" }}>
                   ${stripeBilling.availableBalance.toFixed(2)} USD
                 </div>
@@ -310,37 +310,64 @@ export function AdminPortal({ userName }: { userName: string }) {
                 </div>
               </div>
             </div>
-
-            {/* Recent Payouts Table */}
-            {stripeBilling.recentPayouts.length > 0 && (
-              <div>
-                <h4 style={{ margin: "0 0 8px 0", fontSize: "13px", fontWeight: 700, color: "#475569" }}>Recent Bank Payouts</h4>
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  {stripeBilling.recentPayouts.map((p) => (
-                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f8fafc", borderRadius: "6px", fontSize: "12px" }}>
-                      <span><b>${p.amount.toFixed(2)} {p.currency}</b> $\rightarrow$ Morgan Stanley</span>
-                      <span style={{ color: p.status === "paid" ? "#16a34a" : "#d97706", fontWeight: 600, textTransform: "capitalize" }}>
-                        {p.status === "paid" ? "✓ Paid" : p.status} ({p.arrivalDate})
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* User Management Section */}
+        {/* User Directory: Split Trainers & Clients */}
         <div style={{ background: "#ffffff", padding: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
-            <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>
-              User Directory & Memberships ({filteredUsers.length})
-            </h3>
+          {/* Tabs: Trainers vs Clients */}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
+            <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "10px", padding: "3px", gap: "4px" }}>
+              <button
+                onClick={() => setActiveTab("trainers")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeTab === "trainers" ? "#2563eb" : "transparent",
+                  color: activeTab === "trainers" ? "#ffffff" : "#475569",
+                  boxShadow: activeTab === "trainers" ? "0 1px 3px rgba(37,99,235,0.2)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Briefcase size={15} />
+                <span>Trainers &amp; Coaches ({trainers.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("clients")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  background: activeTab === "clients" ? "#2563eb" : "transparent",
+                  color: activeTab === "clients" ? "#ffffff" : "#475569",
+                  boxShadow: activeTab === "clients" ? "0 1px 3px rgba(37,99,235,0.2)" : "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Users size={15} />
+                <span>Clients &amp; Athletes ({clients.length})</span>
+              </button>
+            </div>
+
             <button
               onClick={fetchAdminData}
-              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
             >
-              <RefreshCw size={13} className={loading ? "spin" : ""} /> Refresh Data
+              <RefreshCw size={13} className={loading ? "spin" : ""} /> Refresh
             </button>
           </div>
 
@@ -350,141 +377,195 @@ export function AdminPortal({ userName }: { userName: string }) {
               <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
               <input
                 className="input"
-                placeholder="Search user name or email..."
+                placeholder={activeTab === "trainers" ? "Search trainer name or email..." : "Search client or trainer name..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
               />
             </div>
 
-            <select
-              className="input"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ fontSize: "12px", padding: "6px 10px" }}
-            >
-              <option value="ALL">All Roles</option>
-              <option value="TRAINER">Trainers Only</option>
-              <option value="CLIENT">Clients Only</option>
-            </select>
-
-            <select
-              className="input"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ fontSize: "12px", padding: "6px 10px" }}
-            >
-              <option value="ALL">All Membership Statuses</option>
-              <option value="ACTIVE">Active Paid (Trainers)</option>
-              <option value="TRIAL">Trialing (Trainers)</option>
-              <option value="EXPIRED">Expired (Trainers)</option>
-              <option value="CLIENT_FREE">Athletes (Free Access)</option>
-            </select>
+            {activeTab === "trainers" && (
+              <select
+                className="input"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ fontSize: "12px", padding: "6px 10px" }}
+              >
+                <option value="ALL">All Memberships</option>
+                <option value="ACTIVE">Active Paid</option>
+                <option value="TRIAL">Trialing</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
+            )}
           </div>
 
-          {/* Users Table */}
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
-                  <th style={{ padding: "10px 12px" }}>User</th>
-                  <th style={{ padding: "10px 12px" }}>Role</th>
-                  <th style={{ padding: "10px 12px" }}>Clients</th>
-                  <th style={{ padding: "10px 12px" }}>Membership</th>
-                  <th style={{ padding: "10px 12px" }}>Joined</th>
-                  <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
-                      No matching users found.
-                    </td>
+          {/* ========================================================= */}
+          {/* TAB 1: TRAINERS TABLE                                     */}
+          {/* ========================================================= */}
+          {activeTab === "trainers" && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
+                    <th style={{ padding: "10px 12px" }}>Trainer</th>
+                    <th style={{ padding: "10px 12px" }}>Role</th>
+                    <th style={{ padding: "10px 12px" }}>Clients</th>
+                    <th style={{ padding: "10px 12px" }}>Workouts Logged for Clients</th>
+                    <th style={{ padding: "10px 12px" }}>Membership</th>
+                    <th style={{ padding: "10px 12px" }}>Joined</th>
+                    <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                   </tr>
-                ) : (
-                  filteredUsers.map((u) => (
-                    <tr key={u.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "12px" }}>
-                        <div style={{ fontWeight: 600, color: "#0f172a" }}>
-                          {u.name || "Unnamed User"}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>{u.email}</div>
+                </thead>
+                <tbody>
+                  {filteredTrainers.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                        No trainers found matching filters.
                       </td>
-
-                      <td style={{ padding: "12px" }}>
-                        <span style={{ fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "6px", background: u.role === "TRAINER" ? "#eff6ff" : "#f1f5f9", color: u.role === "TRAINER" ? "#2563eb" : "#475569" }}>
-                          {u.role}
-                        </span>
-                      </td>
-
-                      <td style={{ padding: "12px", fontWeight: 600 }}>{u.clientCount}</td>
-
-                      <td style={{ padding: "12px" }}>
-                        {u.role === "CLIENT" || u.computedStatus === "client_free" ? (
-                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                            <span>✓</span> Free Athlete Access
-                          </span>
-                        ) : u.computedStatus === "active" ? (
-                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
-                            ✓ Active Paid
-                          </span>
-                        ) : u.computedStatus === "trial" ? (
-                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
-                            ⏱ Trialing
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: "11px", fontWeight: 600, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
-                            🔒 Expired
-                          </span>
-                        )}
-                      </td>
-
-                      <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
-                        {new Date(u.createdAt).toLocaleDateString()}
-                      </td>
-
-                      <td style={{ padding: "12px", textAlign: "right" }}>
-                        {u.role === "CLIENT" ? (
-                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px", alignItems: "center" }}>
-                            <span style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic", marginRight: "6px" }}>No Billing Required</span>
-                            <button
-                              onClick={() => handleUpdateUser(u.id, { role: "TRAINER" })}
-                              disabled={actionUserId === u.id}
-                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
-                              title="Convert athlete account to coach account"
-                            >
-                              Make Trainer
-                            </button>
+                    </tr>
+                  ) : (
+                    filteredTrainers.map((t) => (
+                      <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                            {t.name || "Unnamed Trainer"}
                           </div>
-                        ) : (
+                          <div style={{ fontSize: "11px", color: "#64748b" }}>{t.email}</div>
+                        </td>
+
+                        <td style={{ padding: "12px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: t.isAdmin ? "#fef3c7" : "#eff6ff", color: t.isAdmin ? "#92400e" : "#2563eb" }}>
+                            {t.isAdmin ? "👑 ADMIN" : t.role}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "12px", fontWeight: 700 }}>{t.clientCount}</td>
+
+                        <td style={{ padding: "12px" }}>
+                          <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                            {t.workoutsLoggedForClients}
+                          </span>{" "}
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                        </td>
+
+                        <td style={{ padding: "12px" }}>
+                          {t.computedStatus === "active" ? (
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                              ✓ Active Paid
+                            </span>
+                          ) : t.computedStatus === "trial" ? (
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
+                              ⏱ Trialing
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+                              🔒 Expired
+                            </span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
+                          {new Date(t.createdAt).toLocaleDateString()}
+                        </td>
+
+                        <td style={{ padding: "12px", textAlign: "right" }}>
                           <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
                             <button
-                              onClick={() => handleUpdateUser(u.id, { extendTrialDays: 14 })}
-                              disabled={actionUserId === u.id}
-                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "4px", cursor: "pointer" }}
+                              onClick={() => handleUpdateUser(t.id, { extendTrialDays: 14 })}
+                              disabled={actionUserId === t.id}
+                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
                               title="Add +14 days to trial"
                             >
                               +14D Trial
                             </button>
 
                             <button
-                              onClick={() => handleUpdateUser(u.id, { grantSubscriptionDays: 365 })}
-                              disabled={actionUserId === u.id}
-                              style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600 }}
+                              onClick={() => handleUpdateUser(t.id, { grantSubscriptionDays: 365 })}
+                              disabled={actionUserId === t.id}
+                              style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
                               title="Grant 1 Year Active Subscription"
                             >
-                              Grant 1Yr Sub
+                              Grant 1Yr
                             </button>
                           </div>
-                        )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 2: CLIENTS TABLE                                      */}
+          {/* ========================================================= */}
+          {activeTab === "clients" && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
+                    <th style={{ padding: "10px 12px" }}>Client / Athlete</th>
+                    <th style={{ padding: "10px 12px" }}>Assigned Coach</th>
+                    <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
+                    <th style={{ padding: "10px 12px" }}>Access Tier</th>
+                    <th style={{ padding: "10px 12px" }}>Account Created</th>
+                    <th style={{ padding: "10px 12px", textAlign: "right" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredClients.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                        No clients found matching search.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    filteredClients.map((c) => (
+                      <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                        <td style={{ padding: "12px" }}>
+                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                            {c.name}
+                          </div>
+                          <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}</div>
+                          {c.phone && <div style={{ fontSize: "10px", color: "#94a3b8" }}>{c.phone}</div>}
+                        </td>
+
+                        <td style={{ padding: "12px" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
+                            🏋️ {c.trainerName}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "12px" }}>
+                          <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "14px" }}>
+                            {c.workoutsLogged}
+                          </span>{" "}
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                        </td>
+
+                        <td style={{ padding: "12px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <span>✓</span> Free Athlete Access
+                          </span>
+                        </td>
+
+                        <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
+                          {new Date(c.createdAt).toLocaleDateString()}
+                        </td>
+
+                        <td style={{ padding: "12px", textAlign: "right" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 600, color: c.isRegistered ? "#16a34a" : "#64748b", background: c.isRegistered ? "#f0fdf4" : "#f1f5f9", padding: "3px 8px", borderRadius: "6px" }}>
+                            {c.isRegistered ? "✓ Registered" : "Invited"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

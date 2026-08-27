@@ -38,6 +38,8 @@ export async function GET(req: NextRequest) {
       recent7dWorkouts,
       recent30dWorkouts,
       totalSetsCount,
+      allTrainers,
+      allClients,
       allUsers,
     ] = await Promise.all([
       prisma.user.count(),
@@ -60,6 +62,7 @@ export async function GET(req: NextRequest) {
       }),
       prisma.workoutSet.count(),
       prisma.user.findMany({
+        where: { role: { in: ["TRAINER", "trainer", "ADMIN", "admin"] } },
         select: {
           id: true,
           name: true,
@@ -72,7 +75,53 @@ export async function GET(req: NextRequest) {
           subscribedUntil: true,
           createdAt: true,
           _count: {
-            select: { clients: true },
+            select: {
+              clients: true,
+              loggedWorkouts: { where: { deletedAt: null } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.client.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          image: true,
+          createdAt: true,
+          user: {
+            select: { id: true, name: true, email: true },
+          },
+          loginUser: {
+            select: { id: true, name: true, email: true, createdAt: true },
+          },
+          _count: {
+            select: {
+              workoutSessions: { where: { deletedAt: null } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          role: true,
+          isAdmin: true,
+          subscriptionStatus: true,
+          trialEndsAt: true,
+          subscribedUntil: true,
+          createdAt: true,
+          _count: {
+            select: {
+              clients: true,
+              loggedWorkouts: { where: { deletedAt: null } },
+            },
           },
         },
         orderBy: { createdAt: "desc" },
@@ -109,7 +158,7 @@ export async function GET(req: NextRequest) {
     let trialingUsers = 0;
     let expiredUsers = 0;
 
-    const formattedUsers = allUsers.map((u: any) => {
+    const formattedTrainers = (allTrainers as any[]).map((u: any) => {
       let computedStatus: "trial" | "active" | "expired" | "client_free" = "expired";
 
       if (u.role === "CLIENT") {
@@ -127,9 +176,25 @@ export async function GET(req: NextRequest) {
       return {
         ...u,
         computedStatus,
-        clientCount: u._count.clients,
+        clientCount: u._count?.clients || 0,
+        workoutsLoggedForClients: u._count?.loggedWorkouts || 0,
       };
     });
+
+    const formattedClients = (allClients as any[]).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      email: c.email || c.loginUser?.email || "No email",
+      phone: c.phone,
+      image: c.image,
+      createdAt: c.createdAt,
+      trainerId: c.user?.id,
+      trainerName: c.user?.name || c.user?.email || "Unassigned",
+      workoutsLogged: c._count?.workoutSessions || 0,
+      isRegistered: !!c.loginUser,
+    }));
+
+    const formattedUsers = formattedTrainers;
 
     // Real-time Live Stripe Billing Metrics
     let stripeBilling: any = {
@@ -242,6 +307,8 @@ export async function GET(req: NextRequest) {
         conversionRate,
       },
       stripeBilling,
+      trainers: formattedTrainers,
+      clients: formattedClients,
       users: formattedUsers,
     });
   } catch (error: any) {
