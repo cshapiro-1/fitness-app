@@ -39,6 +39,7 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { EditWorkoutModal, EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { LiveWorkoutBanner } from "./components/LiveWorkoutBanner";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { TextImportModal } from "./components/TextImportModal";
@@ -351,6 +352,26 @@ export function ClientDashboard({
       return s === "PLANNED" || s === "IN_PROGRESS";
     });
   }, [workouts]);
+
+  const inProgressWorkout = useMemo(() => {
+    return workouts.find(
+      (w) => !w.deletedAt && (w.status === "IN_PROGRESS" || (w.status === "PLANNED" && w.startedAt))
+    );
+  }, [workouts]);
+
+  // Real-time live polling synchronization (polls every 3.5s when an active workout is in progress)
+  useEffect(() => {
+    if (!inProgressWorkout) return;
+    const interval = setInterval(() => {
+      fetch("/api/workouts/client")
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) setWorkouts(data);
+        })
+        .catch(() => {});
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [inProgressWorkout]);
 
   const fullAnalytics = useMemo(() => computeAnalytics(workouts), [workouts]);
 
@@ -687,6 +708,39 @@ export function ClientDashboard({
             )}
           </div>
         </div>
+
+        {/* Live In-Progress Workout Collaboration Banner */}
+        {inProgressWorkout && (
+          <LiveWorkoutBanner
+            workoutId={inProgressWorkout.id}
+            workoutTitle={inProgressWorkout.notes || "Live Workout Session"}
+            startedAt={inProgressWorkout.startedAt || inProgressWorkout.createdAt}
+            startedByName={inProgressWorkout.loggedByName || "Coach"}
+            exerciseCount={inProgressWorkout.exercises?.length || 0}
+            onResume={() => {
+              setEditingWorkout(inProgressWorkout);
+            }}
+            onComplete={async () => {
+              try {
+                const res = await fetch(`/api/workouts/${inProgressWorkout.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    status: "COMPLETED",
+                    completedAt: new Date().toISOString(),
+                  }),
+                });
+                if (res.ok) {
+                  const saved = await res.json();
+                  setWorkouts((prev) => prev.map((w) => (w.id === saved.id ? saved : w)));
+                  setTab("history");
+                }
+              } catch {
+                alert("Failed to complete workout.");
+              }
+            }}
+          />
+        )}
 
         {/* Clean Responsive Tab Switcher */}
         <div className="tabs" style={{ marginBottom: "16px" }}>

@@ -53,6 +53,7 @@ import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { AssignWorkoutModal } from "./components/AssignWorkoutModal";
 import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { LiveWorkoutBanner } from "./components/LiveWorkoutBanner";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
@@ -755,6 +756,55 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         />
 
         <main className="main">
+          {/* Live In-Progress Workout Collaboration Banner */}
+          {(activeWorkout || workouts.find((w) => !w.deletedAt && (w.status === "IN_PROGRESS" || (w.status === "PLANNED" && w.startedAt)))) && (
+            (() => {
+              const inProgress = activeWorkout || workouts.find((w) => !w.deletedAt && (w.status === "IN_PROGRESS" || (w.status === "PLANNED" && w.startedAt)));
+              return (
+                <LiveWorkoutBanner
+                  workoutId={(inProgress as any)?.id || "active-session"}
+                  workoutTitle={(inProgress as any)?.notes || (selected ? `${selected.name}'s Session` : "Live Workout Session")}
+                  startedAt={inProgress?.startedAt || (inProgress as any)?.createdAt || new Date().toISOString()}
+                  startedByName="Coach"
+                  exerciseCount={inProgress?.exercises?.length || 0}
+                  isCoachView={true}
+                  athleteName={selected?.name}
+                  onResume={() => {
+                    if (activeWorkout) {
+                      setTab("log");
+                    } else if (inProgress && (inProgress as any).id) {
+                      setEditingWorkout(inProgress as any);
+                    }
+                  }}
+                  onComplete={async () => {
+                    if (activeWorkout) {
+                      await completeWorkout();
+                    } else if (inProgress && (inProgress as any).id) {
+                      try {
+                        const res = await fetch(`/api/workouts/${(inProgress as any).id}`, {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            status: "COMPLETED",
+                            completedAt: new Date().toISOString(),
+                          }),
+                        });
+                        if (res.ok) {
+                          const saved = await res.json();
+                          setWorkouts((prev) => prev.map((w) => (w.id === saved.id ? saved : w)));
+                          setTab("history");
+                        }
+                      } catch {
+                        alert("Failed to complete workout.");
+                      }
+                    }
+                  }}
+                  isCompleting={savingWorkout}
+                />
+              );
+            })()
+          )}
+
           {/* Mobile Client Switcher Bar (Appears on Mobile in place of scrolling sidebar) */}
           <div className="mobile-client-bar">
             <button
