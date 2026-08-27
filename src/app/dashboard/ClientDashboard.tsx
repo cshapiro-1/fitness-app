@@ -207,7 +207,12 @@ export function ClientDashboard({
     try {
       const res = await fetch("/api/workouts/client");
       if (res.ok) {
-        setWorkouts(await res.json());
+        const data = await res.json();
+        setWorkouts(data);
+        const hasPlanned = Array.isArray(data) && data.some((w: any) => !w.deletedAt && (w.status === "PLANNED" || w.status === "IN_PROGRESS"));
+        if (!hasPlanned && Array.isArray(data) && data.length > 0) {
+          setTab("history");
+        }
       }
     } catch (e) {
       console.error("Failed to load workouts", e);

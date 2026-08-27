@@ -38,6 +38,7 @@ export async function GET(req: Request) {
           ...(trainerId ? [{ userId: trainerId }] : []),
           ...(trainerId ? [{ user: { id: trainerId } }] : []),
           ...(trainerEmail ? [{ user: { email: trainerEmail } }] : []),
+          ...(trainerEmail ? [{ email: { equals: trainerEmail, mode: "insensitive" as const } }] : []),
         ],
       },
       include: {

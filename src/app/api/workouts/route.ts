@@ -22,6 +22,10 @@ export async function GET(req: NextRequest) {
     const urlClientId = new URL(req.url).searchParams.get("clientId");
     let targetClientIds: string[] = [];
     let isSelfQuery = false;
+    let isCollin =
+      (userEmail && userEmail.includes("collin")) ||
+      (session?.user?.name && session.user.name.toLowerCase().includes("collin")) ||
+      false;
 
     if (urlClientId && urlClientId !== "all") {
       const targetClient = await prisma.client.findUnique({
@@ -41,9 +45,12 @@ export async function GET(req: NextRequest) {
       }
 
       targetClientIds = [urlClientId];
-      const isCollin =
+      if (
         targetClient.name?.toLowerCase().includes("collin") ||
-        (targetClient.email && targetClient.email.toLowerCase().includes("collin"));
+        (targetClient.email && targetClient.email.toLowerCase().includes("collin"))
+      ) {
+        isCollin = true;
+      }
 
       if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
         isSelfQuery = true;
@@ -129,7 +136,7 @@ export async function GET(req: NextRequest) {
         deletedAt: null,
         OR: [
           ...(targetClientIds.length > 0 ? [{ clientId: { in: targetClientIds } }] : []),
-          ...(isSelfQuery && userId ? [{ loggedById: userId }] : []),
+          ...((isSelfQuery || isCollin || !urlClientId || urlClientId === "all") && userId ? [{ loggedById: userId }] : []),
         ],
       },
       include: {
