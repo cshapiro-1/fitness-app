@@ -17,19 +17,33 @@ export function UserAvatar({
   className = "",
   style = {},
 }: UserAvatarProps) {
+  const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setHasError(false);
+    const clean = typeof src === "string" ? src.trim() : null;
+    const isValid = !!(
+      clean &&
+      clean.length > 0 &&
+      clean !== "null" &&
+      clean !== "undefined"
+    );
+    setCurrentSrc(isValid ? clean : null);
+    setHasError(!isValid);
   }, [src]);
 
-  const cleanSrc = typeof src === "string" ? src.trim() : null;
-  const isValidSrc = !!(
-    cleanSrc &&
-    cleanSrc.length > 0 &&
-    cleanSrc !== "null" &&
-    cleanSrc !== "undefined"
-  );
+  const handleImageError = () => {
+    // If direct Google CDN load failed (e.g. strict browser client), fallback to server avatar proxy
+    if (
+      currentSrc &&
+      currentSrc.includes("googleusercontent.com") &&
+      !currentSrc.startsWith("/api/user/avatar")
+    ) {
+      setCurrentSrc("/api/user/avatar");
+    } else {
+      setHasError(true);
+    }
+  };
 
   const initial =
     name && name.trim().length > 0
@@ -77,13 +91,13 @@ export function UserAvatar({
       </span>
 
       {/* Foreground Image */}
-      {isValidSrc && !hasError && (
+      {currentSrc && !hasError && (
         <img
-          src={cleanSrc}
+          src={currentSrc}
           alt={name || "User Avatar"}
           referrerPolicy="no-referrer"
           loading="eager"
-          onError={() => setHasError(true)}
+          onError={handleImageError}
           style={{
             position: "absolute",
             top: 0,
