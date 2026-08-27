@@ -23,12 +23,42 @@ export async function GET(req: NextRequest) {
     }
 
     const now = new Date();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [totalUsers, totalTrainers, totalClients, totalWorkouts, allUsers] = await Promise.all([
+    const [
+      totalUsers,
+      totalTrainers,
+      totalClients,
+      totalWorkouts,
+      completedWorkouts,
+      inProgressSessions,
+      recent24hWorkouts,
+      recent7dWorkouts,
+      recent30dWorkouts,
+      totalSetsCount,
+      allUsers,
+    ] = await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { role: "TRAINER" } }),
+      prisma.user.count({ where: { role: { in: ["TRAINER", "trainer"] } } }),
       prisma.client.count(),
-      prisma.workoutSession.count(),
+      prisma.workoutSession.count({ where: { deletedAt: null } }),
+      prisma.workoutSession.count({ where: { status: "COMPLETED", deletedAt: null } }),
+      prisma.workoutSession.count({ where: { status: "IN_PROGRESS", deletedAt: null } }),
+      prisma.workoutSession.findMany({
+        where: { createdAt: { gte: oneDayAgo }, deletedAt: null },
+        select: { loggedById: true, client: { select: { userId: true } } },
+      }),
+      prisma.workoutSession.findMany({
+        where: { createdAt: { gte: sevenDaysAgo }, deletedAt: null },
+        select: { loggedById: true, client: { select: { userId: true } } },
+      }),
+      prisma.workoutSession.findMany({
+        where: { createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
+        select: { loggedById: true, client: { select: { userId: true } } },
+      }),
+      prisma.workoutSet.count(),
       prisma.user.findMany({
         select: {
           id: true,
@@ -48,6 +78,32 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
       }),
     ]);
+
+    // Compute unique user IDs for DAU, WAU, MAU
+    const dauSet = new Set<string>();
+    recent24hWorkouts.forEach((w: any) => {
+      if (w.loggedById) dauSet.add(w.loggedById);
+      if (w.client?.userId) dauSet.add(w.client.userId);
+    });
+    const dau = Math.max(dauSet.size, 1); // at least current admin
+
+    const wauSet = new Set<string>();
+    recent7dWorkouts.forEach((w: any) => {
+      if (w.loggedById) wauSet.add(w.loggedById);
+      if (w.client?.userId) wauSet.add(w.client.userId);
+    });
+    const wau = Math.max(wauSet.size, dau);
+
+    const mauSet = new Set<string>();
+    recent30dWorkouts.forEach((w: any) => {
+      if (w.loggedById) mauSet.add(w.loggedById);
+      if (w.client?.userId) mauSet.add(w.client.userId);
+    });
+    const mau = Math.max(mauSet.size, wau);
+
+    const stickinessRatio = mau > 0 ? Math.round((dau / mau) * 100) : 100;
+    const completionRate = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
+    const avgClientsPerTrainer = totalTrainers > 0 ? Number((totalClients / totalTrainers).toFixed(1)) : 0;
 
     let activeSubscriptions = 0;
     let trialingUsers = 0;
@@ -170,6 +226,15 @@ export async function GET(req: NextRequest) {
         totalTrainers,
         totalClients,
         totalWorkouts,
+        totalCompletedWorkouts: completedWorkouts,
+        inProgressSessions,
+        totalSetsCount,
+        dau,
+        wau,
+        mau,
+        stickinessRatio,
+        completionRate,
+        avgClientsPerTrainer,
         activeSubscriptions: stripeBilling.connected ? stripeBilling.totalPayingSubscribers : activeSubscriptions,
         trialingUsers,
         expiredUsers,

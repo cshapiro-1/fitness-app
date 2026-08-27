@@ -80,6 +80,61 @@ describe("Analytics Utility", () => {
       expect(chestGroup).toBeDefined();
       expect(chestGroup?.exerciseCount).toBe(1);
       expect(chestGroup?.totalVolume).toBe(2275);
+
+      // Verify ACWR calculations
+      expect(result.acwr).toBeDefined();
+      expect(result.acwr.acuteLoad).toBe(3400);
+      expect(result.acwr.ratio).toBeGreaterThan(0);
+      expect(["optimal", "deload", "overreaching", "danger"]).toContain(result.acwr.zone);
+
+      // Verify Kinesiological Symmetry
+      expect(result.symmetry).toBeDefined();
+      expect(result.symmetry.pushVolume).toBe(2275);
+      expect(result.symmetry.quadVolume).toBe(1125);
+      expect(result.symmetry.radarPoints).toHaveLength(5);
+
+      // Verify Intensity Distribution
+      expect(result.intensity).toBeDefined();
+      expect(result.intensity.totalTrackedSets).toBe(3);
+      expect(result.intensity.zone1Percent + result.intensity.zone2Percent + result.intensity.zone3Percent).toBe(100);
+    });
+
+    it("should detect plateau and breakthrough periodization patterns", () => {
+      const stagnantWorkouts: WorkoutSession[] = [
+        {
+          id: "w1",
+          clientId: "c1",
+          status: "COMPLETED",
+          startedAt: "2026-08-01T10:00:00Z",
+          completedAt: "2026-08-01T11:00:00Z",
+          createdAt: "2026-08-01T10:00:00Z",
+          exercises: [{ id: "e1", order: 0, name: "Bench Press", sets: [{ id: "s1", order: 0, weight: 225, reps: 5, notes: null }] }],
+        },
+        {
+          id: "w2",
+          clientId: "c1",
+          status: "COMPLETED",
+          startedAt: "2026-08-05T10:00:00Z",
+          completedAt: "2026-08-05T11:00:00Z",
+          createdAt: "2026-08-05T10:00:00Z",
+          exercises: [{ id: "e2", order: 0, name: "Bench Press", sets: [{ id: "s2", order: 0, weight: 225, reps: 5, notes: null }] }],
+        },
+        {
+          id: "w3",
+          clientId: "c1",
+          status: "COMPLETED",
+          startedAt: "2026-08-10T10:00:00Z",
+          completedAt: "2026-08-10T11:00:00Z",
+          createdAt: "2026-08-10T10:00:00Z",
+          exercises: [{ id: "e3", order: 0, name: "Bench Press", sets: [{ id: "s3", order: 0, weight: 225, reps: 4, notes: null }] }],
+        },
+      ];
+
+      const result = computeAnalytics(stagnantWorkouts);
+      const benchPlateau = result.plateaus.find((p) => p.exercise === "Bench Press" && p.insightType === "plateau");
+      expect(benchPlateau).toBeDefined();
+      expect(benchPlateau?.sessionsStagnant).toBe(3);
+      expect(benchPlateau?.actionableCue).toContain("Recommendation");
     });
   });
 });

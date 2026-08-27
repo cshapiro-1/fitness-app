@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
-  Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell
+  Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity
 } from "lucide-react";
 import Link from "next/link";
 
@@ -27,6 +27,15 @@ interface AdminStats {
   totalTrainers: number;
   totalClients: number;
   totalWorkouts: number;
+  totalCompletedWorkouts?: number;
+  inProgressSessions?: number;
+  totalSetsCount?: number;
+  dau?: number;
+  wau?: number;
+  mau?: number;
+  stickinessRatio?: number;
+  completionRate?: number;
+  avgClientsPerTrainer?: number;
   activeSubscriptions: number;
   trialingUsers: number;
   expiredUsers: number;
@@ -151,44 +160,115 @@ export function AdminPortal({ userName }: { userName: string }) {
       <div style={{ maxWidth: "1200px", margin: "24px auto", padding: "0 16px", display: "flex", flexDirection: "column", gap: "24px" }}>
         {/* Metric Cards Grid */}
         {stats && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 600 }}>
-                <DollarSign size={16} /> Real Stripe MRR
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {/* Top Row: Financial & Subscriber Growth */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px" }}>
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 600 }}>
+                  <DollarSign size={16} /> Real Stripe MRR
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "24px" }}>
+                  ${stats.estimatedMRR} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/mo</span>
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                  ARR: ${(stripeBilling?.projectedARR || stats.estimatedMRR * 12).toLocaleString()}/yr
+                </div>
               </div>
-              <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "24px" }}>
-                ${stats.estimatedMRR} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/mo</span>
-              </span>
+
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>
+                  <Users size={16} /> Platform Trainers
+                </div>
+                <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalTrainers}</span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                  {stats.activeSubscriptions} Paid · {stats.trialingUsers} Trialing
+                </div>
+              </div>
+
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0891b2", fontSize: "12px", fontWeight: 600 }}>
+                  <UserCheck size={16} /> Total Athletes / Clients
+                </div>
+                <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalClients}</span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                  Avg ~{stats.avgClientsPerTrainer ?? (stats.totalTrainers > 0 ? (stats.totalClients / stats.totalTrainers).toFixed(1) : 0)} clients / coach
+                </div>
+              </div>
+
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#7c3aed", fontSize: "12px", fontWeight: 600 }}>
+                  <TrendingUp size={16} /> Paid Conversion
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#6d28d9", fontSize: "24px" }}>
+                  {stats.conversionRate}%
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                  Active Subscriber Rate
+                </div>
+              </div>
             </div>
 
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#059669", fontSize: "12px", fontWeight: 600 }}>
-                <TrendingUp size={16} /> Projected ARR
+            {/* Second Row: User Activity & Platform Utilization */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "14px" }}>
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#ea580c", fontSize: "12px", fontWeight: 700 }}>
+                  <Zap size={15} /> Daily Active (DAU)
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#c2410c", fontSize: "22px" }}>
+                  {stats.dau ?? 1}
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  Active in last 24h
+                </div>
               </div>
-              <span className="analytics-summary-value" style={{ color: "#047857", fontSize: "24px" }}>
-                ${(stripeBilling?.projectedARR || stats.estimatedMRR * 12).toLocaleString()} <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 400 }}>/yr</span>
-              </span>
-            </div>
 
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#2563eb", fontSize: "12px", fontWeight: 600 }}>
-                <Users size={16} /> Platform Trainers
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0284c7", fontSize: "12px", fontWeight: 700 }}>
+                  <Clock size={15} /> Weekly Active (WAU)
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#0369a1", fontSize: "22px" }}>
+                  {stats.wau ?? stats.dau ?? 1}
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  Active in last 7 days
+                </div>
               </div>
-              <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalTrainers}</span>
-            </div>
 
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#d97706", fontSize: "12px", fontWeight: 600 }}>
-                <Clock size={16} /> Trialing Trainers
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#4f46e5", fontSize: "12px", fontWeight: 700 }}>
+                  <TrendingUp size={15} /> Monthly Active (MAU)
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#4338ca", fontSize: "22px" }}>
+                  {stats.mau ?? stats.wau ?? 1}
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  Stickiness: {stats.stickinessRatio ?? 100}%
+                </div>
               </div>
-              <span className="analytics-summary-value" style={{ color: "#b45309", fontSize: "24px" }}>{stats.trialingUsers}</span>
-            </div>
 
-            <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#475569", fontSize: "12px", fontWeight: 600 }}>
-                <Dumbbell size={16} /> Total Workouts
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 700 }}>
+                  <CheckCircle2 size={15} /> Completion Rate
+                </div>
+                <span className="analytics-summary-value" style={{ color: "#15803d", fontSize: "22px" }}>
+                  {stats.completionRate ?? 100}%
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  {stats.totalCompletedWorkouts ?? stats.totalWorkouts} of {stats.totalWorkouts} sessions
+                </div>
               </div>
-              <span className="analytics-summary-value" style={{ fontSize: "24px" }}>{stats.totalWorkouts}</span>
+
+              <div className="analytics-summary-card" style={{ background: "#ffffff", padding: "14px 16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#dc2626", fontSize: "12px", fontWeight: 700 }}>
+                  <Activity size={15} /> Live In-Progress
+                </div>
+                <span className="analytics-summary-value" style={{ color: (stats.inProgressSessions ?? 0) > 0 ? "#dc2626" : "#475569", fontSize: "22px" }}>
+                  {stats.inProgressSessions ?? 0}
+                </span>
+                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                  Active workouts now
+                </div>
+              </div>
             </div>
           </div>
         )}
