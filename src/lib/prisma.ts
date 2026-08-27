@@ -16,7 +16,18 @@ const getConnectionString = () => {
 };
 
 if (!globalForPrisma.pgPool) {
-  globalForPrisma.pgPool = new Pool({ connectionString: getConnectionString() });
+  const pool = new Pool({ connectionString: getConnectionString() });
+  globalForPrisma.pgPool = pool;
+
+  // Auto-sync missing schema columns on Postgres (User & Client flags)
+  pool.query(`
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "hasCompletedOnboarding" BOOLEAN DEFAULT false;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "hasSeenTour" BOOLEAN DEFAULT false;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "emailNotifications" BOOLEAN DEFAULT true;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionProvider" TEXT DEFAULT 'stripe';
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "subscriptionStatus" TEXT DEFAULT 'trial';
+    ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "emailNotifications" BOOLEAN DEFAULT true;
+  `).catch(() => {});
 }
 
 const adapter = new PrismaPg(globalForPrisma.pgPool);
