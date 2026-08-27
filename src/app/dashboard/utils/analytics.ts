@@ -140,7 +140,7 @@ export function getMuscleGroup(exerciseName: string): string {
   return "Other";
 }
 
-function calculate1RM(weight: number, reps: number): number {
+export function calculate1RM(weight: number, reps: number): number {
   if (reps <= 1) return weight;
   return Math.round(weight * (1 + reps / 30));
 }

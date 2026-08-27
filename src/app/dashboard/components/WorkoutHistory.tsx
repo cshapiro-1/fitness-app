@@ -3,10 +3,10 @@
 import React, { useState, useMemo } from "react";
 import {
   Trash2, Calendar, Filter, RotateCcw, Copy, Check, MessageSquare, CalendarPlus, Edit3,
-  Sparkles, AlertTriangle, Info, ChevronDown, ChevronUp
+  Sparkles, AlertTriangle, Info, ChevronDown, ChevronUp, Dumbbell, TrendingUp, Award
 } from "lucide-react";
 import { WorkoutSession } from "../types";
-import { getMuscleGroup, computeAnalytics, getWorkoutExerciseMilestones } from "../utils/analytics";
+import { getMuscleGroup, computeAnalytics, getWorkoutExerciseMilestones, calculate1RM } from "../utils/analytics";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 interface WorkoutHistoryProps {
@@ -607,30 +607,28 @@ export function WorkoutHistory({
               const isBW = exercise.isBodyweight || exercise.category === "BODYWEIGHT" || isDefaultBodyweight(exercise.name);
               const milestone = milestonesMap.get(workout.id)?.get(exercise.name.trim());
 
+              const exVolume = exercise.sets.reduce((sum, s) => sum + s.weight * s.reps, 0);
+              const topWeight = Math.max(...exercise.sets.map((s) => s.weight), 0);
+              const topReps = Math.max(...exercise.sets.map((s) => s.reps), 0);
+              const top1RM = exercise.sets.reduce((max, s) => Math.max(max, calculate1RM(s.weight, s.reps)), 0);
+
               return (
-                <div key={exercise.id} className="history-exercise">
-                  <div className="history-exercise-name" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                      <span>{exercise.name}</span>
-                      {milestone && (
-                        <span
-                          style={{
-                            fontSize: "10px",
-                            fontWeight: 800,
-                            background: milestone.type === "weight_pr" ? "#fef3c7" : "#eff6ff",
-                            color: milestone.type === "weight_pr" ? "#92400e" : "#1d4ed8",
-                            border: `1px solid ${milestone.type === "weight_pr" ? "#fde68a" : "#bfdbfe"}`,
-                            padding: "1px 6px",
-                            borderRadius: "5px",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
-                          }}
-                        >
-                          {milestone.badgeText}
-                        </span>
-                      )}
+                <div
+                  key={exercise.id}
+                  style={{
+                    background: "#ffffff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "14px 16px",
+                    marginTop: "12px",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
+                  }}
+                >
+                  {/* Exercise Header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Dumbbell size={16} style={{ color: "#2563eb" }} />
+                      <span style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>{exercise.name}</span>
                       {isBW && (
                         <span
                           style={{
@@ -639,83 +637,142 @@ export function WorkoutHistory({
                             background: "#f0fdf4",
                             color: "#166534",
                             border: "1px solid #bbf7d0",
-                            padding: "1px 5px",
+                            padding: "1px 6px",
                             borderRadius: "4px",
                           }}
-                          title="Bodyweight / Body Resistance Exercise"
+                          title="Bodyweight / Resistance Exercise"
                         >
                           Bodyweight
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: "10px", fontWeight: 500, background: "#f1f5f9", color: "#475569", padding: "2px 6px", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "10px", fontWeight: 700, background: "#f8fafc", color: "#475569", border: "1px solid #e2e8f0", padding: "2px 8px", borderRadius: "6px" }}>
                       {mg}
                     </span>
                   </div>
 
-                  {/* Supportive Milestone Celebration Banner */}
-                  {milestone && (
+                  {/* 2-Column Responsive Layout: Sets on Left, AI Results on Right */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", alignItems: "stretch" }}>
+                    {/* Left Column: Set List with Inline PR Badges */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {exercise.sets.map((setEntry) => {
+                        const isPRSet = milestone && setEntry.weight === milestone.currentWeight;
+
+                        return (
+                          <div
+                            key={setEntry.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              background: isPRSet ? "#fefce8" : "#f8fafc",
+                              border: `1px solid ${isPRSet ? "#fde047" : "#e2e8f0"}`,
+                              padding: "7px 12px",
+                              borderRadius: "8px",
+                              fontSize: "12px",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                              <span style={{ fontWeight: 700, color: "#64748b", minWidth: "42px" }}>Set {setEntry.order + 1}</span>
+                              <span style={{ fontWeight: 700, color: "#0f172a" }}>
+                                {exercise.category === "STRETCHING" || exercise.name.toLowerCase().includes("stretch") || exercise.name.toLowerCase().includes("warm") || exercise.name.toLowerCase().includes("pose") || exercise.name.toLowerCase().includes("roll") ? (
+                                  <><b>{setEntry.reps}s</b> hold</>
+                                ) : isBW ? (
+                                  setEntry.weight > 0 ? (
+                                    <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                                  ) : (
+                                    <><b>BW</b> × {setEntry.reps} reps</>
+                                  )
+                                ) : (
+                                  <><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</>
+                                )}
+                              </span>
+                            </div>
+
+                            {/* Inline Badge & Notes */}
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              {isPRSet && (
+                                <span
+                                  style={{
+                                    fontSize: "10px",
+                                    fontWeight: 800,
+                                    background: "#fef3c7",
+                                    color: "#92400e",
+                                    border: "1px solid #fde68a",
+                                    padding: "2px 7px",
+                                    borderRadius: "5px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                                  }}
+                                >
+                                  {milestone.badgeText}
+                                </span>
+                              )}
+                              {setEntry.notes && (
+                                <span style={{ fontSize: "11px", color: "#64748b", fontStyle: "italic" }}>
+                                  {setEntry.notes}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Right Column: AI Results Card */}
                     <div
                       style={{
-                        background: milestone.type === "weight_pr" ? "#fffbeb" : "#f0fdf4",
-                        border: `1px solid ${milestone.type === "weight_pr" ? "#fde68a" : "#bbf7d0"}`,
-                        borderRadius: "7px",
-                        padding: "6px 10px",
-                        marginTop: "5px",
-                        marginBottom: "8px",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        color: milestone.type === "weight_pr" ? "#92400e" : "#166534",
+                        background: milestone ? (milestone.type === "weight_pr" ? "#fffbeb" : "#eff6ff") : "#f8fafc",
+                        border: `1px solid ${milestone ? (milestone.type === "weight_pr" ? "#fde68a" : "#bfdbfe") : "#e2e8f0"}`,
+                        borderRadius: "10px",
+                        padding: "12px 14px",
                         display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: "8px",
                       }}
                     >
-                      <Sparkles size={14} style={{ color: milestone.type === "weight_pr" ? "#d97706" : "#16a34a", flexShrink: 0 }} />
-                      <span>{milestone.celebrationText}</span>
-                    </div>
-                  )}
-
-                  <div className="history-set-list">
-                    {exercise.sets.map((setEntry) => {
-                      const isPRSet = milestone && setEntry.weight === milestone.currentWeight;
-
-                      return (
-                        <div key={setEntry.id} className="history-set-row" style={{ background: isPRSet ? "#fefce8" : undefined }}>
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                            <span>Set {setEntry.order + 1}</span>
-                            {isPRSet && (
-                              <span
-                                style={{
-                                  fontSize: "9px",
-                                  fontWeight: 800,
-                                  color: "#854d0e",
-                                  background: "#fef08a",
-                                  padding: "0 4px",
-                                  borderRadius: "3px",
-                                }}
-                              >
-                                PR SET
-                              </span>
-                            )}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <Sparkles size={14} style={{ color: milestone ? "#d97706" : "#2563eb" }} />
+                          <span style={{ fontSize: "11px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: milestone ? "#92400e" : "#1e40af" }}>
+                            AI Performance Analysis
                           </span>
-                          <span>
-                            {exercise.category === "STRETCHING" || exercise.name.toLowerCase().includes("stretch") || exercise.name.toLowerCase().includes("warm") || exercise.name.toLowerCase().includes("pose") || exercise.name.toLowerCase().includes("roll") ? (
-                              <><b>{setEntry.reps}s</b> hold / duration</>
-                            ) : isBW ? (
-                              setEntry.weight > 0 ? (
-                                <><b>BW + {setEntry.weight} lbs</b> × {setEntry.reps} reps</>
-                              ) : (
-                                <><b>BW</b> × {setEntry.reps} reps</>
-                              )
-                            ) : (
-                              <><b>{setEntry.weight} lbs</b> × {setEntry.reps} reps</>
-                            )}
-                          </span>
-                          <span>{setEntry.notes || "-"}</span>
                         </div>
-                      );
-                    })}
+                        <div style={{ display: "flex", gap: "8px", fontSize: "11px", color: "#64748b", fontWeight: 700 }}>
+                          <span>Vol: {exVolume.toLocaleString()} lbs</span>
+                          {top1RM > 0 && <span>· Est. 1RM: {top1RM} lbs</span>}
+                        </div>
+                      </div>
+
+                      {/* Main Insight Message */}
+                      <p style={{ margin: 0, fontSize: "12px", fontWeight: 600, color: "#0f172a", lineHeight: 1.4 }}>
+                        {milestone
+                          ? milestone.celebrationText
+                          : `Successfully completed ${exercise.sets.length} working sets at ${topWeight} lbs (${topReps} peak reps). Total volume load: ${exVolume.toLocaleString()} lbs.`}
+                      </p>
+
+                      {/* AI Coach Cue */}
+                      <div
+                        style={{
+                          fontSize: "11px",
+                          color: milestone ? "#b45309" : "#334155",
+                          fontWeight: 500,
+                          background: milestone ? "rgba(255,255,255,0.7)" : "#ffffff",
+                          border: `1px solid ${milestone ? "rgba(253, 230, 138, 0.5)" : "#e2e8f0"}`,
+                          padding: "6px 10px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        💡 <b>Coach Cue:</b>{" "}
+                        {milestone
+                          ? `Progressive overload confirmed on ${exercise.name}. Linear capacity is increasing—maintain form and cadence.`
+                          : `Solid load execution on ${exercise.name}. Aim to add 1 rep or +2.5–5 lbs next session.`}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
