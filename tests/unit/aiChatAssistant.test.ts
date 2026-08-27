@@ -103,4 +103,34 @@ describe("AI Chat Assistant Intelligence Engine", () => {
     expect(res.answer).toContain("Total Sessions Logged:** 2");
     expect(res.metricsFound?.totalWorkoutsAnalyzed).toBe(2);
   });
+
+  it("should generate 1-click executable routine actions when asked to create or build workouts", () => {
+    const context: AIChatContext = {
+      requesterRole: "TRAINER",
+      requesterName: "Collin",
+      targetName: "Sarah Connor",
+      workouts: sampleWorkouts,
+    };
+
+    const res = answerFitnessQuery("Create a 4-day push workout split for Sarah", context);
+    expect(res.answer).toContain("Generated Periodized Routine");
+    expect(res.action).toBeDefined();
+    expect(res.action?.type).toBe("LOAD_INTO_BUILDER");
+    expect(res.action?.data.exercises.length).toBeGreaterThanOrEqual(3);
+    expect(res.action?.data.exercises[0].name).toBe("Barbell Bench Press");
+  });
+
+  it("should generate 1-click anatomy viewer action when answering progression queries", () => {
+    const context: AIChatContext = {
+      requesterRole: "CLIENT",
+      requesterName: "Sarah",
+      targetName: "Sarah",
+      workouts: sampleWorkouts,
+    };
+
+    const res = answerFitnessQuery("How is my bench press progressing?", context);
+    expect(res.action).toBeDefined();
+    expect(res.action?.type).toBe("VIEW_ANATOMY");
+    expect(res.action?.data.exerciseName).toBe("Barbell Bench Press");
+  });
 });

@@ -37,6 +37,8 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
   const handleCloseTour = () => {
     try {
       localStorage.setItem(storageKey, "true");
+      localStorage.setItem("strkyr_tour_seen_trainer", "true");
+      localStorage.setItem("strkyr_tour_seen_client", "true");
     } catch {}
     onClose();
   };

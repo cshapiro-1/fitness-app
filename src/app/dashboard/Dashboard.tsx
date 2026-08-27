@@ -53,6 +53,7 @@ import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { AssignWorkoutModal } from "./components/AssignWorkoutModal";
 import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
@@ -85,17 +86,18 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [repeatingWorkoutModalData, setRepeatingWorkoutModalData] = useState<WorkoutSession | null>(null);
 
-  // Auto-launch tour on first join
+  // Auto-launch tour only on initial join with no existing client rosters
   useEffect(() => {
     try {
       const seen = localStorage.getItem("strkyr_tour_seen_trainer");
-      if (!seen) {
-        const timer = setTimeout(() => setIsTourOpen(true), 800);
+      if (!seen && clients.length === 0) {
+        const timer = setTimeout(() => setIsTourOpen(true), 1200);
         return () => clearTimeout(timer);
       }
     } catch {}
-  }, []);
+  }, [clients.length]);
   const [generatingQuickInvite, setGeneratingQuickInvite] = useState(false);
 
   // Mobile Client Switcher Drawer
@@ -660,24 +662,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   };
 
   const handleRepeatWorkout = (workout: WorkoutSession) => {
-    const draftExercises: DraftExercise[] = workout.exercises.map((ex) => ({
-      name: ex.name,
-      category: ex.category || "STRENGTH",
-      isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
-      sets: ex.sets.map((s) => ({
-        weight: String(s.weight),
-        reps: String(s.reps),
-        notes: "",
-      })),
-    }));
-
-    setActiveWorkout({
-      startedAt: new Date().toISOString(),
-      notes: "",
-      exercises: draftExercises,
-    });
-    setTab("log");
-    setDraftRestoredNotice(true);
+    setRepeatingWorkoutModalData(workout);
   };
 
   return (
@@ -1510,6 +1495,54 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         clients={clients}
         selectedClient={selected}
         onSelectClient={handleRequestSelectClient}
+        onLoadRoutineIntoBuilder={(routine) => {
+          setActiveWorkout({
+            startedAt: new Date().toISOString(),
+            notes: `AI Co-Pilot: ${routine.routineName}`,
+            exercises: routine.exercises.map((ex) => ({
+              name: ex.name,
+              category: ex.category || "STRENGTH",
+              isBodyweight: !!ex.isBodyweight,
+              sets: ex.sets.map((s: any) => ({
+                weight: String(s.weight),
+                reps: String(s.reps),
+                notes: s.notes || "",
+              })),
+            })),
+          });
+          setTab("log");
+          setDraftRestoredNotice(true);
+        }}
+        onAssignRoutine={async (routine, targetClientId) => {
+          const clientId = targetClientId || selected?.id;
+          if (!clientId) return;
+          try {
+            const res = await fetch("/api/workouts", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                clientId,
+                status: "PLANNED",
+                notes: `AI Co-Pilot Routine: ${routine.routineName}`,
+                exercises: routine.exercises.map((ex, exIdx) => ({
+                  name: ex.name,
+                  order: exIdx,
+                  category: ex.category || "STRENGTH",
+                  isBodyweight: !!ex.isBodyweight,
+                  sets: ex.sets.map((s: any, sIdx: number) => ({
+                    order: sIdx,
+                    weight: parseFloat(s.weight) || 0,
+                    reps: parseInt(String(s.reps), 10) || 10,
+                    notes: s.notes || "",
+                  })),
+                })),
+              }),
+            });
+            if (res.ok && selected?.id === clientId) {
+              fetchWorkouts(clientId);
+            }
+          } catch {}
+        }}
       />
 
       {/* Assign Past Workout to Client Modal */}
@@ -1523,6 +1556,23 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           if (selected && selected.id === targetClientId) {
             setWorkouts((prev) => [newWorkout, ...prev]);
           }
+        }}
+      />
+
+      {/* Repeat Workout with Progressive Overload Modal */}
+      <RepeatWorkoutModal
+        isOpen={!!repeatingWorkoutModalData}
+        workout={repeatingWorkoutModalData}
+        athleteName={selected?.name}
+        onClose={() => setRepeatingWorkoutModalData(null)}
+        onConfirmRepeat={(repeatedExercises, mode, desc) => {
+          setActiveWorkout({
+            startedAt: new Date().toISOString(),
+            notes: desc ? `Repeated (${desc})` : "",
+            exercises: repeatedExercises,
+          });
+          setTab("log");
+          setDraftRestoredNotice(true);
         }}
       />
 

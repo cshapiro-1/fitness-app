@@ -1,18 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AIChatDrawer } from "@/app/dashboard/components/AIChatDrawer";
 
-describe("AIChatDrawer Component Tests", () => {
+describe("AIChatDrawer Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         success: true,
-        answer: "Sarah's Barbell Bench Press has progressed to 225 lbs.",
-        target: { name: "Sarah Connor" },
-        metricsFound: { totalWorkoutsAnalyzed: 5, totalVolume: "18,500 lbs" },
+        answer: "Sarah's Barbell Bench Press has progressed to 225 lbs with +9.7% increase.",
+        metricsFound: { totalWorkoutsAnalyzed: 2, totalVolume: "4,200 lbs" },
       }),
     } as any);
   });
@@ -33,9 +32,9 @@ describe("AIChatDrawer Component Tests", () => {
       />
     );
 
-    expect(screen.getByText("AI Performance Assistant")).toBeInTheDocument();
-    expect(screen.getByText("Scoped to your assigned athletes")).toBeInTheDocument();
-    expect(screen.getByText("Target Athlete:")).toBeInTheDocument();
+    expect(screen.getByText("STRKYR Co-Pilot")).toBeInTheDocument();
+    expect(screen.getByText("Action AI")).toBeInTheDocument();
+    expect(screen.getByText("Context:")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Sarah Connor")).toBeInTheDocument();
   });
 
@@ -48,7 +47,7 @@ describe("AIChatDrawer Component Tests", () => {
       />
     );
 
-    const input = screen.getByPlaceholderText("Ask about your lifts or exercise science...");
+    const input = screen.getByPlaceholderText(/Ask about your workouts/i);
     fireEvent.change(input, { target: { value: "How is my bench progressing?" } });
 
     const form = input.closest("form")!;

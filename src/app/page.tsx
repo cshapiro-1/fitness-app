@@ -124,7 +124,7 @@ export default async function HomePage() {
               boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
             }}
           >
-            <span>{session ? "Enter Coach Studio" : "Start 30-Day Free Coach Trial"}</span>
+            <span>{session ? "Enter Coach Studio" : "Start 14-Day Free Coach Trial"}</span>
             <ArrowRight size={16} />
           </Link>
           <a
@@ -407,17 +407,17 @@ export default async function HomePage() {
               Scale Your Coaching Business with Zero Roster Limits
             </h2>
             <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-              Start with a 30-day full access coach trial. Unlimited clients, workouts, and AI generation.
+              Start with a 14-day full access coach trial. Unlimited clients, workouts, and AI generation.
             </p>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginBottom: "48px" }}>
             {/* Free Trial */}
             <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "24px", display: "flex", flexDirection: "column" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>30-Day Coach Pass</h3>
+              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>14-Day Coach Pass</h3>
               <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 14px 0" }}>Test full studio capabilities with real clients</p>
               <div style={{ fontSize: "28px", fontWeight: 900, color: "#0f172a", marginBottom: "16px" }}>
-                $0 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ 30 days</span>
+                $0 <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>/ 14 days</span>
               </div>
               <ul style={{ margin: "0 0 20px 0", paddingLeft: "16px", display: "flex", flexDirection: "column", gap: "8px", fontSize: "12px", color: "#475569", flex: 1 }}>
                 <li>Unlimited client roster management</li>

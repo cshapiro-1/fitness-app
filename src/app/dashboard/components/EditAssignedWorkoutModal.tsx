@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
+import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
 
 export interface EditAssignedWorkoutModalProps {
   isOpen: boolean;
@@ -332,13 +333,24 @@ export function EditAssignedWorkoutModal({
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                  <input
-                    type="text"
-                    className="input"
+                  <ExercisePickerDropdown
                     value={ex.name}
-                    onChange={(e) => handleUpdateExerciseName(exIdx, e.target.value)}
-                    placeholder="Exercise name"
-                    style={{ flex: 1, fontWeight: 700, fontSize: "13px", padding: "6px 10px" }}
+                    onSelectExercise={(name, isBW, cat) => {
+                      setExercises((prev) =>
+                        prev.map((item, i) =>
+                          i === exIdx
+                            ? {
+                                ...item,
+                                name,
+                                isBodyweight: isBW,
+                                category: cat,
+                              }
+                            : item
+                        )
+                      );
+                    }}
+                    placeholder="Search 120+ exercise library..."
+                    style={{ flex: 1 }}
                   />
                   <button
                     type="button"

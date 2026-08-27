@@ -171,6 +171,7 @@ export async function POST(req: NextRequest) {
       requesterRole: userRole,
       requesterName: user.name || "User",
       targetName,
+      targetClientId: targetClient?.id,
       workouts: formattedWorkouts,
     });
 
@@ -182,6 +183,7 @@ export async function POST(req: NextRequest) {
         name: targetName,
       },
       answer: result.answer,
+      action: result.action || null,
       referencedExercises: result.referencedExercises,
       metricsFound: result.metricsFound,
       generatedAt: new Date().toISOString(),

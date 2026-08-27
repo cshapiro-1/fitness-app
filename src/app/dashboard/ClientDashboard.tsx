@@ -39,9 +39,11 @@ import { AIChatDrawer } from "./components/AIChatDrawer";
 import { MobileNavDrawer } from "./components/MobileNavDrawer";
 import { AppHeaderMenu } from "./components/AppHeaderMenu";
 import { EditWorkoutModal, EditAssignedWorkoutModal } from "./components/EditAssignedWorkoutModal";
+import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
+import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
 import { Compass, Menu, Activity } from "lucide-react";
 
 const CLIENT_PRESETS = [
@@ -160,6 +162,7 @@ export function ClientDashboard({
         setRestSeconds((prev) => {
           if (prev === null || prev <= 1) {
             setIsTimerRunning(false);
+            playTimerCompletionBeep();
             return 0;
           }
           return prev - 1;
@@ -254,6 +257,8 @@ export function ClientDashboard({
   };
 
   const [repeatingWorkoutId, setRepeatingWorkoutId] = useState<string | null>(null);
+  const [repeatingWorkoutForModal, setRepeatingWorkoutForModal] = useState<any | null>(null);
+
   const handleDeleteWorkout = async (workoutId: string) => {
     const targetWorkout = workouts.find((w) => w.id === workoutId);
     const isPlanned = targetWorkout?.status === "PLANNED" || targetWorkout?.status === "IN_PROGRESS";
@@ -275,7 +280,17 @@ export function ClientDashboard({
     }
   };
 
-  const handleRepeatWorkout = async (workout: any) => {
+  const handleRepeatWorkout = (workout: any) => {
+    setRepeatingWorkoutForModal(workout);
+  };
+
+  const handleConfirmRepeatAction = async (
+    repeatedExercises: any[],
+    mode: "same" | "overload" | "custom",
+    desc: string
+  ) => {
+    if (!repeatingWorkoutForModal) return;
+    const workout = repeatingWorkoutForModal;
     setRepeatingWorkoutId(workout.id);
     try {
       const res = await fetch("/api/workouts", {
@@ -284,14 +299,16 @@ export function ClientDashboard({
         body: JSON.stringify({
           clientId: workout.clientId,
           status: "PLANNED",
-          notes: workout.notes ? `Repeat: ${workout.notes}` : `Repeat session from ${new Date(workout.completedAt || workout.createdAt).toLocaleDateString()}`,
-          exercises: (workout.exercises || []).map((ex: any) => ({
+          notes: desc ? `Repeat (${desc}): ${workout.notes || "Workout"}` : `Repeat session from ${new Date(workout.completedAt || workout.createdAt).toLocaleDateString()}`,
+          exercises: repeatedExercises.map((ex: any, exIdx: number) => ({
             name: ex.name,
+            order: exIdx,
             category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
-            isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
-            sets: (ex.sets || []).map((s: any) => ({
-              weight: s.weight || 0,
-              reps: s.reps || 0,
+            isBodyweight: !!ex.isBodyweight,
+            sets: (ex.sets || []).map((s: any, sIdx: number) => ({
+              order: sIdx,
+              weight: parseFloat(s.weight) || 0,
+              reps: parseInt(String(s.reps), 10) || 10,
               notes: s.notes || "",
             })),
           })),
@@ -310,6 +327,7 @@ export function ClientDashboard({
       alert("Network error while repeating workout.");
     } finally {
       setRepeatingWorkoutId(null);
+      setRepeatingWorkoutForModal(null);
     }
   };
 
@@ -605,6 +623,7 @@ export function ClientDashboard({
                 key={sec}
                 type="button"
                 onClick={() => {
+                  prewarmAudio();
                   setRestSeconds(sec);
                   setIsTimerRunning(true);
                 }}
@@ -1385,6 +1404,15 @@ export function ClientDashboard({
             setTab("history");
           }
         }}
+      />
+
+      {/* Repeat Workout with Progressive Overload Modal */}
+      <RepeatWorkoutModal
+        isOpen={!!repeatingWorkoutForModal}
+        workout={repeatingWorkoutForModal}
+        athleteName={userName}
+        onClose={() => setRepeatingWorkoutForModal(null)}
+        onConfirmRepeat={handleConfirmRepeatAction}
       />
 
       {/* SMS / Text Message Workout Importer Modal */}

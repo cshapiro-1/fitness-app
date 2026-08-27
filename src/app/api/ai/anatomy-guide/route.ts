@@ -397,6 +397,100 @@ const ANATOMY_CHARTS: Record<string, AnatomyGuideData> = {
     ],
     breathingPattern: "Inhale completely during Cow extension → Exhale completely during Cat flexion.",
   },
+  back_hyperextension: {
+    image: "/anatomy/rdl.jpg",
+    title: "Back Hyperextensions (45° Roman Chair & Glute-Ham)",
+    primaryMuscles: ["Erector Spinae (Spinalis, Longissimus, Iliocostalis)", "Gluteus Maximus"],
+    secondaryMuscles: ["Hamstrings (Biceps Femoris, Semitendinosus)", "Quadratus Lumborum (QL)"],
+    biomechanicsCue: "Hinge strictly at hip crease. Ascend by squeezing glutes and erectors until torso forms a straight line with legs (neutral spine). Never hyperextend lumbar past neutral.",
+    steps: [
+      "Set Up: Position thigh pad 1-2 inches below hip bones to permit free pelvic articulation.",
+      "Descent: Cross arms at chest, lower torso smoothly through deep hip flexion with neutral cervical spine.",
+      "Ascent: Squeeze glutes and contract lower back erectors to pull torso upright in a straight line.",
+      "Peak Hold: Pause for 1 full second at apex before descending under control.",
+    ],
+    commonMistakes: [
+      "Hyperextending and arching lower back at top — finish in a straight neutral line.",
+      "Looking up with neck (cervical strain) — keep chin tucked in line with torso.",
+      "Swinging or jerking momentum.",
+    ],
+    breathingPattern: "Inhale on descent → Exhale as you extend to apex neutral.",
+  },
+  ql_extension: {
+    image: "/anatomy/plank.jpg",
+    title: "QL Extensions & Lateral Trunk Flexion (Quadratus Lumborum)",
+    primaryMuscles: ["Quadratus Lumborum (Deep Lumbar Stabilizer)", "Internal & External Obliques"],
+    secondaryMuscles: ["Transverse Abdominis", "Multifidus", "Gluteus Medius"],
+    biomechanicsCue: "Lock pelvis in lateral side-lying 45° Roman chair. Flex spine laterally toward floor, then contract lower flank QL and oblique to return to straight neutral.",
+    steps: [
+      "Set Up: Side-lying on 45° hyperextension bench. Top foot anchored forward, bottom foot back.",
+      "Lateral Flexion: Lower torso sideways toward floor in pure frontal plane movement.",
+      "Contraction: Squeeze lateral QL and obliques to pull torso up into alignment.",
+      "Controlled Tempo: Perform slow 3-second eccentric stretch on each repetition.",
+    ],
+    commonMistakes: [
+      "Rotating hips forward or back — maintain strict frontal plane lateral flexion.",
+      "Overextending past horizontal alignment.",
+      "Using heavy loads before establishing spinal motor control.",
+    ],
+    breathingPattern: "Inhale on lateral descent → Exhale forcefully on lateral contraction.",
+  },
+  reverse_lunge: {
+    image: "/anatomy/squat.jpg",
+    title: "Reverse Lunge & Split Squats (Unilateral Knee & Glute)",
+    primaryMuscles: ["Quadriceps Femoris (Rectus Femoris, Vastus Lateralis/Medialis)", "Gluteus Maximus"],
+    secondaryMuscles: ["Gluteus Medius (Pelvic Stabilizer)", "Hamstrings", "Adductor Magnus", "Soleus"],
+    biomechanicsCue: "Step backward with rear foot, keeping front tibia vertical (90° knee angle). Drive through front heel to return.",
+    steps: [
+      "Set Up: Stand tall with dumbbells at sides or barbell on upper traps.",
+      "Step Back: Step backward 2-3 feet onto ball of rear foot, descending until rear knee hovers 1 inch above floor.",
+      "Drive: Push aggressively through front mid-foot and heel to return to standing lockout.",
+      "Switch: Complete prescribed reps per leg or alternate with steady cadence.",
+    ],
+    commonMistakes: [
+      "Front knee collapsing inward (valgus) — drive front knee tracking over second toe.",
+      "Too short a step causing front heel to elevate off floor.",
+      "Excessive forward torso collapse.",
+    ],
+    breathingPattern: "Inhale as you step back and descend → Exhale forcefully driving up through front heel.",
+  },
+  dips: {
+    image: "/anatomy/bench.jpg",
+    title: "Parallel Bar Dips (Pectoral & Tricep Power)",
+    primaryMuscles: ["Pectoralis Major (Lower Sternal Head)", "Triceps Brachii", "Anterior Deltoids"],
+    secondaryMuscles: ["Pectoralis Minor", "Rhomboids", "Serratus Anterior", "Core Stabilizers"],
+    biomechanicsCue: "Lean torso 15-20° forward for chest bias; stay vertical for tricep bias. Lower until upper arms reach parallel with floor.",
+    steps: [
+      "Set Up: Grip parallel bars, lock arms out at top, depress shoulder blades down.",
+      "Descent: Lower body under control until elbow angle reaches 90 degrees.",
+      "Press: Drive palms into bars to press back to full elbow lockout.",
+    ],
+    commonMistakes: [
+      "Dipping too deep causing anterior shoulder capsule strain.",
+      "Shrugging shoulders up toward ears — maintain depression.",
+      "Swinging legs.",
+    ],
+    breathingPattern: "Inhale on descent → Exhale pressing to lockout.",
+  },
+  face_pull: {
+    image: "/anatomy/lateral_raise.jpg",
+    title: "Cable Face Pull (Rear Deltoid & Rotator Cuff)",
+    primaryMuscles: ["Posterior Deltoids", "Infraspinatus & Teres Minor (External Rotators)", "Middle & Lower Trapezius"],
+    secondaryMuscles: ["Rhomboids", "Lateral Deltoids", "Biceps Brachii"],
+    biomechanicsCue: "Attach rope to high pulley. Pull towards bridge of nose while externally rotating hands so thumbs point backward behind ears.",
+    steps: [
+      "Set Up: Set pulley at eye level. Grip rope with thumbs pointing backward.",
+      "Pull & Rotate: Pull center of rope to forehead while separating hands outward in a 'double biceps' pose.",
+      "Peak Squeeze: Hold external rotation for 1 full second.",
+      "Controlled Return: Extend arms slowly under constant cable tension.",
+    ],
+    commonMistakes: [
+      "Using excessive body sway or leaning back.",
+      "Failing to externally rotate hands (elbows dropping below hands).",
+      "Pulling to neck instead of forehead/eyes.",
+    ],
+    breathingPattern: "Inhale at starting reach → Exhale as hands pull to ears.",
+  },
 };
 
 export async function POST(req: NextRequest) {
@@ -425,71 +519,91 @@ export async function POST(req: NextRequest) {
     ) {
       matchedKey = "cat_cow";
     }
-    // 2. Hip Abduction & Glute Medius (Explicitly before core to prevent "ab" substring collision!)
-    else if (/\b(abduct|abductor|abduction|clamshell|outer hip|hip abductor)\b/i.test(norm)) {
+    // 2. QL & Deep Quadratus Lumborum / Oblique Extensions (Checked before general extensions)
+    else if (/\b(ql|quadratus|quadratus lumborum|side bends?|oblique extensions?|lateral flexion|lateral trunk)\b/i.test(norm) || norm.includes("ql")) {
+      matchedKey = "ql_extension";
+    }
+    // 3. Back Hyperextensions & Roman Chair (Checked before deadlift)
+    else if (/\b(hyperextensions?|hyper-extensions?|back extensions?|glute ham|ghr|roman chairs?|reverse hypers?)\b/i.test(norm) || norm.includes("hyperextension")) {
+      matchedKey = "back_hyperextension";
+    }
+    // 4. Hip Abduction & Glute Medius (Explicitly before core to prevent "ab" substring collision!)
+    else if (/\b(abduct|abductor|abductors|abduction|clamshell|outer hip|hip abductor)\b/i.test(norm)) {
       matchedKey = "hip_abduction";
     }
-    // 3. Calves & Lower Leg (Calf Raise, Donkey Raise, Soleus)
-    else if (/\b(calf|calves|soleus|gastrocnemius|tibialis|toe raise)\b/i.test(norm)) {
+    // 5. Calves & Lower Leg (Calf Raise, Donkey Raise, Soleus)
+    else if (/\b(calf|calves|soleus|gastrocnemius|tibialis|toe raises?)\b/i.test(norm)) {
       matchedKey = "calf_raise";
     }
-    // 4. Quad Isolation (Leg Extension, Sissy Squat, Quad Extension)
-    else if (/\b(leg extension|quad extension|sissy squat|knee extension)\b/i.test(norm) || (norm.includes("extension") && (norm.includes("leg") || norm.includes("quad")))) {
+    // 6. Reverse Lunges & Split Squats (Unilateral)
+    else if (/\b(lunges?|reverse lunges?|walking lunges?|split squats?|bulgarian|step-ups?|step ups?|curtsy lunges?)\b/i.test(norm)) {
+      matchedKey = "reverse_lunge";
+    }
+    // 7. Quad Isolation (Leg Extension, Sissy Squat, Quad Extension)
+    else if (/\b(leg extensions?|quad extensions?|sissy squats?|knee extensions?)\b/i.test(norm) || (norm.includes("extension") && (norm.includes("leg") || norm.includes("quad")))) {
       matchedKey = "leg_extension";
     }
-    // 5. Hamstring Isolation (Leg Curl, Hamstring Curl, Nordic Curl, Lying Leg Curl, Seated Leg Curl)
-    else if (/\b(leg curl|hamstring curl|nordic curl|nordic|lying curl|seated leg curl|ham curl)\b/i.test(norm) || (norm.includes("curl") && (norm.includes("leg") || norm.includes("hamstring")))) {
+    // 8. Hamstring Isolation (Leg Curl, Hamstring Curl, Nordic Curl, Lying Leg Curl, Seated Leg Curl)
+    else if (/\b(leg curls?|hamstring curls?|nordic curls?|nordic|lying curls?|seated leg curls?|ham curls?)\b/i.test(norm) || (norm.includes("curl") && (norm.includes("leg") || norm.includes("hamstring")))) {
       matchedKey = "leg_curl";
     }
-    // 6. Posterior Chain: Hip Thrust & Glutes (Hip Thrust, Glute Bridge, Kickback, Reverse Hyper)
-    else if (/\b(hip thrust|glute bridge|kickback|reverse hyper|glute kickback|glutes|adductor|adduction)\b/i.test(norm)) {
+    // 9. Posterior Chain: Hip Thrust & Glutes (Hip Thrust, Glute Bridge, Kickback)
+    else if (/\b(hip thrusts?|glute bridges?|kickbacks?|glute kickbacks?|glutes|adductor|adductors|adduction)\b/i.test(norm)) {
       matchedKey = "hip_thrust";
     }
-    // 7. Posterior Chain: Hamstrings & Hip Hinge (RDL, Romanian, Stiff Leg, Good Morning)
+    // 10. Posterior Chain: Hamstrings & Hip Hinge (RDL, Romanian, Stiff Leg, Good Morning)
     else if (/\b(rdl|romanian|good morning|stiff leg|stiff-leg)\b/i.test(norm)) {
       matchedKey = "rdl";
     }
-    // 8. Vertical Back Pulls (Lat Pulldowns, Pull-Ups, Chin-Ups, Straight Arm Pulldown)
-    else if (/\b(pulldown|pull-up|pull up|chin-up|chin up|lat pull|lat pulldown|straight arm pulldown)\b/i.test(norm)) {
+    // 11. Vertical Back Pulls (Lat Pulldowns, Pull-Ups, Chin-Ups, Straight Arm Pulldown)
+    else if (/\b(pulldowns?|pull-ups?|pull ups?|chin-ups?|chin ups?|lat pulls?|lat pulldowns?|straight arm pulldowns?)\b/i.test(norm)) {
       matchedKey = "lat_pulldown";
     }
-    // 9. Horizontal Rows & Upper Back (Barbell Row, Dumbbell Row, Cable Row, T-Bar, Pendlay, Shrugs, Face Pulls)
+    // 12. Face Pulls & Rear Delts
+    else if (/\b(face pulls?|facepulls?|rear delts?|rear deltoids?|reverse flys?|reverse flyes?|reverse pec deck|band pull-aparts?)\b/i.test(norm) || norm.includes("face pull")) {
+      matchedKey = "face_pull";
+    }
+    // 13. Horizontal Rows & Upper Back (Barbell Row, Dumbbell Row, Cable Row, T-Bar, Pendlay, Shrugs)
     else if (/\b(row|rowing|t-bar|pendlay|shrug|shrugs|rhomboid|inverted row|seal row|meadows row)\b/i.test(norm)) {
       matchedKey = "barbell_row";
     }
-    // 10. Forearms & Hammer Curls
+    // 14. Forearms & Hammer Curls
     else if (/\b(hammer|reverse curl|wrist curl|farmer|grip|forearm)\b/i.test(norm)) {
       matchedKey = "hammer_curl";
     }
-    // 11. Biceps (Supinated, Preacher, Incline, Concentration, Cables)
+    // 15. Biceps (Supinated, Preacher, Incline, Concentration, Cables)
     else if (/\b(bicep|preacher|concentration|spider curl|ez bar curl|incline curl)\b/i.test(norm) || (norm.includes("curl") && !norm.includes("leg") && !norm.includes("hamstring"))) {
       matchedKey = "bicep_curl";
     }
-    // 12. Triceps (Pushdowns, Extensions, Skull Crushers, Dips, Close-Grip Bench, Kickbacks)
-    else if (/\b(tricep|pushdown|skull crusher|skullcrusher|close-grip|close grip|french press|jm press|dips?)\b/i.test(norm) || (norm.includes("extension") && !norm.includes("leg") && !norm.includes("quad") && !norm.includes("back"))) {
+    // 16. Dips (Parallel Bar / Ring)
+    else if (/\b(dips?|chest dip|tricep dip|parallel bar dip|ring dip)\b/i.test(norm)) {
+      matchedKey = "dips";
+    }
+    // 17. Triceps (Pushdowns, Extensions, Skull Crushers, Close-Grip Bench, Kickbacks)
+    else if (/\b(tricep|pushdown|skull crusher|skullcrusher|close-grip|close grip|french press|jm press)\b/i.test(norm) || (norm.includes("extension") && !norm.includes("leg") && !norm.includes("quad") && !norm.includes("back") && !norm.includes("ql"))) {
       matchedKey = "tricep_pushdown";
     }
-    // 13. Lateral, Front, and Rear Deltoids (Side Raises, Upright Rows, Face Pulls, Rear Delt Flyes)
-    else if (/\b(lateral raise|side raise|front raise|rear delt|face pull|facepull|upright row|reverse pec deck|deltoid fly)\b/i.test(norm)) {
+    // 18. Lateral, Front, and Side Deltoids (Side Raises, Upright Rows)
+    else if (/\b(lateral raise|side raise|front raise|upright row|deltoid fly)\b/i.test(norm)) {
       matchedKey = "lateral_raise";
     }
-    // 14. Shoulders & Vertical Push (Overhead Press, Military Press, DB Shoulder Press, Arnold Press, Push Press)
+    // 19. Shoulders & Vertical Push (Overhead Press, Military Press, DB Shoulder Press, Arnold Press, Push Press)
     else if (/\b(overhead|shoulder press|arnold press|military press|push press|ohp|deltoid press|handstand)\b/i.test(norm)) {
       matchedKey = "press";
     }
-    // 15. Chest & Horizontal Push (Bench Press, Incline Press, Decline Press, Dumbbell Press, Chest Flyes, Push-Ups, Pec Deck)
+    // 20. Chest & Horizontal Push (Bench Press, Incline Press, Decline Press, Dumbbell Press, Chest Flyes, Push-Ups, Pec Deck)
     else if (/\b(bench|push-up|push up|pushup|chest press|chest fly|pec fly|flye|crossover|pec deck|floor press|svend press)\b/i.test(norm) || norm.includes("chest")) {
       matchedKey = "bench";
     }
-    // 16. Core & Abdominals (Plank, Ab Wheel, Crunch, Leg Raise, Knee Raise, Woodchopper, Sit-Up, Dead Bug, Pallof)
+    // 21. Core & Abdominals (Plank, Ab Wheel, Crunch, Leg Raise, Knee Raise, Woodchopper, Sit-Up, Dead Bug, Pallof)
     else if (/\b(plank|crunch|leg raise|knee raise|woodchopper|woodchop|russian twist|sit-up|situp|ab wheel|rollout|dead bug|deadbug|pallof|hollow body|v-up|hanging leg)\b/i.test(norm) || (/\b(abs|abdominals|core)\b/i.test(norm) && !norm.includes("abduct"))) {
       matchedKey = "plank";
     }
-    // 17. Quads & Knee-Dominant Lower Body (Squat, Front Squat, Box Squat, Goblet Squat, Bulgarian Split Squat, Lunges, Leg Press, Hack Squat, Step-Ups)
-    else if (/\b(squat|lunge|leg press|hack squat|hack|step-up|step up|split squat|bulgarian|goblet|zercher|wall sit|sled|prowler)\b/i.test(norm) || norm.includes("quad")) {
+    // 22. Quads & Knee-Dominant Lower Body (Squat, Front Squat, Box Squat, Goblet Squat, Leg Press, Hack Squat)
+    else if (/\b(squat|leg press|hack squat|hack|goblet|zercher|wall sit|sled|prowler)\b/i.test(norm) || norm.includes("quad")) {
       matchedKey = "squat";
     }
-    // 18. Posterior Chain & Full Body Explosive (Deadlift, Sumo Deadlift, Rack Pull, Power Clean, Snatch, Kettlebell Swing)
+    // 23. Posterior Chain & Full Body Explosive (Deadlift, Sumo Deadlift, Rack Pull, Power Clean, Snatch, Kettlebell Swing)
     else if (/\b(deadlift|rack pull|clean|snatch|kettlebell swing|kb swing|burpee|box jump|slam ball|turkish get-up)\b/i.test(norm) || norm.includes("back")) {
       matchedKey = "deadlift";
     }

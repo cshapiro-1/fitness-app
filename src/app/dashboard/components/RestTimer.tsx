@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Timer, Play, Pause, RotateCcw, Plus, X, Volume2, VolumeX, Minimize2, Maximize2 } from "lucide-react";
 
+import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
+
 export interface RestTimerProps {
   initialSeconds?: number;
   onClose?: () => void;
@@ -14,7 +16,6 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -24,48 +25,14 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
       }, 1000);
     } else if (secondsRemaining === 0 && isRunning) {
       setIsRunning(false);
-      playChime();
-      if ("vibrate" in navigator) {
-        try {
-          navigator.vibrate([200, 100, 200]);
-        } catch {}
+      if (soundEnabled) {
+        playTimerCompletionBeep();
       }
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, secondsRemaining]);
-
-  const playChime = () => {
-    if (!soundEnabled) return;
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!audioContextRef.current && AudioCtx) {
-        audioContextRef.current = new AudioCtx();
-      }
-      const ctx = audioContextRef.current;
-      if (ctx && ctx.state === "suspended") {
-        ctx.resume();
-      }
-      if (ctx) {
-        // Play gentle double bell chime
-        const now = ctx.currentTime;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(587.33, now); // D5
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.6);
-      }
-    } catch (e) {
-      console.error("Audio chime error:", e);
-    }
-  };
+  }, [isRunning, secondsRemaining, soundEnabled]);
 
   const startPreset = (secs: number) => {
     setTotalSeconds(secs);

@@ -77,4 +77,49 @@ describe("Anatomy & Kinesiology Visual Guide API", () => {
     expect(json.chart.image).toBe("/anatomy/squat.jpg");
     expect(json.chart.title).toContain("Deficit Reverse Bulgarian Split Squat");
   });
+
+  it("should accurately match Back Hyperextensions to erector spinae chart", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Back Hyperextensions 3x12" }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.title).toContain("Back Hyperextensions");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Erector Spinae"))).toBe(true);
+  });
+
+  it("should accurately match QL Extensions to Quadratus Lumborum chart (and not tricep extension)", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "QL Extensions 3 x 10" }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.image).toBe("/anatomy/plank.jpg");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Quadratus Lumborum"))).toBe(true);
+  });
+
+  it("should accurately match Face Pulls to posterior deltoids and rotator cuff chart", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Cable Face Pulls 3x15" }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.chart.title).toContain("Face Pull");
+    expect(json.chart.primaryMuscles.some((m: string) => m.includes("Posterior Deltoids"))).toBe(true);
+  });
 });

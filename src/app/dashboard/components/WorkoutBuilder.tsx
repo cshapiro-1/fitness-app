@@ -7,6 +7,7 @@ import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
 import { AnatomyGuideModal } from "./AnatomyGuideModal";
 import { EXERCISE_LIBRARY, isDefaultBodyweight, searchExercises } from "../utils/exerciseLibrary";
+import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
 import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
 
 interface WorkoutBuilderProps {
@@ -617,12 +618,11 @@ export function WorkoutBuilder({
                 <div className="exercise-card" key={`${exercise.name}-${exerciseIndex}`}>
                   {/* Exercise Header */}
                   <div className="exercise-card-header" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    <input
-                      className="input"
-                      list="exercise-options"
+                    <ExercisePickerDropdown
                       value={exercise.name}
-                      onChange={(event) => updateExerciseName(exerciseIndex, event.target.value)}
-                      style={{ fontWeight: 700, fontSize: "14px", flex: 1, minWidth: "180px" }}
+                      onSelectExercise={(name) => updateExerciseName(exerciseIndex, name)}
+                      placeholder="Search 120+ exercise database..."
+                      style={{ flex: 1, minWidth: "200px" }}
                     />
 
                     {/* Body Resistance / Bodyweight Toggle Checkbox */}

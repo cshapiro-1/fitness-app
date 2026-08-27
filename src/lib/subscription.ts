@@ -107,7 +107,7 @@ export async function checkTrainerSubscription(userId: string): Promise<Subscrip
   let trialEnd = user.trialEndsAt;
   if (!trialEnd && user.createdAt) {
     trialEnd = new Date(user.createdAt);
-    trialEnd.setDate(trialEnd.getDate() + 30);
+    trialEnd.setDate(trialEnd.getDate() + 14);
   }
 
   if (user.subscribedUntil && new Date(user.subscribedUntil) > now) {
@@ -141,6 +141,6 @@ export async function checkTrainerSubscription(userId: string): Promise<Subscrip
     trialEndsAt: trialEnd,
     subscribedUntil: user.subscribedUntil,
     isAdmin,
-    reason: "Your 30-day free trial has expired. Upgrade to continue adding clients and logging workouts.",
+    reason: "Your 14-day free trial has expired. Upgrade to continue adding clients and logging workouts.",
   };
 }
