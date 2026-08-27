@@ -91,6 +91,8 @@ export async function GET() {
         subscriptionStatus: user.subscriptionStatus || "trial",
         subscribedUntil: user.subscribedUntil,
         trialEndsAt: user.trialEndsAt,
+        hasCompletedOnboarding: user.hasCompletedOnboarding,
+        hasSeenTour: user.hasSeenTour,
         clientCount: user._count.clients,
       },
       subscription: subInfo,
@@ -126,7 +128,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, image, phone, notes, fitnessGoals } = body;
+    const { name, image, phone, notes, fitnessGoals, hasCompletedOnboarding, hasSeenTour } = body;
 
     const updated = await prisma.user.update({
       where: { id: userId },
@@ -136,6 +138,8 @@ export async function PATCH(req: NextRequest) {
         ...(phone !== undefined && { phone: phone?.trim() || null }),
         ...(notes !== undefined && { notes: notes?.trim() || null }),
         ...(fitnessGoals !== undefined && { fitnessGoals: fitnessGoals?.trim() || null }),
+        ...(hasCompletedOnboarding !== undefined && { hasCompletedOnboarding: !!hasCompletedOnboarding }),
+        ...(hasSeenTour !== undefined && { hasSeenTour: !!hasSeenTour }),
       },
     });
 

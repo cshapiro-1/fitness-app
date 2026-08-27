@@ -370,54 +370,42 @@ export function AppHeaderMenu({
               </button>
             )}
 
-            {onSwitchToClientView && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  onSwitchToClientView();
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "8px 10px",
-                  borderRadius: "8px",
-                  border: "none",
-                  background: "#f0fdf4",
-                  color: "#166534",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  width: "100%",
-                  textAlign: "left",
-                }}
-                className="dropdown-item"
-              >
-                <UserCheck size={16} style={{ color: "#16a34a" }} />
-                <span>Switch to Athlete View</span>
-              </button>
-            )}
-
-            <Link
-              href="/onboarding"
-              onClick={() => setIsOpen(false)}
+            <button
+              type="button"
+              onClick={async () => {
+                setIsOpen(false);
+                const targetRole = role === "TRAINER" ? "CLIENT" : "TRAINER";
+                try {
+                  await fetch("/api/user/role", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ role: targetRole }),
+                  });
+                  window.location.href = "/dashboard";
+                } catch {
+                  window.location.href = "/dashboard";
+                }
+              }}
               style={{
                 display: "flex",
                 alignItems: "center",
                 gap: "10px",
                 padding: "8px 10px",
                 borderRadius: "8px",
-                textDecoration: "none",
-                color: "#334155",
+                border: "none",
+                background: "#f8fafc",
+                color: "#1e293b",
                 fontSize: "13px",
-                fontWeight: 600,
+                fontWeight: 700,
+                cursor: "pointer",
+                width: "100%",
+                textAlign: "left",
               }}
               className="dropdown-item"
             >
-              <RotateCcw size={16} style={{ color: "#64748b" }} />
-              <span>Switch Role / Setup</span>
-            </Link>
+              <RotateCcw size={16} style={{ color: "#2563eb" }} />
+              <span>{role === "TRAINER" ? "Switch to Athlete View" : "Switch to Coach Studio"}</span>
+            </button>
 
             {isAdmin && (
               <Link

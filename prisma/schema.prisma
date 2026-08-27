@@ -86,6 +86,8 @@ model User {
   trialEndsAt           DateTime?
   subscribedUntil       DateTime?
   emailNotifications    Boolean   @default(true)
+  hasCompletedOnboarding Boolean  @default(false)
+  hasSeenTour           Boolean   @default(false)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime? @updatedAt
 

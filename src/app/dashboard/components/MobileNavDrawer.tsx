@@ -314,24 +314,41 @@ export function MobileNavDrawer({
           )}
 
           {/* Switch Role */}
-          <Link
-            href="/onboarding"
-            onClick={onClose}
+          <button
+            type="button"
+            onClick={async () => {
+              onClose();
+              const targetRole = role === "TRAINER" ? "CLIENT" : "TRAINER";
+              try {
+                await fetch("/api/user/role", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role: targetRole }),
+                });
+                window.location.href = "/dashboard";
+              } catch {
+                window.location.href = "/dashboard";
+              }
+            }}
             style={{
               display: "flex",
               alignItems: "center",
               gap: "12px",
               padding: "10px 12px",
               borderRadius: "8px",
-              textDecoration: "none",
-              color: "#334155",
+              border: "none",
+              background: "#f8fafc",
+              color: "#1e293b",
               fontSize: "14px",
-              fontWeight: 600,
+              fontWeight: 700,
+              cursor: "pointer",
+              textAlign: "left",
+              width: "100%",
             }}
           >
-            <RotateCcw size={18} style={{ color: "#64748b" }} />
-            <span>Switch Role / Setup</span>
-          </Link>
+            <RotateCcw size={18} style={{ color: "#2563eb" }} />
+            <span>{role === "TRAINER" ? "Switch to Athlete View" : "Switch to Coach Studio"}</span>
+          </button>
 
           {isAdmin && (
             <Link

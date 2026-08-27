@@ -51,6 +51,8 @@ export default function OnboardingPage() {
           name: coachName.trim() || undefined,
           fitnessGoals: `Specialty: ${specialty}. Experience: ${experienceYears}.${studioName ? ` Studio: ${studioName}` : ""}`,
           notes: `Master Coach Profile`,
+          hasCompletedOnboarding: true,
+          hasSeenTour: true,
         }),
       });
 
