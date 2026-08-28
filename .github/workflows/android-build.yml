@@ -52,9 +52,18 @@ jobs:
 
       - name: Build Android APK & Play Store AAB Bundle
         run: |
-          cd android
+          cd android/app
+          if [ ! -f "strkyr-release.keystore" ]; then
+            keytool -genkey -v -keystore strkyr-release.keystore -alias strkyr -keyalg RSA -keysize 2048 -validity 10000 -storepass "StrkyrRelease2026!" -keypass "StrkyrRelease2026!" -dname "CN=Collin Shapiro, OU=Mobile, O=STRKYR, L=Austin, ST=Texas, C=US"
+          fi
+          cd ..
           chmod +x gradlew
-          ./gradlew assembleDebug assembleRelease bundleRelease bundleDebug --no-daemon || ./gradlew assembleDebug bundleDebug --no-daemon
+          ./gradlew bundleRelease assembleRelease assembleDebug --no-daemon
+        env:
+          KEYSTORE_FILE: "strkyr-release.keystore"
+          KEYSTORE_PASSWORD: "StrkyrRelease2026!"
+          KEY_ALIAS: "strkyr"
+          KEY_PASSWORD: "StrkyrRelease2026!"
 
       - name: Upload Android Test APK
         uses: actions/upload-artifact@v4
