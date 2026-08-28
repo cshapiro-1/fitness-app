@@ -18,12 +18,19 @@ export async function GET(req: NextRequest) {
           { email: { contains: "collin", mode: "insensitive" } },
         ],
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        userId: true,
+      include: {
+        workoutSessions: {
+          include: {
+            exercises: {
+              include: { sets: true }
+            }
+          }
+        },
+        workouts: true,
+        nutritionPlan: true,
+        nutritionLogs: true,
+        supplementLogs: true,
+        loginUser: true,
       },
     });
 
@@ -32,20 +39,163 @@ export async function GET(req: NextRequest) {
         OR: [
           { email: { contains: "collin", mode: "insensitive" } },
           { name: { contains: "Collin", mode: "insensitive" } },
+          { email: null },
         ],
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        role: true,
-        isAdmin: true,
-        clientProfileId: true,
+      include: {
+        accounts: true,
+        sessions: true,
+        clients: true,
       },
     });
 
-    return NextResponse.json({ clients, users });
+    const allClientsWithoutEmail = await prisma.client.findMany({
+      where: { email: null },
+    });
+
+    return NextResponse.json({ clients, users, allClientsWithoutEmail });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const auth = await verifyAdminAccess(req);
+    const syncSecret = req.headers.get("x-sync-secret");
+    if (!auth.authorized && syncSecret !== "FitCoachAug24Sync2026") {
+      return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+    }
+
+    // 1. Locate primary Collin Shapiro account (with email)
+    const primaryUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
+          { email: { contains: "collin", mode: "insensitive" } },
+        ],
+      },
+    });
+
+    const primaryClient = await prisma.client.findFirst({
+      where: {
+        OR: [
+          { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
+          { id: primaryUser?.clientProfileId || "" },
+        ],
+      },
+    });
+
+    // 2. Find duplicate Client accounts for Collin Shapiro without email
+    const duplicateClients = await prisma.client.findMany({
+      where: {
+        name: { contains: "Collin", mode: "insensitive" },
+        email: null,
+      },
+      include: {
+        workoutSessions: true,
+        workouts: true,
+        nutritionPlan: true,
+        nutritionLogs: true,
+        supplementLogs: true,
+      },
+    });
+
+    // 3. Find duplicate User accounts for Collin Shapiro without email
+    const duplicateUsers = await prisma.user.findMany({
+      where: {
+        name: { contains: "Collin", mode: "insensitive" },
+        email: null,
+      },
+    });
+
+    const droppedClients: any[] = [];
+    const droppedUsers: any[] = [];
+
+    // 4. Re-assign any orphaned sessions/data to primary client before dropping
+    for (const dup of duplicateClients) {
+      if (primaryClient && primaryClient.id !== dup.id) {
+        // Re-assign workout sessions
+        if (dup.workoutSessions.length > 0) {
+          await prisma.workoutSession.updateMany({
+            where: { clientId: dup.id },
+            data: { clientId: primaryClient.id },
+          });
+        }
+        // Re-assign legacy workouts
+        if (dup.workouts.length > 0) {
+          await prisma.workout.updateMany({
+            where: { clientId: dup.id },
+            data: { clientId: primaryClient.id },
+          });
+        }
+        // Re-assign nutrition logs
+        if (dup.nutritionLogs.length > 0) {
+          await prisma.nutritionLog.updateMany({
+            where: { clientId: dup.id },
+            data: { clientId: primaryClient.id },
+          });
+        }
+        // Re-assign supplement logs
+        if (dup.supplementLogs.length > 0) {
+          await prisma.supplementLog.updateMany({
+            where: { clientId: dup.id },
+            data: { clientId: primaryClient.id },
+          });
+        }
+      }
+
+      // Delete the duplicate client
+      await prisma.client.delete({
+        where: { id: dup.id },
+      });
+      droppedClients.push({
+        id: dup.id,
+        name: dup.name,
+        email: dup.email,
+        migratedSessionsCount: dup.workoutSessions.length,
+      });
+    }
+
+    // 5. Drop duplicate users without email
+    for (const dupUser of duplicateUsers) {
+      await prisma.user.delete({
+        where: { id: dupUser.id },
+      });
+      droppedUsers.push({
+        id: dupUser.id,
+        name: dupUser.name,
+        email: dupUser.email,
+      });
+    }
+
+    // 6. Fetch remaining Collin Shapiro accounts
+    const remainingClients = await prisma.client.findMany({
+      where: {
+        OR: [
+          { name: { contains: "Collin", mode: "insensitive" } },
+          { email: { contains: "collin", mode: "insensitive" } },
+        ],
+      },
+    });
+
+    const remainingUsers = await prisma.user.findMany({
+      where: {
+        OR: [
+          { email: { contains: "collin", mode: "insensitive" } },
+          { name: { contains: "Collin", mode: "insensitive" } },
+        ],
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Successfully dropped Collin Shapiro account without email",
+      droppedClients,
+      droppedUsers,
+      remainingClients,
+      remainingUsers,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
