@@ -58,7 +58,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Lifting hips off the bench during heavy drive.",
     ],
     breathingPattern: "Inhale deeply at the top to create intra-abdominal pressure → Lower bar with held breath → Exhale forcefully past the sticking point.",
-    diagramUrl: "/anatomy/barbell_bench_press.svg",
+    diagramUrl: "/anatomy/bench.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -152,7 +152,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Dropping too fast into shoulder joint hyperextension.",
     ],
     breathingPattern: "Inhale on descent → Exhale on pressing up.",
-    diagramUrl: "/anatomy/chest_dip.svg",
+    diagramUrl: "/anatomy/chest_dip.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -181,7 +181,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Hyperextending lower back at lockout.",
     ],
     breathingPattern: "Big diaphragmatic inhale into belt at bottom → Hold breath during lift → Exhale at lockout.",
-    diagramUrl: "/anatomy/barbell_deadlift.svg",
+    diagramUrl: "/anatomy/deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -305,7 +305,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "'Good-morning' squatting where hips shoot up first.",
     ],
     breathingPattern: "Big belly inhale at top → Hold intra-abdominal pressure through bottom turn → Exhale past sticking point.",
-    diagramUrl: "/anatomy/barbell_squat.svg",
+    diagramUrl: "/anatomy/squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -875,7 +875,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Letting front knee cave inward.",
     ],
     breathingPattern: "Deep diaphragmatic inhale → Exhale relaxing deeper into hip extension.",
-    diagramUrl: "/anatomy/couch_stretch.svg",
+    diagramUrl: "/anatomy/couch_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -949,7 +949,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Torquing front knee (keep front ankle flexed to protect joint).",
     ],
     breathingPattern: "4-second deep nasal inhale → 6-second relaxing exhale, melting deeper into the hip capsule.",
-    diagramUrl: "/anatomy/pigeon_stretch.svg",
+    diagramUrl: "/anatomy/pigeon.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
