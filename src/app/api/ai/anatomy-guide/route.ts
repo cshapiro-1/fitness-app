@@ -520,6 +520,70 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const exerciseName = sanitizeText(body.exerciseName || "Squat", 150);
     const norm = exerciseName.toLowerCase();
+    const cleanNorm = norm.replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
+
+    // 1. Check if we have a persisted Exercise in DB with validated diagram
+    try {
+      const { prisma } = await import("@/lib/prisma");
+      const dbExercise = await prisma.exercise.findFirst({
+        where: {
+          OR: [
+            { normalizedName: cleanNorm },
+            { name: { equals: exerciseName, mode: "insensitive" } },
+          ],
+        },
+      });
+
+      if (dbExercise) {
+        let parsedPrimary: string[] = [];
+        let parsedSecondary: string[] = [];
+        let parsedSteps: string[] = [];
+        let parsedMistakes: string[] = [];
+
+        try {
+          parsedPrimary = typeof dbExercise.primaryMuscles === "string" ? JSON.parse(dbExercise.primaryMuscles) : dbExercise.primaryMuscles || [];
+        } catch {
+          parsedPrimary = dbExercise.primaryMuscles ? [dbExercise.primaryMuscles] : [];
+        }
+
+        try {
+          parsedSecondary = typeof dbExercise.secondaryMuscles === "string" ? JSON.parse(dbExercise.secondaryMuscles) : dbExercise.secondaryMuscles || [];
+        } catch {
+          parsedSecondary = dbExercise.secondaryMuscles ? [dbExercise.secondaryMuscles] : [];
+        }
+
+        try {
+          parsedSteps = typeof dbExercise.steps === "string" ? JSON.parse(dbExercise.steps) : dbExercise.steps || [];
+        } catch {
+          parsedSteps = dbExercise.steps ? [dbExercise.steps] : [];
+        }
+
+        try {
+          parsedMistakes = typeof dbExercise.commonMistakes === "string" ? JSON.parse(dbExercise.commonMistakes) : dbExercise.commonMistakes || [];
+        } catch {
+          parsedMistakes = dbExercise.commonMistakes ? [dbExercise.commonMistakes] : [];
+        }
+
+        return NextResponse.json({
+          success: true,
+          exerciseName: dbExercise.name,
+          chart: {
+            image: dbExercise.diagramUrl || "/anatomy/squat.jpg",
+            title: `${dbExercise.name} (${dbExercise.type === "STRETCH" ? "Mobility & Stretch Guide" : "Visual Anatomy Guide"})`,
+            primaryMuscles: parsedPrimary.length > 0 ? parsedPrimary : [dbExercise.muscleGroup],
+            secondaryMuscles: parsedSecondary,
+            biomechanicsCue: dbExercise.biomechanicsCue || "Maintain strict posture, align joints with line of force, and control the range of motion.",
+            steps: parsedSteps.length > 0 ? parsedSteps : ["Execute with controlled tempo and full range of motion."],
+            commonMistakes: parsedMistakes.length > 0 ? parsedMistakes : ["Using momentum or breaking neutral posture."],
+            breathingPattern: dbExercise.breathingPattern || "Breathe rhythmically with eccentric and concentric phases.",
+            diagramStatus: dbExercise.diagramStatus,
+            queryName: exerciseName,
+          },
+        });
+      }
+    } catch (dbErr) {
+      // Fall through to high-precision static token matching if DB query fails
+    }
 
     // High-Precision Kinesiological Token Matching
     let matchedKey: string | null = null;

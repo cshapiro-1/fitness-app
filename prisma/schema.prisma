@@ -272,3 +272,34 @@ model Invitation {
   expiresAt DateTime
   createdAt DateTime @default(now())
 }
+
+model Exercise {
+  id               String   @id @default(cuid())
+  name             String   @unique
+  normalizedName   String   @unique
+  type             String   @default("EXERCISE") // EXERCISE, STRETCH, MOBILITY, CARDIO, WELLNESS
+  muscleGroup      String   @default("Chest")
+  equipment        String   @default("Bodyweight")
+  category         String   @default("STRENGTH") // STRENGTH, BODYWEIGHT, CARDIO, STATIC_STRETCH, DYNAMIC_WARMUP, FOAM_ROLL, WELLNESS
+  primaryMuscles   String   @default("[]") // JSON string of primary muscle array
+  secondaryMuscles String   @default("[]") // JSON string of secondary muscle array
+  biomechanicsCue  String?
+  steps            String?  // JSON string array of execution steps
+  commonMistakes   String?  // JSON string array of common mistakes
+  breathingPattern String?
+  diagramUrl       String?  // Path or URL to validated anatomical illustration
+  diagramStatus    String   @default("PENDING_APPROVAL") // APPROVED, PENDING_APPROVAL, REJECTED, NEEDS_REVISION
+  diagramNotes     String?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdByUserId  String?
+  createdByUserRole String? @default("SYSTEM") // SYSTEM, TRAINER, ADMIN
+  isCustom         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([muscleGroup])
+  @@index([type])
+  @@index([diagramStatus])
+  @@index([normalizedName])
+}

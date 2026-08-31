@@ -113,6 +113,40 @@ export async function GET(req: NextRequest) {
     await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "SupplementLog_date_idx" ON "SupplementLog"("date");`);
     results.push("Ensured SupplementLog table exists");
 
+    // 7. Create Exercise table if not exists (Unified Exercises & Stretches with Anatomy Diagrams)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Exercise" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT UNIQUE NOT NULL,
+        "normalizedName" TEXT UNIQUE NOT NULL,
+        "type" TEXT NOT NULL DEFAULT 'EXERCISE',
+        "muscleGroup" TEXT NOT NULL DEFAULT 'Chest',
+        "equipment" TEXT NOT NULL DEFAULT 'Bodyweight',
+        "category" TEXT NOT NULL DEFAULT 'STRENGTH',
+        "primaryMuscles" TEXT NOT NULL DEFAULT '[]',
+        "secondaryMuscles" TEXT NOT NULL DEFAULT '[]',
+        "biomechanicsCue" TEXT,
+        "steps" TEXT,
+        "commonMistakes" TEXT,
+        "breathingPattern" TEXT,
+        "diagramUrl" TEXT,
+        "diagramStatus" TEXT NOT NULL DEFAULT 'PENDING_APPROVAL',
+        "diagramNotes" TEXT,
+        "approvedByUserId" TEXT,
+        "approvedAt" TIMESTAMP(3),
+        "createdByUserId" TEXT,
+        "createdByUserRole" TEXT DEFAULT 'SYSTEM',
+        "isCustom" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_muscleGroup_idx" ON "Exercise"("muscleGroup");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_type_idx" ON "Exercise"("type");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_diagramStatus_idx" ON "Exercise"("diagramStatus");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_normalizedName_idx" ON "Exercise"("normalizedName");`);
+    results.push("Ensured Exercise (unified exercises & stretches) table exists");
+
     return NextResponse.json({
       success: true,
       message: "Database schema synchronized and reconciled successfully",
