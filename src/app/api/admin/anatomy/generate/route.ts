@@ -213,16 +213,59 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Multi-Provider AI Image Generation: Grok (xAI), Google Imagen 3 (Nano Banana), or OpenAI (DALL-E 3)
+    // Multi-Provider AI Image Generation: Google Imagen 3 / Gemini, Grok (xAI), or OpenAI (DALL-E 3)
+    const geminiApiKey =
+      process.env.GEMINI_API_KEY ||
+      process.env.GOOGLE_AI_API_KEY ||
+      process.env.GOOGLE_GEMINI_API_KEY ||
+      process.env.GOOGLE_API_KEY;
     const xaiApiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
-    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
 
     const aiPrompt = `Medical 3D anatomical visualization of an athletic human body performing ${exerciseName}. Dark slate studio background (#090d16). Primary target muscles (${primaryMuscles.join(", ")}) highlighted with glowing electric cyan muscle fibers (#38bdf8). Synergist muscles (${secondaryMuscles.join(", ")}) glowing in warm amber (#f59e0b). Clean, hyper-detailed, photorealistic medical fitness anatomy octane 3D render, accurate biomechanics, cinematic lighting, 8k resolution.`;
 
     let generatedAiUrl: string | null = null;
 
-    // 1. Try Grok (xAI Image API)
+    // 1. Try Google Imagen 3 (Nano Banana / Gemini) using existing Gemini key
+    if (geminiApiKey && !generatedAiUrl) {
+      const models = [
+        "imagen-3.0-generate-002",
+        "imagen-3.0-fast-generate-001"
+      ];
+
+      for (const model of models) {
+        try {
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${geminiApiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                instances: [{ prompt: aiPrompt }],
+                parameters: {
+                  sampleCount: 1,
+                  aspectRatio: "1:1",
+                  outputOptions: { mimeType: "image/jpeg" },
+                },
+              }),
+            }
+          );
+
+          if (geminiRes.ok) {
+            const geminiJson = await geminiRes.json();
+            const b64 = geminiJson.predictions?.[0]?.bytesBase64Encoded;
+            if (b64) {
+              generatedAiUrl = `data:image/jpeg;base64,${b64}`;
+              break;
+            }
+          }
+        } catch (geminiErr) {
+          console.error(`Gemini Imagen ${model} error:`, geminiErr);
+        }
+      }
+    }
+
+    // 2. Try Grok (xAI Image API)
     if (xaiApiKey && !generatedAiUrl) {
       try {
         const grokRes = await fetch("https://api.x.ai/v1/images/generations", {
@@ -249,37 +292,6 @@ export async function POST(req: NextRequest) {
         }
       } catch (grokErr) {
         console.error("Grok image generation error:", grokErr);
-      }
-    }
-
-    // 2. Try Google Imagen 3 ("Nano Banana" / Gemini)
-    if (geminiApiKey && !generatedAiUrl) {
-      try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${geminiApiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              instances: [{ prompt: aiPrompt }],
-              parameters: {
-                sampleCount: 1,
-                aspectRatio: "1:1",
-                outputOptions: { mimeType: "image/jpeg" },
-              },
-            }),
-          }
-        );
-
-        if (geminiRes.ok) {
-          const geminiJson = await geminiRes.json();
-          const b64 = geminiJson.predictions?.[0]?.bytesBase64Encoded;
-          if (b64) {
-            generatedAiUrl = `data:image/jpeg;base64,${b64}`;
-          }
-        }
-      } catch (geminiErr) {
-        console.error("Gemini Imagen image generation error:", geminiErr);
       }
     }
 
