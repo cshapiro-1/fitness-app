@@ -73,6 +73,9 @@ export async function GET(req: NextRequest) {
           subscriptionStatus: true,
           trialEndsAt: true,
           subscribedUntil: true,
+          lastLoginAt: true,
+          lastActiveAt: true,
+          lastSessionDurationSeconds: true,
           createdAt: true,
           _count: {
             select: {
@@ -90,12 +93,14 @@ export async function GET(req: NextRequest) {
           email: true,
           phone: true,
           image: true,
+          lastActiveAt: true,
+          lastSessionDurationSeconds: true,
           createdAt: true,
           user: {
             select: { id: true, name: true, email: true },
           },
           loginUser: {
-            select: { id: true, name: true, email: true, createdAt: true },
+            select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, lastActiveAt: true, lastSessionDurationSeconds: true },
           },
           _count: {
             select: {
@@ -116,6 +121,9 @@ export async function GET(req: NextRequest) {
           subscriptionStatus: true,
           trialEndsAt: true,
           subscribedUntil: true,
+          lastLoginAt: true,
+          lastActiveAt: true,
+          lastSessionDurationSeconds: true,
           createdAt: true,
           _count: {
             select: {
@@ -178,6 +186,9 @@ export async function GET(req: NextRequest) {
         computedStatus,
         clientCount: u._count?.clients || 0,
         workoutsLoggedForClients: u._count?.loggedWorkouts || 0,
+        lastLoginAt: u.lastLoginAt || u.createdAt,
+        lastActiveAt: u.lastActiveAt || u.lastLoginAt || u.createdAt,
+        lastSessionDurationSeconds: u.lastSessionDurationSeconds || 0,
       };
     });
 
@@ -192,6 +203,9 @@ export async function GET(req: NextRequest) {
       trainerName: c.user?.name || c.user?.email || "Unassigned",
       workoutsLogged: c._count?.workoutSessions || 0,
       isRegistered: !!c.loginUser,
+      lastLoginAt: c.loginUser?.lastLoginAt || c.lastActiveAt || c.createdAt,
+      lastActiveAt: c.loginUser?.lastActiveAt || c.lastActiveAt || c.createdAt,
+      lastSessionDurationSeconds: c.loginUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0,
     }));
 
     const formattedUsers = formattedTrainers;

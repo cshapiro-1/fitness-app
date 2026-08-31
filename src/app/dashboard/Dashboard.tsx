@@ -56,6 +56,7 @@ import { EditWorkoutModal } from "./components/EditAssignedWorkoutModal";
 import { LiveWorkoutBanner } from "./components/LiveWorkoutBanner";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
+import { SessionHeartbeatTracker } from "./components/SessionHeartbeatTracker";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
 import { Compass, Menu } from "lucide-react";
@@ -744,6 +745,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
       {/* Layout: Sidebar + Main Content */}
       <div className="layout">
+        <SessionHeartbeatTracker />
         <ClientSidebar
           clients={clients}
           selected={selected}

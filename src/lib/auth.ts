@@ -200,6 +200,24 @@ export const authOptions: NextAuthOptions = {
               }
             }
 
+            // Auto-update lastLoginAt and lastActiveAt on initial sign-in
+            if (user || profile) {
+              try {
+                await prisma.user.update({
+                  where: { id: dbUser.id },
+                  data: { lastLoginAt: new Date(), lastActiveAt: new Date() },
+                });
+                if (dbUser.clientProfileId) {
+                  await prisma.client.update({
+                    where: { id: dbUser.clientProfileId },
+                    data: { lastActiveAt: new Date() },
+                  }).catch(() => null);
+                }
+              } catch (loginTrackErr) {
+                console.error("Failed to update last login telemetry:", loginTrackErr);
+              }
+            }
+
             token.id = dbUser.id;
             token.role = mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;

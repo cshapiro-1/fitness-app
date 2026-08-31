@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
   Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
-  Briefcase, User
+  Briefcase, User, Timer, Calendar
 } from "lucide-react";
 import Link from "next/link";
 
@@ -22,6 +22,9 @@ interface AdminTrainer {
   createdAt: string;
   clientCount: number;
   workoutsLoggedForClients: number;
+  lastLoginAt?: string | null;
+  lastActiveAt?: string | null;
+  lastSessionDurationSeconds?: number | null;
 }
 
 interface AdminClient {
@@ -35,6 +38,9 @@ interface AdminClient {
   trainerName: string;
   workoutsLogged: number;
   isRegistered: boolean;
+  lastLoginAt?: string | null;
+  lastActiveAt?: string | null;
+  lastSessionDurationSeconds?: number | null;
 }
 
 interface AdminStats {
@@ -84,6 +90,38 @@ interface StripeBillingData {
     customerEmail: string;
     created: string;
   }>;
+}
+
+function formatSessionDuration(seconds?: number | null): string {
+  if (seconds === undefined || seconds === null || seconds <= 0) return "< 1 min";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const remainingSecs = seconds % 60;
+  if (mins < 60) {
+    return remainingSecs > 0 ? `${mins}m ${remainingSecs}s` : `${mins} mins`;
+  }
+  const hours = Math.floor(mins / 60);
+  const remainingMins = mins % 60;
+  return `${hours}h ${remainingMins}m`;
+}
+
+function formatRelativeTime(dateStr?: string | null): { text: string; full: string; isRecent: boolean } {
+  if (!dateStr) return { text: "Never", full: "No recorded activity", isRecent: false };
+  const date = new Date(dateStr);
+  const full = date.toLocaleString();
+  const diffMs = Date.now() - date.getTime();
+  if (isNaN(diffMs)) return { text: "Unknown", full: "Invalid Date", isRecent: false };
+
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 60) return { text: "Active now", full, isRecent: true };
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60) return { text: `${diffMins}m ago`, full, isRecent: diffMins <= 15 };
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return { text: `${diffHours}h ago`, full, isRecent: false };
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return { text: "Yesterday", full, isRecent: false };
+  if (diffDays < 7) return { text: `${diffDays}d ago`, full, isRecent: false };
+  return { text: date.toLocaleDateString(), full, isRecent: false };
 }
 
 export function AdminPortal({ userName }: { userName: string }) {
@@ -173,7 +211,7 @@ export function AdminPortal({ userName }: { userName: string }) {
             <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
             <div>
               <h1 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>STRKYR Master Admin Portal</h1>
-              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Master Operations, User Telemetry &amp; Stripe Financials</div>
+              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Master Operations, User Telemetry &amp; Real-Time Activity Tracking</div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -410,7 +448,9 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <th style={{ padding: "10px 12px" }}>Trainer</th>
                     <th style={{ padding: "10px 12px" }}>Role</th>
                     <th style={{ padding: "10px 12px" }}>Clients</th>
-                    <th style={{ padding: "10px 12px" }}>Workouts Logged for Clients</th>
+                    <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
+                    <th style={{ padding: "10px 12px" }}>Last Login / Active</th>
+                    <th style={{ padding: "10px 12px" }}>App Session</th>
                     <th style={{ padding: "10px 12px" }}>Membership</th>
                     <th style={{ padding: "10px 12px" }}>Joined</th>
                     <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
@@ -419,78 +459,127 @@ export function AdminPortal({ userName }: { userName: string }) {
                 <tbody>
                   {filteredTrainers.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      <td colSpan={9} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
                         No trainers found matching filters.
                       </td>
                     </tr>
                   ) : (
-                    filteredTrainers.map((t) => (
-                      <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px" }}>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {t.name || "Unnamed Trainer"}
-                          </div>
-                          <div style={{ fontSize: "11px", color: "#64748b" }}>{t.email}</div>
-                        </td>
+                    filteredTrainers.map((t) => {
+                      const rel = formatRelativeTime(t.lastActiveAt || t.lastLoginAt);
+                      const durationStr = formatSessionDuration(t.lastSessionDurationSeconds);
 
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: t.isAdmin ? "#fef3c7" : "#eff6ff", color: t.isAdmin ? "#92400e" : "#2563eb" }}>
-                            {t.isAdmin ? "👑 ADMIN" : t.role}
-                          </span>
-                        </td>
+                      return (
+                        <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {t.name || "Unnamed Trainer"}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "#64748b" }}>{t.email}</div>
+                          </td>
 
-                        <td style={{ padding: "12px", fontWeight: 700 }}>{t.clientCount}</td>
-
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ fontWeight: 800, color: "#0f172a" }}>
-                            {t.workoutsLoggedForClients}
-                          </span>{" "}
-                          <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
-                        </td>
-
-                        <td style={{ padding: "12px" }}>
-                          {t.computedStatus === "active" ? (
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
-                              ✓ Active Paid
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: t.isAdmin ? "#fef3c7" : "#eff6ff", color: t.isAdmin ? "#92400e" : "#2563eb" }}>
+                              {t.isAdmin ? "👑 ADMIN" : t.role}
                             </span>
-                          ) : t.computedStatus === "trial" ? (
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
-                              ⏱ Trialing
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
-                              🔒 Expired
-                            </span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
-                          {new Date(t.createdAt).toLocaleDateString()}
-                        </td>
+                          <td style={{ padding: "12px", fontWeight: 700 }}>{t.clientCount}</td>
 
-                        <td style={{ padding: "12px", textAlign: "right" }}>
-                          <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
-                            <button
-                              onClick={() => handleUpdateUser(t.id, { extendTrialDays: 14 })}
-                              disabled={actionUserId === t.id}
-                              style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
-                              title="Add +14 days to trial"
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                              {t.workoutsLoggedForClients}
+                            </span>{" "}
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                          </td>
+
+                          {/* Last Login / Active */}
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title={rel.full}>
+                              <span
+                                style={{
+                                  width: "7px",
+                                  height: "7px",
+                                  borderRadius: "50%",
+                                  background: rel.isRecent ? "#16a34a" : "#94a3b8",
+                                  display: "inline-block",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ fontWeight: 600, color: rel.isRecent ? "#16a34a" : "#0f172a", fontSize: "12px" }}>
+                                {rel.text}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "2px" }}>
+                              {t.lastActiveAt ? new Date(t.lastActiveAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "-"}
+                            </div>
+                          </td>
+
+                          {/* App Session Duration */}
+                          <td style={{ padding: "12px" }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                background: (t.lastSessionDurationSeconds || 0) >= 300 ? "#f0fdf4" : "#f1f5f9",
+                                color: (t.lastSessionDurationSeconds || 0) >= 300 ? "#166534" : "#475569",
+                                border: `1px solid ${(t.lastSessionDurationSeconds || 0) >= 300 ? "#bbf7d0" : "#e2e8f0"}`,
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                              }}
+                              title={`Exact logged duration: ${t.lastSessionDurationSeconds || 0} seconds`}
                             >
-                              +14D Trial
-                            </button>
+                              <Timer size={12} />
+                              <span>{durationStr}</span>
+                            </span>
+                          </td>
 
-                            <button
-                              onClick={() => handleUpdateUser(t.id, { grantSubscriptionDays: 365 })}
-                              disabled={actionUserId === t.id}
-                              style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
-                              title="Grant 1 Year Active Subscription"
-                            >
-                              Grant 1Yr
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                          <td style={{ padding: "12px" }}>
+                            {t.computedStatus === "active" ? (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", padding: "3px 8px", borderRadius: "6px", border: "1px solid #bbf7d0" }}>
+                                ✓ Active Paid
+                              </span>
+                            ) : t.computedStatus === "trial" ? (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#d97706", background: "#fffbe3", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fef08a" }}>
+                                ⏱ Trialing
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#dc2626", background: "#fef2f2", padding: "3px 8px", borderRadius: "6px", border: "1px solid #fecaca" }}>
+                                🔒 Expired
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
+                            {new Date(t.createdAt).toLocaleDateString()}
+                          </td>
+
+                          <td style={{ padding: "12px", textAlign: "right" }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
+                              <button
+                                onClick={() => handleUpdateUser(t.id, { extendTrialDays: 14 })}
+                                disabled={actionUserId === t.id}
+                                style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
+                                title="Add +14 days to trial"
+                              >
+                                +14D Trial
+                              </button>
+
+                              <button
+                                onClick={() => handleUpdateUser(t.id, { grantSubscriptionDays: 365 })}
+                                disabled={actionUserId === t.id}
+                                style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+                                title="Grant 1 Year Active Subscription"
+                              >
+                                Grant 1Yr
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -508,6 +597,8 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <th style={{ padding: "10px 12px" }}>Client / Athlete</th>
                     <th style={{ padding: "10px 12px" }}>Assigned Coach</th>
                     <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
+                    <th style={{ padding: "10px 12px" }}>Last Login / Active</th>
+                    <th style={{ padding: "10px 12px" }}>App Session</th>
                     <th style={{ padding: "10px 12px" }}>Access Tier</th>
                     <th style={{ padding: "10px 12px" }}>Account Created</th>
                     <th style={{ padding: "10px 12px", textAlign: "right" }}>Status</th>
@@ -516,51 +607,100 @@ export function AdminPortal({ userName }: { userName: string }) {
                 <tbody>
                   {filteredClients.length === 0 ? (
                     <tr>
-                      <td colSpan={6} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      <td colSpan={8} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
                         No clients found matching search.
                       </td>
                     </tr>
                   ) : (
-                    filteredClients.map((c) => (
-                      <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                        <td style={{ padding: "12px" }}>
-                          <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                            {c.name}
-                          </div>
-                          <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}</div>
-                          {c.phone && <div style={{ fontSize: "10px", color: "#94a3b8" }}>{c.phone}</div>}
-                        </td>
+                    filteredClients.map((c) => {
+                      const rel = formatRelativeTime(c.lastActiveAt || c.lastLoginAt);
+                      const durationStr = formatSessionDuration(c.lastSessionDurationSeconds);
 
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
-                            🏋️ {c.trainerName}
-                          </span>
-                        </td>
+                      return (
+                        <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
+                              {c.name}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}</div>
+                            {c.phone && <div style={{ fontSize: "10px", color: "#94a3b8" }}>{c.phone}</div>}
+                          </td>
 
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "14px" }}>
-                            {c.workoutsLogged}
-                          </span>{" "}
-                          <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
-                        </td>
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
+                              🏋️ {c.trainerName}
+                            </span>
+                          </td>
 
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                            <span>✓</span> Free Athlete Access
-                          </span>
-                        </td>
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "14px" }}>
+                              {c.workoutsLogged}
+                            </span>{" "}
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                          </td>
 
-                        <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
-                          {new Date(c.createdAt).toLocaleDateString()}
-                        </td>
+                          {/* Last Login / Active */}
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title={rel.full}>
+                              <span
+                                style={{
+                                  width: "7px",
+                                  height: "7px",
+                                  borderRadius: "50%",
+                                  background: rel.isRecent ? "#16a34a" : "#94a3b8",
+                                  display: "inline-block",
+                                  flexShrink: 0,
+                                }}
+                              />
+                              <span style={{ fontWeight: 600, color: rel.isRecent ? "#16a34a" : "#0f172a", fontSize: "12px" }}>
+                                {rel.text}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "2px" }}>
+                              {c.lastActiveAt ? new Date(c.lastActiveAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "-"}
+                            </div>
+                          </td>
 
-                        <td style={{ padding: "12px", textAlign: "right" }}>
-                          <span style={{ fontSize: "11px", fontWeight: 600, color: c.isRegistered ? "#16a34a" : "#64748b", background: c.isRegistered ? "#f0fdf4" : "#f1f5f9", padding: "3px 8px", borderRadius: "6px" }}>
-                            {c.isRegistered ? "✓ Registered" : "Invited"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                          {/* App Session Duration */}
+                          <td style={{ padding: "12px" }}>
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                background: (c.lastSessionDurationSeconds || 0) >= 300 ? "#f0fdf4" : "#f1f5f9",
+                                color: (c.lastSessionDurationSeconds || 0) >= 300 ? "#166534" : "#475569",
+                                border: `1px solid ${(c.lastSessionDurationSeconds || 0) >= 300 ? "#bbf7d0" : "#e2e8f0"}`,
+                                padding: "2px 7px",
+                                borderRadius: "6px",
+                              }}
+                              title={`Exact logged duration: ${c.lastSessionDurationSeconds || 0} seconds`}
+                            >
+                              <Timer size={12} />
+                              <span>{durationStr}</span>
+                            </span>
+                          </td>
+
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <span>✓</span> Free Athlete Access
+                            </span>
+                          </td>
+
+                          <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
+                            {new Date(c.createdAt).toLocaleDateString()}
+                          </td>
+
+                          <td style={{ padding: "12px", textAlign: "right" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 600, color: c.isRegistered ? "#16a34a" : "#64748b", background: c.isRegistered ? "#f0fdf4" : "#f1f5f9", padding: "3px 8px", borderRadius: "6px" }}>
+                              {c.isRegistered ? "✓ Registered" : "Invited"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
