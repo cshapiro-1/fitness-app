@@ -6,7 +6,7 @@ import {
   Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
   Briefcase, User, Timer, Calendar, LogIn, Trash2, Hourglass, Sparkles, Filter,
   Eye, EyeOff, ShieldAlert, Cpu, HeartPulse, ChevronLeft, ChevronRight, Check,
-  AlertCircle, RotateCcw, Image, Save, ExternalLink
+  AlertCircle, RotateCcw, Image, Save, ExternalLink, Wand2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -195,7 +195,30 @@ export function AdminPortal({ userName }: { userName: string }) {
   const [trainers, setTrainers] = useState<AdminTrainer[]>([]);
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"trainers" | "clients" | "anatomy">("trainers");
+
+  // Tab State with LocalStorage & URL Persistence to avoid accidental tab drop / redirection
+  const [activeTab, setActiveTab] = useState<"trainers" | "clients" | "anatomy">(() => {
+    if (typeof window !== "undefined") {
+      const urlTab = new URLSearchParams(window.location.search).get("tab");
+      if (urlTab === "trainers" || urlTab === "clients" || urlTab === "anatomy") return urlTab;
+      const saved = localStorage.getItem("fitcoach_admin_active_tab");
+      if (saved === "trainers" || saved === "clients" || saved === "anatomy") return saved as any;
+    }
+    return "trainers";
+  });
+
+  const handleTabChange = (tab: "trainers" | "clients" | "anatomy") => {
+    setActiveTab(tab);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("fitcoach_admin_active_tab", tab);
+        const url = new URL(window.location.href);
+        url.searchParams.set("tab", tab);
+        window.history.replaceState({}, "", url.toString());
+      } catch {}
+    }
+  };
+
   const [telemetryMode, setTelemetryMode] = useState<TelemetryViewMode>("ORGANIC");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -212,6 +235,9 @@ export function AdminPortal({ userName }: { userName: string }) {
   const [anatomyFilterType, setAnatomyFilterType] = useState<"ALL" | "EXERCISE" | "STRETCH" | "PENDING" | "APPROVED">("ALL");
   const [anatomySearch, setAnatomySearch] = useState("");
   const [savingAnatomyId, setSavingAnatomyId] = useState<string | null>(null);
+  const [isRegeneratingDiagram, setIsRegeneratingDiagram] = useState(false);
+  const [variantMap, setVariantMap] = useState<Record<string, number>>({});
+
   const [editedCue, setEditedCue] = useState("");
   const [editedDiagramUrl, setEditedDiagramUrl] = useState("");
   const [editedPrimaryMuscles, setEditedPrimaryMuscles] = useState("");
@@ -365,10 +391,8 @@ export function AdminPortal({ userName }: { userName: string }) {
 
       if (res.ok) {
         await fetchAnatomyData();
-        // Advance to next unapproved item
-        if (selectedAnatomyIndex < filteredAnatomyList.length - 1) {
-          setSelectedAnatomyIndex((prev) => prev + 1);
-        }
+        // Advance smoothly to next item
+        setSelectedAnatomyIndex((prev) => Math.min(prev, Math.max(0, filteredAnatomyList.length - 2)));
       } else {
         const errJson = await res.json().catch(() => ({ error: "Failed to approve anatomy diagram" }));
         alert(errJson.error || "Failed to approve anatomy diagram");
@@ -379,6 +403,55 @@ export function AdminPortal({ userName }: { userName: string }) {
       await fetchAnatomyData();
     } finally {
       setSavingAnatomyId(null);
+    }
+  };
+
+  const handleRegenerateDiagram = async (item: UnifiedAnatomyExercise) => {
+    setIsRegeneratingDiagram(true);
+    try {
+      const currentVariant = variantMap[item.name] || 0;
+      const nextVariant = currentVariant + 1;
+      setVariantMap((prev) => ({ ...prev, [item.name]: nextVariant }));
+
+      const res = await fetch("/api/admin/anatomy/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: item.name,
+          muscleGroup: item.muscleGroup,
+          equipment: item.equipment,
+          type: item.type,
+          variant: nextVariant,
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data?.diagramUrl) {
+          setEditedDiagramUrl(json.data.diagramUrl);
+          setAnatomyExercises((prev) =>
+            prev.map((ex) =>
+              ex.name === item.name || ex.id === item.id
+                ? { ...ex, diagramUrl: json.data.diagramUrl }
+                : ex
+            )
+          );
+          // Persist the regenerated URL to DB
+          await fetch("/api/admin/anatomy", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: item.id,
+              name: item.name,
+              diagramUrl: json.data.diagramUrl,
+            }),
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Failed to regenerate diagram:", err);
+    } finally {
+      setIsRegeneratingDiagram(false);
     }
   };
 
@@ -555,6 +628,7 @@ export function AdminPortal({ userName }: { userName: string }) {
               <span>{error}</span>
             </div>
             <button
+              type="button"
               onClick={fetchAdminData}
               style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
             >
@@ -581,6 +655,7 @@ export function AdminPortal({ userName }: { userName: string }) {
 
           <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
             <button
+              type="button"
               onClick={() => setTelemetryMode("ORGANIC")}
               style={{
                 padding: "6px 12px",
@@ -597,6 +672,7 @@ export function AdminPortal({ userName }: { userName: string }) {
               🌱 Organic Customers
             </button>
             <button
+              type="button"
               onClick={() => setTelemetryMode("ALL")}
               style={{
                 padding: "6px 12px",
@@ -613,6 +689,7 @@ export function AdminPortal({ userName }: { userName: string }) {
               ⚡ All Combined
             </button>
             <button
+              type="button"
               onClick={() => setTelemetryMode("ADMIN_ONLY")}
               style={{
                 padding: "6px 12px",
@@ -711,7 +788,8 @@ export function AdminPortal({ userName }: { userName: string }) {
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "16px", borderBottom: "1px solid #e2e8f0", paddingBottom: "12px" }}>
             <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "10px", padding: "3px", gap: "4px" }}>
               <button
-                onClick={() => setActiveTab("trainers")}
+                type="button"
+                onClick={() => handleTabChange("trainers")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -733,7 +811,8 @@ export function AdminPortal({ userName }: { userName: string }) {
               </button>
 
               <button
-                onClick={() => setActiveTab("clients")}
+                type="button"
+                onClick={() => handleTabChange("clients")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -755,7 +834,8 @@ export function AdminPortal({ userName }: { userName: string }) {
               </button>
 
               <button
-                onClick={() => setActiveTab("anatomy")}
+                type="button"
+                onClick={() => handleTabChange("anatomy")}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -791,6 +871,7 @@ export function AdminPortal({ userName }: { userName: string }) {
               )}
 
               <button
+                type="button"
                 onClick={() => {
                   fetchAdminData();
                   fetchAnatomyData();
@@ -963,6 +1044,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                             <td style={{ padding: "12px", textAlign: "right" }}>
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
                                 <button
+                                  type="button"
                                   onClick={() => handleUpdateUser(t.id, { extendTrialDays: 14 })}
                                   disabled={actionUserId === t.id}
                                   style={{ fontSize: "11px", padding: "4px 8px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
@@ -971,6 +1053,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                                   +14D Trial
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleUpdateUser(t.id, { grantSubscriptionDays: 365 })}
                                   disabled={actionUserId === t.id}
                                   style={{ fontSize: "11px", padding: "4px 8px", background: "#16a34a", color: "#ffffff", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
@@ -980,6 +1063,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                                 </button>
                                 {!t.isAdmin && (
                                   <button
+                                    type="button"
                                     onClick={() => handleDeleteUser(t.id, t.name || t.email)}
                                     disabled={actionUserId === t.id}
                                     style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
@@ -1109,6 +1193,7 @@ export function AdminPortal({ userName }: { userName: string }) {
 
                             <td style={{ padding: "12px", textAlign: "right" }}>
                               <button
+                                type="button"
                                 onClick={() => handleDeleteUser(c.id, c.name)}
                                 disabled={actionUserId === c.id}
                                 style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
@@ -1273,7 +1358,7 @@ export function AdminPortal({ userName }: { userName: string }) {
 
                   {/* Card Content Grid */}
                   <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 360px) 1fr", gap: "20px", padding: "20px" }}>
-                    {/* Diagram Illustration Preview */}
+                    {/* Diagram Illustration Preview & Regeneration Action */}
                     <div>
                       <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", background: "#f8fafc", position: "relative" }}>
                         <img
@@ -1284,6 +1369,34 @@ export function AdminPortal({ userName }: { userName: string }) {
                             (e.target as any).src = "/anatomy/squat.jpg";
                           }}
                         />
+
+                        {/* Quick Floating Regenerate Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerateDiagram(activeAnatomyItem)}
+                          disabled={isRegeneratingDiagram}
+                          style={{
+                            position: "absolute",
+                            top: "10px",
+                            right: "10px",
+                            background: "rgba(15, 23, 42, 0.85)",
+                            color: "#38bdf8",
+                            border: "1px solid #38bdf8",
+                            borderRadius: "6px",
+                            padding: "4px 10px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            backdropFilter: "blur(4px)",
+                          }}
+                          title="Generate new visual rendering"
+                        >
+                          <Wand2 size={12} className={isRegeneratingDiagram ? "spin" : ""} />
+                          <span>{isRegeneratingDiagram ? "Generating..." : "✨ Regenerate"}</span>
+                        </button>
                       </div>
 
                       <div style={{ marginTop: "10px" }}>
@@ -1389,6 +1502,30 @@ export function AdminPortal({ userName }: { userName: string }) {
                           <span>{activeAnatomyItem.diagramStatus === "APPROVED" ? "✓ Approved (Re-Save & Next)" : "✓ Approve Anatomy Diagram & Proceed"}</span>
                         </button>
 
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerateDiagram(activeAnatomyItem)}
+                          disabled={isRegeneratingDiagram}
+                          style={{
+                            padding: "10px 14px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            background: "#eff6ff",
+                            color: "#2563eb",
+                            border: "1px solid #bfdbfe",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                          }}
+                          title="Generate fresh visual until approved"
+                        >
+                          <Wand2 size={14} className={isRegeneratingDiagram ? "spin" : ""} />
+                          <span>✨ Regenerate</span>
+                        </button>
+
                         {activeAnatomyItem.diagramStatus === "APPROVED" && (
                           <button
                             type="button"
@@ -1411,7 +1548,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                             title="Revert diagram back to pending approval state"
                           >
                             <RotateCcw size={14} />
-                            <span>↩ Revert to Pending</span>
+                            <span>↩ Revert</span>
                           </button>
                         )}
 
@@ -1421,7 +1558,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                           disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
                           style={{
                             flex: 1,
-                            minWidth: "120px",
+                            minWidth: "110px",
                             padding: "10px 14px",
                             fontSize: "12px",
                             fontWeight: 700,
@@ -1437,7 +1574,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                           }}
                         >
                           <Save size={14} />
-                          <span>Save Edits</span>
+                          <span>Save</span>
                         </button>
                       </div>
                     </div>
@@ -1454,9 +1591,4 @@ export function AdminPortal({ userName }: { userName: string }) {
       </div>
     </div>
   );
-}
-
-// Helper for secondary muscles state setter typo guard
-function setEditedSecondarySecondaryMuscles(setter: any) {
-  return setter;
 }
