@@ -27,13 +27,27 @@ export async function GET(req: NextRequest) {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    // Self-healing: Ensure columns exist in live Postgres database
+    // Self-healing: Ensure columns exist in live Postgres database and clean up legacy accounts
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastLoginAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastSessionDurationSeconds" INTEGER DEFAULT 0;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "loginCount" INTEGER DEFAULT 1;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totalSessionSeconds" INTEGER DEFAULT 0;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "lastSessionDurationSeconds" INTEGER DEFAULT 0;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "loginCount" INTEGER DEFAULT 1;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "totalSessionSeconds" INTEGER DEFAULT 0;`);
+
+      // Delete legacy FitCoach service admin accounts
+      await prisma.user.deleteMany({
+        where: {
+          OR: [
+            { email: { in: ["service@fitcoach.pro", "admin@fitcoach.pro"] } },
+            { name: { contains: "FitCoach", mode: "insensitive" } },
+          ],
+        },
+      }).catch(() => null);
     } catch (schemaErr) {
       console.warn("Schema self-heal warning:", schemaErr);
     }
@@ -87,6 +101,8 @@ export async function GET(req: NextRequest) {
           lastLoginAt: true,
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
+          loginCount: true,
+          totalSessionSeconds: true,
           createdAt: true,
           loggedWorkouts: {
             select: { completedAt: true, startedAt: true, createdAt: true },
@@ -112,12 +128,14 @@ export async function GET(req: NextRequest) {
           image: true,
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
+          loginCount: true,
+          totalSessionSeconds: true,
           createdAt: true,
           user: {
             select: { id: true, name: true, email: true },
           },
           loginUser: {
-            select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, lastActiveAt: true, lastSessionDurationSeconds: true },
+            select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, lastActiveAt: true, lastSessionDurationSeconds: true, loginCount: true, totalSessionSeconds: true },
           },
           workoutSessions: {
             select: { completedAt: true, startedAt: true, createdAt: true },
@@ -147,6 +165,8 @@ export async function GET(req: NextRequest) {
           lastLoginAt: true,
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
+          loginCount: true,
+          totalSessionSeconds: true,
           createdAt: true,
           _count: {
             select: {
@@ -209,6 +229,10 @@ export async function GET(req: NextRequest) {
       const effectiveLastActive = hasRealSession ? (u.lastActiveAt || u.lastLoginAt) : (latestWorkoutDate || u.createdAt);
       const effectiveLastLogin = hasRealSession ? (u.lastLoginAt || effectiveLastActive) : (latestWorkoutDate || u.createdAt);
 
+      const loginCount = u.loginCount || 1;
+      const totalSessionSeconds = u.totalSessionSeconds || u.lastSessionDurationSeconds || 0;
+      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
+
       return {
         ...u,
         computedStatus,
@@ -217,6 +241,9 @@ export async function GET(req: NextRequest) {
         lastLoginAt: effectiveLastLogin,
         lastActiveAt: effectiveLastActive,
         lastSessionDurationSeconds: u.lastSessionDurationSeconds || 0,
+        loginCount,
+        totalSessionSeconds,
+        avgSessionDurationSeconds,
       };
     });
 
@@ -226,6 +253,10 @@ export async function GET(req: NextRequest) {
       const clientHasRealSession = (clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0) > 0;
       const clientLastActive = clientHasRealSession ? (clientUser?.lastActiveAt || c.lastActiveAt) : (clientWorkoutDate || c.createdAt);
       const clientLastLogin = clientHasRealSession ? (clientUser?.lastLoginAt || clientLastActive) : (clientWorkoutDate || c.createdAt);
+
+      const loginCount = clientUser?.loginCount || c.loginCount || 1;
+      const totalSessionSeconds = clientUser?.totalSessionSeconds || c.totalSessionSeconds || clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0;
+      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
 
       return {
         id: c.id,
@@ -241,10 +272,26 @@ export async function GET(req: NextRequest) {
         lastLoginAt: clientLastLogin,
         lastActiveAt: clientLastActive,
         lastSessionDurationSeconds: clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0,
+        loginCount,
+        totalSessionSeconds,
+        avgSessionDurationSeconds,
       };
     });
 
     const formattedUsers = formattedTrainers;
+
+    // Overall aggregate session metrics
+    const totalLogins = formattedTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
+                        formattedClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
+    const allActiveDurations = [
+      ...formattedTrainers.map((t) => t.avgSessionDurationSeconds || 0),
+      ...formattedClients.map((c) => c.avgSessionDurationSeconds || 0),
+    ].filter((s) => s > 0);
+    const overallAvgSessionSeconds = allActiveDurations.length > 0
+      ? Math.round(allActiveDurations.reduce((a, b) => a + b, 0) / allActiveDurations.length)
+      : 0;
+    const totalAppTimeSeconds = formattedTrainers.reduce((acc, t) => acc + (t.totalSessionSeconds || 0), 0) +
+                                formattedClients.reduce((acc, c) => acc + (c.totalSessionSeconds || 0), 0);
 
     // Real-time Live Stripe Billing Metrics
     let stripeBilling: any = {
@@ -355,6 +402,9 @@ export async function GET(req: NextRequest) {
         expiredUsers,
         estimatedMRR,
         conversionRate,
+        totalLogins,
+        overallAvgSessionSeconds,
+        totalAppTimeSeconds,
       },
       stripeBilling,
       trainers: formattedTrainers,

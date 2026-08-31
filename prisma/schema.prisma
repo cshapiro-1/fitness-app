@@ -91,6 +91,8 @@ model User {
   lastLoginAt           DateTime? @default(now())
   lastActiveAt          DateTime? @default(now())
   lastSessionDurationSeconds Int? @default(0)
+  loginCount            Int?      @default(1)
+  totalSessionSeconds   Int?      @default(0)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime? @updatedAt
 
@@ -116,6 +118,8 @@ model Client {
   emailNotifications Boolean      @default(true)
   lastActiveAt       DateTime?    @default(now())
   lastSessionDurationSeconds Int? @default(0)
+  loginCount         Int?         @default(1)
+  totalSessionSeconds Int?        @default(0)
   createdAt          DateTime     @default(now())
 
   inviteToken  String?      @unique

@@ -47,9 +47,7 @@ export const authOptions: NextAuthOptions = {
           const isServiceEmail =
             cleanEmail === "service@strkyr.fit" ||
             cleanEmail === "admin@strkyr.fit" ||
-            cleanEmail === "collin@strkyr.fit" ||
-            cleanEmail === "service@fitcoach.pro" ||
-            cleanEmail === "admin@fitcoach.pro";
+            cleanEmail === "collin@strkyr.fit";
 
           if (isServiceEmail) {
             if (credentials.password !== servicePassword) {
@@ -200,17 +198,24 @@ export const authOptions: NextAuthOptions = {
               }
             }
 
-            // Auto-update lastLoginAt and lastActiveAt on initial sign-in
+            // Auto-update lastLoginAt and lastActiveAt on initial sign-in, and increment loginCount
             if (user || profile) {
               try {
                 await prisma.user.update({
                   where: { id: dbUser.id },
-                  data: { lastLoginAt: new Date(), lastActiveAt: new Date() },
+                  data: {
+                    lastLoginAt: new Date(),
+                    lastActiveAt: new Date(),
+                    loginCount: { increment: 1 },
+                  },
                 });
                 if (dbUser.clientProfileId) {
                   await prisma.client.update({
                     where: { id: dbUser.clientProfileId },
-                    data: { lastActiveAt: new Date() },
+                    data: {
+                      lastActiveAt: new Date(),
+                      loginCount: { increment: 1 },
+                    },
                   }).catch(() => null);
                 }
               } catch (loginTrackErr) {

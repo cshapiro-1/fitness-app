@@ -37,9 +37,14 @@ export async function POST(req: NextRequest) {
       where: { id: user.id },
       data: {
         lastActiveAt: now,
-        ...(durationSeconds > 0 ? { lastSessionDurationSeconds: durationSeconds } : {}),
+        ...(durationSeconds > 0
+          ? {
+              lastSessionDurationSeconds: durationSeconds,
+              totalSessionSeconds: { increment: Math.max(1, Math.min(durationSeconds, 60)) },
+            }
+          : {}),
       },
-      select: { id: true, lastActiveAt: true, lastSessionDurationSeconds: true },
+      select: { id: true, lastActiveAt: true, lastSessionDurationSeconds: true, totalSessionSeconds: true },
     });
 
     if (user.clientProfileId) {
@@ -47,7 +52,12 @@ export async function POST(req: NextRequest) {
         where: { id: user.clientProfileId },
         data: {
           lastActiveAt: now,
-          ...(durationSeconds > 0 ? { lastSessionDurationSeconds: durationSeconds } : {}),
+          ...(durationSeconds > 0
+            ? {
+                lastSessionDurationSeconds: durationSeconds,
+                totalSessionSeconds: { increment: Math.max(1, Math.min(durationSeconds, 60)) },
+              }
+            : {}),
         },
       }).catch(() => null);
     }
@@ -56,6 +66,7 @@ export async function POST(req: NextRequest) {
       success: true,
       lastActiveAt: updatedUser.lastActiveAt,
       lastSessionDurationSeconds: updatedUser.lastSessionDurationSeconds,
+      totalSessionSeconds: updatedUser.totalSessionSeconds,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Heartbeat error" }, { status: 500 });

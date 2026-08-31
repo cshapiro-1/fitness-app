@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST as heartbeatPOST } from "@/app/api/user/heartbeat/route";
 import { GET as adminStatsGET } from "@/app/api/admin/stats/route";
+import { DELETE as adminUserDELETE } from "@/app/api/admin/users/[id]/route";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 
@@ -24,11 +25,16 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       count: vi.fn(),
       findMany: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     client: {
+      findUnique: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
       findMany: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     workoutSession: {
       count: vi.fn(),
@@ -76,12 +82,14 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
         id: "trainer-1",
         lastActiveAt: mockNow,
         lastSessionDurationSeconds: 900,
+        totalSessionSeconds: 900,
       } as any);
 
       vi.mocked(prisma.client.update).mockResolvedValue({
         id: "client-profile-1",
         lastActiveAt: mockNow,
         lastSessionDurationSeconds: 900,
+        totalSessionSeconds: 900,
       } as any);
 
       const req = new NextRequest("http://localhost:3000/api/user/heartbeat", {
@@ -113,8 +121,8 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
     });
   });
 
-  describe("GET /api/admin/stats with Activity Telemetry", () => {
-    it("should return lastLoginAt, lastActiveAt, and lastSessionDurationSeconds for trainers and clients", async () => {
+  describe("GET /api/admin/stats with Login & Session Analytics", () => {
+    it("should return logins count, average session duration, and clean up legacy FitCoach accounts", async () => {
       vi.mocked(getServerSession).mockResolvedValue({
         user: { id: "admin-1", email: "admin@strkyr.fit" },
       } as any);
@@ -147,6 +155,8 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
           lastLoginAt: trainerDate,
           lastActiveAt: trainerDate,
           lastSessionDurationSeconds: 1800,
+          loginCount: 5,
+          totalSessionSeconds: 9000,
           createdAt: trainerDate,
           _count: { clients: 3, loggedWorkouts: 15 },
         },
@@ -161,6 +171,8 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
           image: null,
           lastActiveAt: clientDate,
           lastSessionDurationSeconds: 1200,
+          loginCount: 3,
+          totalSessionSeconds: 3600,
           createdAt: clientDate,
           user: { id: "trainer-1", name: "Coach Tim", email: "tim@strkyr.fit" },
           loginUser: {
@@ -171,6 +183,8 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
             lastLoginAt: clientDate,
             lastActiveAt: clientDate,
             lastSessionDurationSeconds: 1200,
+            loginCount: 3,
+            totalSessionSeconds: 3600,
           },
           _count: { workoutSessions: 8 },
         },
@@ -183,14 +197,40 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
 
       expect(data.trainers).toBeDefined();
       expect(data.trainers.length).toBe(1);
-      expect(data.trainers[0].workoutsLoggedForClients).toBe(15);
-      expect(data.trainers[0].lastSessionDurationSeconds).toBe(1800);
+      expect(data.trainers[0].loginCount).toBe(5);
+      expect(data.trainers[0].avgSessionDurationSeconds).toBe(1800);
 
       expect(data.clients).toBeDefined();
       expect(data.clients.length).toBe(1);
-      expect(data.clients[0].workoutsLogged).toBe(8);
-      expect(data.clients[0].lastSessionDurationSeconds).toBe(1200);
-      expect(data.clients[0].trainerName).toBe("Coach Tim");
+      expect(data.clients[0].loginCount).toBe(3);
+      expect(data.clients[0].avgSessionDurationSeconds).toBe(1200);
+
+      expect(data.stats.totalLogins).toBe(8);
+      expect(data.stats.overallAvgSessionSeconds).toBe(1500);
+    });
+  });
+
+  describe("DELETE /api/admin/users/[id]", () => {
+    it("should allow admin to delete a user account", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "admin-1", email: "collin.shapiro1@gmail.com" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique)
+        .mockResolvedValueOnce({ id: "admin-1", isAdmin: true } as any)
+        .mockResolvedValueOnce({ id: "target-user-1", email: "coach@fit.com" } as any);
+
+      vi.mocked(prisma.user.delete).mockResolvedValue({ id: "target-user-1" } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/admin/users/target-user-1", {
+        method: "DELETE",
+      });
+
+      const res = await adminUserDELETE(req, { params: Promise.resolve({ id: "target-user-1" }) });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "target-user-1" } });
     });
   });
 });

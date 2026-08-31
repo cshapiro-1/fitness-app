@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
   Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
-  Briefcase, User, Timer, Calendar
+  Briefcase, User, Timer, Calendar, LogIn, Trash2, Hourglass
 } from "lucide-react";
 import Link from "next/link";
 
@@ -25,6 +25,9 @@ interface AdminTrainer {
   lastLoginAt?: string | null;
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
+  loginCount?: number;
+  totalSessionSeconds?: number;
+  avgSessionDurationSeconds?: number;
 }
 
 interface AdminClient {
@@ -41,6 +44,9 @@ interface AdminClient {
   lastLoginAt?: string | null;
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
+  loginCount?: number;
+  totalSessionSeconds?: number;
+  avgSessionDurationSeconds?: number;
 }
 
 interface AdminStats {
@@ -62,6 +68,9 @@ interface AdminStats {
   expiredUsers: number;
   estimatedMRR: number;
   conversionRate: number;
+  totalLogins?: number;
+  overallAvgSessionSeconds?: number;
+  totalAppTimeSeconds?: number;
 }
 
 interface StripeBillingData {
@@ -103,6 +112,15 @@ function formatSessionDuration(seconds?: number | null): string {
   const hours = Math.floor(mins / 60);
   const remainingMins = mins % 60;
   return `${hours}h ${remainingMins}m`;
+}
+
+function formatTotalAppTime(seconds?: number | null): string {
+  if (!seconds || seconds <= 0) return "0 mins";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins} mins`;
+  const hours = (seconds / 3600).toFixed(1);
+  return `${hours} hrs`;
 }
 
 function formatRelativeTime(dateStr?: string | null, seconds?: number | null): { text: string; full: string; isRecent: boolean } {
@@ -185,6 +203,28 @@ export function AdminPortal({ userName }: { userName: string }) {
     }
   };
 
+  const handleDeleteUser = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+    setActionUserId(id);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchAdminData();
+      } else {
+        const err = await res.json().catch(() => ({ error: "Failed to delete account" }));
+        alert(err.error || "Failed to delete account.");
+      }
+    } catch {
+      alert("Error connecting to delete API.");
+    } finally {
+      setActionUserId(null);
+    }
+  };
+
   const filteredTrainers = useMemo(() => {
     return trainers.filter((t) => {
       const query = searchQuery.toLowerCase();
@@ -211,7 +251,7 @@ export function AdminPortal({ userName }: { userName: string }) {
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       {/* Top Admin Header */}
       <header style={{ background: "#0f172a", color: "#ffffff", padding: "16px 24px", borderBottom: "1px solid #1e293b" }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ maxWidth: "1280px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
             <div>
@@ -242,7 +282,7 @@ export function AdminPortal({ userName }: { userName: string }) {
         </div>
       </header>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "24px" }}>
         {error && (
           <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#b91c1c", fontSize: "13px", fontWeight: 600 }}>
@@ -259,74 +299,88 @@ export function AdminPortal({ userName }: { userName: string }) {
         )}
 
         {/* KPI Telemetry Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "14px", marginBottom: "24px" }}>
           {/* Active Paid Trainers */}
-          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
               <span>ACTIVE SUBSCRIBERS</span>
               <DollarSign size={16} style={{ color: "#16a34a" }} />
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
               {stats?.activeSubscriptions ?? 0}
             </div>
-            <div style={{ fontSize: "12px", color: "#16a34a", marginTop: "4px", fontWeight: 600 }}>
+            <div style={{ fontSize: "11px", color: "#16a34a", marginTop: "2px", fontWeight: 600 }}>
               ${stats?.estimatedMRR ?? 0} Real MRR
             </div>
           </div>
 
           {/* Total Trainers */}
-          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
               <span>TOTAL TRAINERS</span>
               <Briefcase size={16} style={{ color: "#2563eb" }} />
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
               {trainers.length || stats?.totalTrainers || 0}
             </div>
-            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
               {stats?.trialingUsers ?? 0} trialing · {stats?.expiredUsers ?? 0} expired
             </div>
           </div>
 
           {/* Total Managed Athletes / Clients */}
-          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
-              <span>TOTAL CLIENTS / ATHLETES</span>
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
+              <span>TOTAL CLIENTS</span>
               <Users size={16} style={{ color: "#7c3aed" }} />
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
               {clients.length || stats?.totalClients || 0}
             </div>
-            <div style={{ fontSize: "12px", color: "#7c3aed", marginTop: "4px", fontWeight: 600 }}>
-              {stats?.avgClientsPerTrainer ?? 0} clients / trainer
+            <div style={{ fontSize: "11px", color: "#7c3aed", marginTop: "2px", fontWeight: 600 }}>
+              {stats?.avgClientsPerTrainer ?? 0} clients / coach
             </div>
           </div>
 
-          {/* Workouts Completed */}
-          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
+          {/* Workouts Logged */}
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
               <span>WORKOUT LOGS</span>
               <Dumbbell size={16} style={{ color: "#ea580c" }} />
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
               {stats?.totalWorkouts ?? 0}
             </div>
-            <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
               {stats?.totalCompletedWorkouts ?? 0} finished ({stats?.completionRate ?? 0}%)
             </div>
           </div>
 
-          {/* Daily Active Users (DAU / MAU) */}
-          <div style={{ background: "#ffffff", padding: "18px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "12px", fontWeight: 600 }}>
-              <span>ACTIVE USERS (DAU/MAU)</span>
-              <Activity size={16} style={{ color: "#0891b2" }} />
+          {/* Average App Session Length */}
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
+              <span>AVG APP SESSION</span>
+              <Hourglass size={16} style={{ color: "#059669" }} />
             </div>
-            <div style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginTop: "6px" }}>
-              {stats?.dau ?? 1} <span style={{ fontSize: "14px", color: "#64748b", fontWeight: 500 }}>/ {stats?.mau ?? 1}</span>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
+              {formatSessionDuration(stats?.overallAvgSessionSeconds)}
             </div>
-            <div style={{ fontSize: "12px", color: "#0891b2", marginTop: "4px", fontWeight: 600 }}>
-              {stats?.stickinessRatio ?? 100}% Stickiness Ratio
+            <div style={{ fontSize: "11px", color: "#059669", marginTop: "2px", fontWeight: 600 }}>
+              {formatTotalAppTime(stats?.totalAppTimeSeconds)} total in app
+            </div>
+          </div>
+
+          {/* Total App Logins */}
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
+              <span>TOTAL LOGINS</span>
+              <LogIn size={16} style={{ color: "#0284c7" }} />
+            </div>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
+              {stats?.totalLogins ?? (trainers.length + clients.length)}
+            </div>
+            <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "2px", fontWeight: 600 }}>
+              {stats?.dau ?? 1} DAU · {stats?.stickinessRatio ?? 100}% stickiness
             </div>
           </div>
         </div>
@@ -469,8 +523,10 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <th style={{ padding: "10px 12px" }}>Role</th>
                     <th style={{ padding: "10px 12px" }}>Clients</th>
                     <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
-                    <th style={{ padding: "10px 12px" }}>Last Login / Active</th>
-                    <th style={{ padding: "10px 12px" }}>App Session</th>
+                    <th style={{ padding: "10px 12px" }}>Logins</th>
+                    <th style={{ padding: "10px 12px" }}>Avg Session</th>
+                    <th style={{ padding: "10px 12px" }}>Last Active</th>
+                    <th style={{ padding: "10px 12px" }}>Last Session</th>
                     <th style={{ padding: "10px 12px" }}>Membership</th>
                     <th style={{ padding: "10px 12px" }}>Joined</th>
                     <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
@@ -479,7 +535,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                 <tbody>
                   {filteredTrainers.length === 0 ? (
                     <tr>
-                      <td colSpan={9} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      <td colSpan={11} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
                         No trainers found matching filters.
                       </td>
                     </tr>
@@ -487,6 +543,8 @@ export function AdminPortal({ userName }: { userName: string }) {
                     filteredTrainers.map((t) => {
                       const rel = formatRelativeTime(t.lastActiveAt || t.lastLoginAt, t.lastSessionDurationSeconds);
                       const durationStr = formatSessionDuration(t.lastSessionDurationSeconds);
+                      const avgStr = formatSessionDuration(t.avgSessionDurationSeconds);
+                      const totalTimeStr = formatTotalAppTime(t.totalSessionSeconds);
 
                       return (
                         <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -510,6 +568,22 @@ export function AdminPortal({ userName }: { userName: string }) {
                               {t.workoutsLoggedForClients}
                             </span>{" "}
                             <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                          </td>
+
+                          {/* Number of Logins */}
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <LogIn size={11} />
+                              <span>{t.loginCount ?? 1}</span>
+                            </span>
+                          </td>
+
+                          {/* Average Session Length */}
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "12px" }} title={`Total cumulative time: ${totalTimeStr}`}>
+                              {avgStr}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#94a3b8" }}>{totalTimeStr} total</div>
                           </td>
 
                           {/* Last Login / Active */}
@@ -595,6 +669,17 @@ export function AdminPortal({ userName }: { userName: string }) {
                               >
                                 Grant 1Yr
                               </button>
+
+                              {!t.isAdmin && (
+                                <button
+                                  onClick={() => handleDeleteUser(t.id, t.name || t.email)}
+                                  disabled={actionUserId === t.id}
+                                  style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+                                  title="Delete Trainer Account"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -617,17 +702,19 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <th style={{ padding: "10px 12px" }}>Client / Athlete</th>
                     <th style={{ padding: "10px 12px" }}>Assigned Coach</th>
                     <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
-                    <th style={{ padding: "10px 12px" }}>Last Login / Active</th>
-                    <th style={{ padding: "10px 12px" }}>App Session</th>
+                    <th style={{ padding: "10px 12px" }}>Logins</th>
+                    <th style={{ padding: "10px 12px" }}>Avg Session</th>
+                    <th style={{ padding: "10px 12px" }}>Last Active</th>
+                    <th style={{ padding: "10px 12px" }}>Last Session</th>
                     <th style={{ padding: "10px 12px" }}>Access Tier</th>
                     <th style={{ padding: "10px 12px" }}>Account Created</th>
-                    <th style={{ padding: "10px 12px", textAlign: "right" }}>Status</th>
+                    <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredClients.length === 0 ? (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
+                      <td colSpan={10} style={{ textAlign: "center", padding: "24px", color: "#64748b" }}>
                         No clients found matching search.
                       </td>
                     </tr>
@@ -635,6 +722,8 @@ export function AdminPortal({ userName }: { userName: string }) {
                     filteredClients.map((c) => {
                       const rel = formatRelativeTime(c.lastActiveAt || c.lastLoginAt, c.lastSessionDurationSeconds);
                       const durationStr = formatSessionDuration(c.lastSessionDurationSeconds);
+                      const avgStr = formatSessionDuration(c.avgSessionDurationSeconds);
+                      const totalTimeStr = formatTotalAppTime(c.totalSessionSeconds);
 
                       return (
                         <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
@@ -657,6 +746,22 @@ export function AdminPortal({ userName }: { userName: string }) {
                               {c.workoutsLogged}
                             </span>{" "}
                             <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                          </td>
+
+                          {/* Number of Logins */}
+                          <td style={{ padding: "12px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                              <LogIn size={11} />
+                              <span>{c.loginCount ?? 1}</span>
+                            </span>
+                          </td>
+
+                          {/* Average Session Length */}
+                          <td style={{ padding: "12px" }}>
+                            <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "12px" }} title={`Total cumulative time: ${totalTimeStr}`}>
+                              {avgStr}
+                            </div>
+                            <div style={{ fontSize: "10px", color: "#94a3b8" }}>{totalTimeStr} total</div>
                           </td>
 
                           {/* Last Login / Active */}
@@ -714,9 +819,20 @@ export function AdminPortal({ userName }: { userName: string }) {
                           </td>
 
                           <td style={{ padding: "12px", textAlign: "right" }}>
-                            <span style={{ fontSize: "11px", fontWeight: 600, color: c.isRegistered ? "#16a34a" : "#64748b", background: c.isRegistered ? "#f0fdf4" : "#f1f5f9", padding: "3px 8px", borderRadius: "6px" }}>
-                              {c.isRegistered ? "✓ Registered" : "Invited"}
-                            </span>
+                            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "6px" }}>
+                              <span style={{ fontSize: "11px", fontWeight: 600, color: c.isRegistered ? "#16a34a" : "#64748b", background: c.isRegistered ? "#f0fdf4" : "#f1f5f9", padding: "3px 8px", borderRadius: "6px" }}>
+                                {c.isRegistered ? "✓ Registered" : "Invited"}
+                              </span>
+
+                              <button
+                                onClick={() => handleDeleteUser(c.id, c.name)}
+                                disabled={actionUserId === c.id}
+                                style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+                                title="Delete Client Profile"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
