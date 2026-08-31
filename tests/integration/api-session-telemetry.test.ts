@@ -37,6 +37,7 @@ vi.mock("@/lib/prisma", () => ({
     workoutSet: {
       count: vi.fn(),
     },
+    $executeRawUnsafe: vi.fn().mockResolvedValue(1),
   },
 }));
 

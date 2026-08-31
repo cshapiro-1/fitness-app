@@ -134,9 +134,11 @@ export function AdminPortal({ userName }: { userName: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [actionUserId, setActionUserId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAdminData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/admin/stats");
       if (res.ok) {
@@ -146,10 +148,11 @@ export function AdminPortal({ userName }: { userName: string }) {
         setTrainers(data.trainers || data.users || []);
         setClients(data.clients || []);
       } else {
-        alert("Failed to load admin statistics.");
+        const errData = await res.json().catch(() => ({ error: "Failed to load admin statistics." }));
+        setError(errData.error || "Failed to load admin statistics.");
       }
     } catch {
-      alert("Error connecting to admin API.");
+      setError("Error connecting to admin API.");
     } finally {
       setLoading(false);
     }
@@ -238,6 +241,21 @@ export function AdminPortal({ userName }: { userName: string }) {
       </header>
 
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "24px" }}>
+        {error && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#b91c1c", fontSize: "13px", fontWeight: 600 }}>
+              <Zap size={18} />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={fetchAdminData}
+              style={{ background: "#dc2626", color: "#ffffff", border: "none", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* KPI Telemetry Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "16px", marginBottom: "24px" }}>
           {/* Active Paid Trainers */}
