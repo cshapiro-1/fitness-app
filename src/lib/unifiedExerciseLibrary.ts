@@ -1293,4 +1293,704 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
     diagramUrl: "/anatomy/worlds_greatest.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
+  {
+    name: "Pec Minor & Anterior Shoulder Floor Angels",
+    normalizedName: "pec_minor_floor_angels",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Pectoralis Minor","Anterior Deltoid"],
+    secondaryMuscles: ["Serratus Anterior","Coracobrachialis","Rhomboids"],
+    biomechanicsCue: "Lie supine on floor with knees bent. Slide forearms and backs of hands along floor in a snow angel arc while keeping lower back flat.",
+    steps: [
+          "Lie supine on mat with knees bent 90° and feet flat.",
+          "Place arms in 'goalpost' position with elbows at 90° and backs of wrists touching floor.",
+          "Slowly glide hands overhead in an arc, maintaining wrist and elbow contact with the floor.",
+          "Pause at maximum overhead reach for 2 seconds, then return smoothly."
+    ],
+    commonMistakes: [
+          "Arching lower back off the floor to compensate for tight pecs.",
+          "Wrists or elbows lifting off the floor during the overhead glide."
+    ],
+    breathingPattern: "Inhale as arms slide overhead into chest stretch → Exhale as elbows pull down toward ribs.",
+    diagramUrl: "/anatomy/pec_minor_floor_angels.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Wall Slides & Overhead Scapular Angels",
+    normalizedName: "wall_slides_scapular",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Serratus Anterior","Lower Trapezius"],
+    secondaryMuscles: ["Rotator Cuff","Pectoralis Minor","Rhomboids"],
+    biomechanicsCue: "Stand with back, head, elbows, and wrists pressed flat against wall. Slide arms up into a 'V' without losing wall contact.",
+    steps: [
+          "Stand with heels 4 inches from wall, pressing sacrum, upper back, and head against wall.",
+          "Bring elbows and wrists against wall at 90° abduction.",
+          "Slide arms upward overhead into a 'V' shape, actively engaging lower traps.",
+          "Lower under control, keeping entire posterior chain in wall contact."
+    ],
+    commonMistakes: [
+          "Flaring ribcage outward.",
+          "Elbows peeling forward away from the wall."
+    ],
+    breathingPattern: "Inhale at starting position → Exhale as arms press overhead along the wall.",
+    diagramUrl: "/anatomy/wall_slides_scapular.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Prone Y-T-W Scapular & Trap Activator",
+    normalizedName: "prone_ytw_scapular",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Lower Trapezius","Middle Trapezius","Rhomboids"],
+    secondaryMuscles: ["Infraspinatus","Teres Minor","Posterior Deltoid"],
+    biomechanicsCue: "Lie prone on mat. Thumbs up, raise arms into 'Y', then 'T', then 'W' formations, squeezing shoulder blades down and back.",
+    steps: [
+          "Lie face down with forehead resting gently on a towel.",
+          "Extend arms at 45° overhead with thumbs pointing to ceiling (Y-position); lift arms 2 inches.",
+          "Move arms straight out to sides at 90° (T-position); squeeze mid-back.",
+          "Pull elbows down into ribs with bent arms (W-position); squeeze lower traps."
+    ],
+    commonMistakes: [
+          "Shrugging shoulders into ears.",
+          "Hyperextending the cervical spine (keep neck neutral)."
+    ],
+    breathingPattern: "Inhale on floor → Exhale as arms lift and scapulae retract.",
+    diagramUrl: "/anatomy/prone_ytw_scapular.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Overhead Lat Wall Hinge Stretch",
+    normalizedName: "overhead_lat_wall_hinge",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Latissimus Dorsi","Teres Major"],
+    secondaryMuscles: ["Thoracic Erector Spinae","Posterior Deltoids","Triceps Brachii (Long Head)"],
+    biomechanicsCue: "Place hands shoulder-height on wall, step back, and hinge at hips until torso is parallel to floor, letting chest sink through shoulders.",
+    steps: [
+          "Place palms flat against wall at shoulder height.",
+          "Walk feet backward and hinge deeply at hips with soft knees.",
+          "Let chest and head drop between arms toward the floor until deep lat stretch is felt.",
+          "Hold for 30-45 seconds, breathing deeply into posterior ribcage."
+    ],
+    commonMistakes: [
+          "Rounding the thoracic spine instead of sinking with a straight back.",
+          "Locking knees out into hyperextension."
+    ],
+    breathingPattern: "Inhale into lateral ribs → Exhale and let chest sink half an inch deeper.",
+    diagramUrl: "/anatomy/overhead_lat_wall_hinge.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Thoracic Windmill (Open Book T-Spine)",
+    normalizedName: "thoracic_windmill_open_book",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Thoracic Spine Rotators","Pectoralis Major","Anterior Deltoid"],
+    secondaryMuscles: ["Rhomboids","Obliques","Multifidus"],
+    biomechanicsCue: "Side-lying with top knee pinned to floor or foam roller. Sweep top arm in a 180° overhead arc across floor, opening chest to ceiling.",
+    steps: [
+          "Lie on side with hips and knees stacked at 90°.",
+          "Keep bottom arm pinned forward; sweep top arm in a giant circle above head along the floor.",
+          "Rotate upper chest to face ceiling while keeping top knee glued down.",
+          "Complete 8-10 slow rotations per side."
+    ],
+    commonMistakes: [
+          "Top knee lifting off floor (isolates hips instead of thoracic spine).",
+          "Rushing the circle without feeling chest and spine release."
+    ],
+    breathingPattern: "Inhale at reach → Exhale as chest spirals open to ceiling.",
+    diagramUrl: "/anatomy/thoracic_windmill_open_book.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Half-Kneeling Psoas & Hip Flexor Lunge",
+    normalizedName: "half_kneeling_psoas_lunge",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Psoas Major","Iliacus","Rectus Femoris"],
+    secondaryMuscles: ["Tensor Fasciae Latae","Gluteus Maximus (Agonist Drive)"],
+    biomechanicsCue: "Half-kneeling 90/90 stance. Tuck pelvis into posterior tilt, squeeze rear glute, and shift hips forward 2 inches with tall vertical spine.",
+    steps: [
+          "Kneel on one knee with opposite foot flat in front, both knees bent at 90°.",
+          "Tuck tailbone under (posterior pelvic tilt) and squeeze rear glute tightly.",
+          "Shift body weight slightly forward while keeping torso perfectly vertical.",
+          "Raise same-side arm overhead with slight lateral reach away from kneeling leg."
+    ],
+    commonMistakes: [
+          "Excessive lumbar lordosis / hyperextending lower back.",
+          "Lunging too far forward without locking pelvic tilt first."
+    ],
+    breathingPattern: "Inhale tall through crown → Exhale, squeeze rear glute, and deepen anterior hip stretch.",
+    diagramUrl: "/anatomy/half_kneeling_psoas_lunge.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Samson Stretch (Overhead Interlocked Lunge)",
+    normalizedName: "samson_stretch_lunge",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Psoas Major","Rectus Femoris","Latissimus Dorsi"],
+    secondaryMuscles: ["Anterior Abdominal Wall","Tensor Fasciae Latae","Shoulder Girdle"],
+    biomechanicsCue: "Deep forward lunge with rear knee resting lightly on mat. Interlock fingers and press palms vertically toward ceiling, extending whole anterior chain.",
+    steps: [
+          "Step into a deep forward lunge.",
+          "Interlock fingers with palms turned upward toward ceiling.",
+          "Drive arms back past ears while actively pushing hips forward and down.",
+          "Hold for 30-45 seconds, breathing into abdomen."
+    ],
+    commonMistakes: [
+          "Letting front knee cave inward (keep knee tracking over second toe).",
+          "Shoulders collapsing forward."
+    ],
+    breathingPattern: "Inhale expand ribcage upward → Exhale drive palms higher and sink hips.",
+    diagramUrl: "/anatomy/samson_stretch_lunge.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Dynamic Spiderman Lunge with T-Spine Reach",
+    normalizedName: "spiderman_lunge_thoracic_reach",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Adductor Magnus","Psoas Major","Thoracic Spine"],
+    secondaryMuscles: ["Hamstrings","Gluteus Maximus","Posterior Deltoids"],
+    biomechanicsCue: "Deep runner's lunge with front foot outside front hand. Drop inside elbow toward floor, then rotate arm and chest open toward ceiling.",
+    steps: [
+          "Start in top push-up plank position.",
+          "Step right foot forward outside right hand.",
+          "Drop right elbow toward inside of right ankle.",
+          "Rotate right arm and chest up toward ceiling, tracking hand with eyes.",
+          "Place hand back down and repeat on opposite side."
+    ],
+    commonMistakes: [
+          "Front heel coming off floor (keep whole foot planted).",
+          "Twisting from lumbar spine instead of mid-back."
+    ],
+    breathingPattern: "Inhale at bottom elbow drop → Exhale rotate ribcage open to sky.",
+    diagramUrl: "/anatomy/spiderman_lunge_thoracic_reach.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Lizard Pose with Quad / Back-Foot Grab",
+    normalizedName: "lizard_pose_quad_grab",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Rectus Femoris (Rear Leg)","Psoas Major","Adductor Longus (Front Leg)"],
+    secondaryMuscles: ["Anterior Shoulder","Gluteus Medius"],
+    biomechanicsCue: "Deep lizard lunge. Reach opposite hand back to grasp rear foot, gently pulling heel toward glute while chest opens upward.",
+    steps: [
+          "Enter a deep lizard lunge with both hands inside front foot.",
+          "Bend rear knee and reach back with same-side or opposite hand to grasp toes/ankle.",
+          "Gently draw rear heel toward glute while keeping hips sinking forward.",
+          "Hold for 30 seconds per side."
+    ],
+    commonMistakes: [
+          "Torso collapsing forward onto floor.",
+          "Yanking foot abruptly without warming quads first."
+    ],
+    breathingPattern: "Inhale create length through spine → Exhale gently draw heel 1 inch closer to glute.",
+    diagramUrl: "/anatomy/lizard_pose_quad_grab.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Seated Straddle Pancake Stretch",
+    normalizedName: "seated_straddle_pancake",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Adductor Magnus","Adductor Longus","Gracilis","Hamstrings"],
+    secondaryMuscles: ["Thoracolumbar Fascia","Gluteus Medius","Calves"],
+    biomechanicsCue: "Sit tall with legs spread wide in straddle. Hinge forward from pelvis with straight spine, walking fingertips forward across floor.",
+    steps: [
+          "Sit on mat and spread legs wide into maximum comfortable straddle.",
+          "Point toes toward ceiling and engage quads to lock knees.",
+          "Hinge at hips, maintaining a proud chest as hands walk forward along floor.",
+          "Lower chest toward floor without rounding mid-back."
+    ],
+    commonMistakes: [
+          "Rounding upper back and tucking chin (fake depth).",
+          "Knees rolling inward (keep kneecaps pointed straight up)."
+    ],
+    breathingPattern: "Inhale lengthen spine → Exhale walk fingers forward into deeper adductor release.",
+    diagramUrl: "/anatomy/seated_straddle_pancake.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Standing Pike Stretch (Toe Touch)",
+    normalizedName: "standing_pike_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Hamstrings (All Heads)","Gastrocnemius"],
+    secondaryMuscles: ["Erector Spinae","Gluteus Maximus","Plantar Fascia"],
+    biomechanicsCue: "Stand feet together. Hinge from hips, folding torso over thighs and reaching palms toward floor with soft knees.",
+    steps: [
+          "Stand with feet touching and weight balanced over mid-foot.",
+          "Hinge hips backward and let torso drape down over legs.",
+          "Grasp calves, ankles, or place palms on floor.",
+          "Relax head and neck completely."
+    ],
+    commonMistakes: [
+          "Hyperextending knees backward into joint lock.",
+          "Tensing shoulders and neck."
+    ],
+    breathingPattern: "Inhale into back of ribcage → Exhale release tension and sink deeper into forward fold.",
+    diagramUrl: "/anatomy/standing_pike_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Jefferson Curl (Segmental Spinal Flexion)",
+    normalizedName: "jefferson_curl_spinal_flow",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Posterior Chain Fascia","Hamstrings","Erector Spinae"],
+    secondaryMuscles: ["Multifidus","Calves","Gluteus Maximus"],
+    biomechanicsCue: "Stand on box or flat floor. Segmentally roll spine down vertebra by vertebra starting at chin, letting arms hang heavy.",
+    steps: [
+          "Stand tall; tuck chin to chest.",
+          "Slowly roll down through cervical, thoracic, and lumbar spine one vertebra at a time.",
+          "Let arms and weight hang freely past toes at bottom stretch.",
+          "Reverse the roll, stacking spine upward from tailbone to crown."
+    ],
+    commonMistakes: [
+          "Moving too quickly without segmental spinal articulation.",
+          "Using heavy loads before mastering bodyweight mobility."
+    ],
+    breathingPattern: "Exhale on the slow descent → Inhale expand spine → Exhale on slow roll up.",
+    diagramUrl: "/anatomy/jefferson_curl_spinal_flow.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Seated Single-Leg Hamstring Stretch (Hurdler)",
+    normalizedName: "seated_single_leg_hamstring",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Hamstrings (Biceps Femoris, Semitendinosus)","Gastrocnemius"],
+    secondaryMuscles: ["Lower Back (Quadratus Lumborum)","Gluteus Medius"],
+    biomechanicsCue: "One leg extended straight, opposite foot tucked into inner thigh. Hinge forward over extended leg with neutral spine.",
+    steps: [
+          "Sit on mat with one leg extended straight and opposite foot resting against inner thigh.",
+          "Square shoulders toward extended foot.",
+          "Hinge at hip, reaching hands toward toes while keeping spine long.",
+          "Hold for 30-45 seconds, then switch legs."
+    ],
+    commonMistakes: [
+          "Slouching upper back to grab toes instead of hinging from hip.",
+          "Extended leg foot flopping outward."
+    ],
+    breathingPattern: "Inhale lengthen spine → Exhale fold heart toward knee.",
+    diagramUrl: "/anatomy/seated_single_leg_hamstring.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Brettzel 1.0 (Full Body Multi-Planar Mobility)",
+    normalizedName: "brettzel_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Quadriceps & Hip Flexors (Bottom Leg)","Gluteus Medius & Piriformis (Top Leg)","Thoracic Spine"],
+    secondaryMuscles: ["Pectoralis Major","Latissimus Dorsi","Obliques"],
+    biomechanicsCue: "Lie on side. Top knee flexed 90° across chest pinned by bottom hand. Bottom knee bent back with foot held by top hand. Rotate shoulders to floor.",
+    steps: [
+          "Lie on right side; bring left knee up to 90° and hold it down with right hand.",
+          "Bend right knee behind you; reach left hand back to grasp right ankle/foot.",
+          "Inhale deeply, then exhale and rotate left shoulder back toward floor.",
+          "Hold for 5 deep breaths per side."
+    ],
+    commonMistakes: [
+          "Top knee lifting off floor during thoracic rotation.",
+          "Forcing the shoulder down without relaxed diaphragmatic breathing."
+    ],
+    breathingPattern: "Inhale expand 360° → Exhale relax and sink both shoulders closer to floor.",
+    diagramUrl: "/anatomy/brettzel_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Deep Squat Ankle Prying & Hip Opener (Malasana)",
+    normalizedName: "deep_squat_ankle_prying",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Soleus & Achilles Tendon (Dorsiflexion)","Adductor Magnus","Hip Capsule"],
+    secondaryMuscles: ["Gluteus Maximus","Tibialis Anterior","Erector Spinae"],
+    biomechanicsCue: "Full deep squat with heels flat on floor. Place elbows inside knees, press palms together, and pry hips open while shifting weight side to side.",
+    steps: [
+          "Stand with feet shoulder-width apart, toes turned slightly out.",
+          "Descend into full deep resting squat with flat heels.",
+          "Place elbows inside inner knees and bring hands together in prayer position.",
+          "Press elbows outward to open hips while keeping spine tall.",
+          "Gently shift weight side to side to pry open ankle dorsiflexion."
+    ],
+    commonMistakes: [
+          "Heels lifting off the floor (place a wedge under heels if needed).",
+          "Collapsing chest and rounding shoulders forward."
+    ],
+    breathingPattern: "Inhale tall into pelvic floor → Exhale push knees outward with elbows.",
+    diagramUrl: "/anatomy/deep_squat_ankle_prying.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Tibialis Anterior & Shin Wall Stretch",
+    normalizedName: "tibialis_anterior_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Tibialis Anterior","Extensor Digitorum Longus"],
+    secondaryMuscles: ["Peroneus Tertius","Anterior Ankle Retinaculum"],
+    biomechanicsCue: "Stand with top of toes curled under resting against floor or wall. Gently bend knees and drive ankle forward to stretch front shin.",
+    steps: [
+          "Stand tall; place top of toes of one foot flat on floor behind you (plantarflexed).",
+          "Gently bend standing knee and press ankle joint forward.",
+          "Feel stretch radiating along front of shin from knee to big toe.",
+          "Hold for 30 seconds per leg."
+    ],
+    commonMistakes: [
+          "Putting too much body weight on curled toes.",
+          "Ankle rolling outward into inversion."
+    ],
+    breathingPattern: "Inhale balance spine → Exhale gently press front of ankle forward.",
+    diagramUrl: "/anatomy/tibialis_anterior_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Seated Ankle Eversion & Peroneal Stretch",
+    normalizedName: "peroneal_ankle_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Peroneus Longus","Peroneus Brevis"],
+    secondaryMuscles: ["Lateral Calf (Soleus)","Lateral Collateral Ankle Ligaments"],
+    biomechanicsCue: "Sit with ankle crossed over opposite knee. Gently invert and plantarflex foot with hand, stretching outer lateral calf and ankle.",
+    steps: [
+          "Sit on chair or floor; cross right ankle over left thigh.",
+          "Grasp outer border of right foot with right hand.",
+          "Gently pull foot into inversion (sole turning upward) and slight plantarflexion.",
+          "Hold for 30 seconds per side."
+    ],
+    commonMistakes: [
+          "Yanking ankle with sharp aggressive pressure.",
+          "Twisting the knee joint instead of moving foot at the subtalar joint."
+    ],
+    breathingPattern: "Inhale relax lower leg → Exhale gently guide sole of foot upward.",
+    diagramUrl: "/anatomy/peroneal_ankle_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Subscapularis Internal Rotation Towel Stretch",
+    normalizedName: "subscapularis_towel_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Subscapularis","Anterior Shoulder Capsule"],
+    secondaryMuscles: ["Pectoralis Major","Latissimus Dorsi","Triceps Brachii"],
+    biomechanicsCue: "Hold towel behind back vertically. Top hand gently pulls towel upward, guiding bottom arm into internal rotation behind back.",
+    steps: [
+          "Hold a rolled towel in top hand over shoulder.",
+          "Reach bottom hand behind lower back and grasp bottom end of towel.",
+          "Gently pull towel upward with top hand until a mild stretch is felt in front of bottom shoulder.",
+          "Hold for 30 seconds per side."
+    ],
+    commonMistakes: [
+          "Hunching bottom shoulder forward (keep scapula retracted).",
+          "Aggressive upward pulling causing sharp anterior shoulder pain."
+    ],
+    breathingPattern: "Inhale stand tall → Exhale smooth gentle upward pull with top arm.",
+    diagramUrl: "/anatomy/subscapularis_towel_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Forearm Flexor Prayer Stretch",
+    normalizedName: "forearm_flexor_prayer",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Flexor Carpi Radialis","Flexor Carpi Ulnaris","Flexor Digitorum Superficialis"],
+    secondaryMuscles: ["Pronator Teres","Palmaris Longus","Median Nerve"],
+    biomechanicsCue: "Press palms firmly together in front of chest at chin height. Slowly lower wrists toward navel while keeping palm heels glued together.",
+    steps: [
+          "Place palms flat together in front of chest with fingers pointing upward (prayer pose).",
+          "Slowly lower hands down toward belly button, keeping palms completely flat together.",
+          "Feel stretch radiating along inner forearm from wrist to inside elbow.",
+          "Hold for 30 seconds."
+    ],
+    commonMistakes: [
+          "Heels of palms separating (reduces forearm flexor stretch).",
+          "Shrugging shoulders upward."
+    ],
+    breathingPattern: "Inhale relax shoulders → Exhale lower wrists half an inch lower.",
+    diagramUrl: "/anatomy/forearm_flexor_prayer.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Reverse Prayer Wrist Extensor Stretch",
+    normalizedName: "reverse_prayer_wrist_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Extensor Carpi Radialis","Extensor Carpi Ulnaris","Extensor Digitorum"],
+    secondaryMuscles: ["Brachioradialis","Supinator"],
+    biomechanicsCue: "Place backs of hands together in front of chest with fingers pointing downward. Gently lift elbows and wrists to stretch dorsal forearms.",
+    steps: [
+          "Place backs of hands together with fingers pointing straight down toward floor.",
+          "Gently raise elbows upward while keeping dorsal sides of hands touching.",
+          "Feel stretch along top of forearms and wrists.",
+          "Hold for 30 seconds."
+    ],
+    commonMistakes: [
+          "Backs of hands peeling apart.",
+          "Applying excessive compressive force on wrist joint."
+    ],
+    breathingPattern: "Inhale relax fingers → Exhale gently elevate elbows for deeper extension stretch.",
+    diagramUrl: "/anatomy/reverse_prayer_wrist_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Sphinx & Seal Lumbar Extension",
+    normalizedName: "seal_lumbar_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Rectus Abdominis","Psoas Major","Anterior Longitudinal Ligament"],
+    secondaryMuscles: ["Erector Spinae","Triceps Brachii","Serratus Anterior"],
+    biomechanicsCue: "Prone on mat. Press palms into mat with arms extended and hands turned out 45°, letting hips and pubic bone melt heavy into floor.",
+    steps: [
+          "Lie face down on mat with legs hip-width apart.",
+          "Place hands on floor in front of shoulders, turned slightly outward.",
+          "Press hands down to straighten arms into Seal pose while relaxing glutes and lower back completely.",
+          "Hold for 30-45 seconds."
+    ],
+    commonMistakes: [
+          "Clenching glutes tightly (blocks natural lumbar decompression).",
+          "Shrugging shoulders into neck."
+    ],
+    breathingPattern: "Inhale into anterior abdominal wall → Exhale let pelvis sink heavy into floor.",
+    diagramUrl: "/anatomy/seal_lumbar_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Prone Scorpion Hip & Pec Stretch",
+    normalizedName: "prone_scorpion_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Pectoralis Major","Anterior Deltoid","Hip Flexors / Psoas"],
+    secondaryMuscles: ["Quadriceps","Obliques","Gluteus Maximus"],
+    biomechanicsCue: "Lie prone with arms in 'T'. Lift one leg and reach heel up and across body toward opposite hand, opening chest and hip.",
+    steps: [
+          "Lie face down with arms extended straight out to sides in a 'T'.",
+          "Bend right knee; lift right leg and rotate hips to reach right foot across to floor near left hand.",
+          "Keep left shoulder flat against floor to stretch chest.",
+          "Hold for 20 seconds, then repeat on opposite side."
+    ],
+    commonMistakes: [
+          "Arm on stretched side lifting off floor.",
+          "Aggressively forcing the foot across with momentum."
+    ],
+    breathingPattern: "Inhale on floor → Exhale reach foot across body and open anterior hip.",
+    diagramUrl: "/anatomy/prone_scorpion_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Supine Iron Cross Lumbar Twist",
+    normalizedName: "supine_iron_cross",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Gluteus Medius","Tensor Fasciae Latae","Lumbar Rotators"],
+    secondaryMuscles: ["Hamstrings (Lateral Head)","Obliques","Pectoralis Major"],
+    biomechanicsCue: "Lie supine with arms in 'T'. Lift one straight leg to 90° and drop it across body toward opposite hand while keeping both shoulders pinned.",
+    steps: [
+          "Lie on back with arms spread wide in a 'T', palms facing down.",
+          "Raise right leg straight up toward ceiling.",
+          "Lower straight right leg across torso toward left hand.",
+          "Keep right shoulder pinned to floor and turn head to right.",
+          "Hold for 30 seconds, then switch legs."
+    ],
+    commonMistakes: [
+          "Shoulder peeling off floor on the rotational side.",
+          "Bending knee excessively if aiming for IT-band / lateral hip stretch."
+    ],
+    breathingPattern: "Inhale raise leg to ceiling → Exhale drop leg across body and release lower back.",
+    diagramUrl: "/anatomy/supine_iron_cross.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Happy Baby Pose (Sacral & Adductor Opener)",
+    normalizedName: "happy_baby_pose",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Adductor Longus & Magnus","Gracilis","Pelvic Floor"],
+    secondaryMuscles: ["Hamstrings","Sacroiliac Joint Fascia","Biceps Brachii"],
+    biomechanicsCue: "Lie supine. Grasp outer edges of feet with hands, drawing knees down toward armpits while flattening sacrum against floor.",
+    steps: [
+          "Lie on back; bend knees and bring them toward armpits.",
+          "Grasp outer edges of feet with hands with shins perpendicular to floor.",
+          "Gently pull feet downward, drawing knees closer to floor outside ribcage.",
+          "Keep entire spine and tailbone glued to mat."
+    ],
+    commonMistakes: [
+          "Sacrum and lower back curling up off floor.",
+          "Straining neck (keep head relaxed on floor)."
+    ],
+    breathingPattern: "Inhale expand pelvic floor and belly → Exhale gently draw knees deeper toward floor.",
+    diagramUrl: "/anatomy/happy_baby_pose.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Downward-Facing Dog (Posterior Chain Flow)",
+    normalizedName: "downward_facing_dog",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Gastrocnemius & Soleus","Hamstrings","Latissimus Dorsi"],
+    secondaryMuscles: ["Serratus Anterior","Erector Spinae","Plantar Fascia"],
+    biomechanicsCue: "Inverted 'V' shape. Spread fingers wide, press chest toward thighs, push hips to ceiling, and drive heels down toward mat.",
+    steps: [
+          "Start on all fours with hands shoulder-width and feet hip-width.",
+          "Tuck toes and lift knees, driving hips high into an inverted 'V'.",
+          "Press through palms to lengthen spine, letting head hang between arms.",
+          "Pedal heels alternately to stretch calves, then press both heels toward mat."
+    ],
+    commonMistakes: [
+          "Hunching upper back with shoulders crowded around ears.",
+          "Placing all weight into wrists instead of driving hips backward."
+    ],
+    breathingPattern: "Inhale lift hips higher to ceiling → Exhale press chest toward thighs and heels toward floor.",
+    diagramUrl: "/anatomy/downward_facing_dog.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Upward-Facing Dog (Anterior Chain & Psoas Opener)",
+    normalizedName: "upward_facing_dog",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Rectus Abdominis","Psoas Major","Pectoralis Major"],
+    secondaryMuscles: ["Anterior Deltoids","Triceps Brachii","Quadriceps"],
+    biomechanicsCue: "Press through tops of feet and palms, lifting thighs and knees completely off mat while rolling shoulders back and proud.",
+    steps: [
+          "Lie prone with tops of feet on mat and hands beside lower ribs.",
+          "Press firmly through palms to straighten arms, elevating chest.",
+          "Press tops of feet down to lift knees and thighs completely off floor.",
+          "Draw shoulders down and back, opening heart forward."
+    ],
+    commonMistakes: [
+          "Letting thighs sag onto the mat (that's Cobra pose, not Upward Dog).",
+          "Crunching cervical spine by throwing head backward."
+    ],
+    breathingPattern: "Inhale pull chest forward through shoulders → Exhale stabilize through palms and tops of feet.",
+    diagramUrl: "/anatomy/upward_facing_dog.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Levator Scapulae & Scalenes Lateral Neck Release",
+    normalizedName: "levator_scapulae_neck_release",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Levator Scapulae","Scalenes (Anterior/Middle/Posterior)"],
+    secondaryMuscles: ["Upper Trapezius","Sternocleidomastoid","Splenius Capitis"],
+    biomechanicsCue: "Sit tall. Turn head 45° to right and look down toward right armpit. Place right hand on back of head with gentle downward guidance.",
+    steps: [
+          "Sit upright with spine erect; anchor left hand under chair seat.",
+          "Turn head 45° to the right (looking toward right armpit).",
+          "Tuck chin down toward chest.",
+          "Place right hand on crown of head and apply gentle downward guidance.",
+          "Hold for 30 seconds per side."
+    ],
+    commonMistakes: [
+          "Yanking head aggressively.",
+          "Letting anchor shoulder shrug upward."
+    ],
+    breathingPattern: "Inhale stand tall through cervical spine → Exhale gently guide chin 1mm closer to armpit.",
+    diagramUrl: "/anatomy/levator_scapulae_neck_release.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Side-Lying Ribcage Intercostal Opener",
+    normalizedName: "side_lying_intercostal_stretch",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["External & Internal Intercostals","Serratus Anterior","Quadratus Lumborum"],
+    secondaryMuscles: ["Latissimus Dorsi","Obliques","Diaphragm"],
+    biomechanicsCue: "Side-lying over a foam roller or rolled towel under lateral ribs. Reach top arm overhead along floor, breathing deeply into ribcage.",
+    steps: [
+          "Lie on side with a foam roller or rolled towel positioned under lateral ribcage.",
+          "Extend top arm straight overhead along floor.",
+          "Take slow, massive diaphragmatic inhales, expanding the intercostal ribs upward.",
+          "Hold for 1-2 minutes per side."
+    ],
+    commonMistakes: [
+          "Shallow chest breathing (deep intercostal breath is required).",
+          "Rolling forward onto stomach."
+    ],
+    breathingPattern: "Massive 4-second inhale expanding ribs laterally → 6-second slow exhale relaxing over roller.",
+    diagramUrl: "/anatomy/side_lying_intercostal_stretch.jpg",
+    diagramStatus: "APPROVED",
+  },
+  {
+    name: "Dragon Pose (Deep Sacroiliac & Quad Stretch)",
+    normalizedName: "dragon_pose_hip_opener",
+    type: "STRETCH",
+    muscleGroup: "Stretching",
+    equipment: "Bodyweight",
+    category: "STATIC_STRETCH",
+    primaryMuscles: ["Psoas Major","Iliacus","Rectus Femoris","Gluteus Maximus"],
+    secondaryMuscles: ["Sacroiliac Ligaments","Adductor Magnus","Tensor Fasciae Latae"],
+    biomechanicsCue: "Deep forward yin lunge with back knee far behind hips. Let hips sink completely into floor with hands resting on front thigh or blocks.",
+    steps: [
+          "Step right foot forward into a long lunge.",
+          "Walk left knee backward as far as comfortable, resting top of foot on mat.",
+          "Rest hands on right thigh or floor, allowing pelvis to surrender heavy toward mat.",
+          "Hold passively for 2-3 minutes per side."
+    ],
+    commonMistakes: [
+          "Front heel lifting off floor.",
+          "Tensing hip flexors instead of passively surrendering weight."
+    ],
+    breathingPattern: "Slow diaphragmatic breathing, softening hip flexors with each exhalation.",
+    diagramUrl: "/anatomy/dragon_pose_hip_opener.jpg",
+    diagramStatus: "APPROVED",
+  },
 ];
