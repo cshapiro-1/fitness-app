@@ -213,12 +213,79 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Optional Real-time OpenAI DALL-E 3 generation if API key is present and generation requested
+    // Multi-Provider AI Image Generation: Grok (xAI), Google Imagen 3 (Nano Banana), or OpenAI (DALL-E 3)
+    const xaiApiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    if (openaiApiKey && body.useGenerativeAI === true) {
-      try {
-        const aiPrompt = `Medical 3D anatomical visualization of an athletic human body performing ${exerciseName}. Dark slate background (#090d16). Primary target muscles (${primaryMuscles.join(", ")}) glowing in vibrant electric cyan (#38bdf8). Synergist muscles (${secondaryMuscles.join(", ")}) glowing in warm amber (#f59e0b). Clean, hyper-detailed, photorealistic medical fitness anatomy render, octane render style, accurate biomechanics.`;
 
+    const aiPrompt = `Medical 3D anatomical visualization of an athletic human body performing ${exerciseName}. Dark slate studio background (#090d16). Primary target muscles (${primaryMuscles.join(", ")}) highlighted with glowing electric cyan muscle fibers (#38bdf8). Synergist muscles (${secondaryMuscles.join(", ")}) glowing in warm amber (#f59e0b). Clean, hyper-detailed, photorealistic medical fitness anatomy octane 3D render, accurate biomechanics, cinematic lighting, 8k resolution.`;
+
+    let generatedAiUrl: string | null = null;
+
+    // 1. Try Grok (xAI Image API)
+    if (xaiApiKey && !generatedAiUrl) {
+      try {
+        const grokRes = await fetch("https://api.x.ai/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${xaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "grok-2-image",
+            prompt: aiPrompt,
+            n: 1,
+            size: "1024x1024",
+          }),
+        });
+
+        if (grokRes.ok) {
+          const grokJson = await grokRes.json();
+          if (grokJson.data?.[0]?.url) {
+            generatedAiUrl = grokJson.data[0].url;
+          } else if (grokJson.data?.[0]?.b64_json) {
+            generatedAiUrl = `data:image/jpeg;base64,${grokJson.data[0].b64_json}`;
+          }
+        }
+      } catch (grokErr) {
+        console.error("Grok image generation error:", grokErr);
+      }
+    }
+
+    // 2. Try Google Imagen 3 ("Nano Banana" / Gemini)
+    if (geminiApiKey && !generatedAiUrl) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${geminiApiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{ prompt: aiPrompt }],
+              parameters: {
+                sampleCount: 1,
+                aspectRatio: "1:1",
+                outputOptions: { mimeType: "image/jpeg" },
+              },
+            }),
+          }
+        );
+
+        if (geminiRes.ok) {
+          const geminiJson = await geminiRes.json();
+          const b64 = geminiJson.predictions?.[0]?.bytesBase64Encoded;
+          if (b64) {
+            generatedAiUrl = `data:image/jpeg;base64,${b64}`;
+          }
+        }
+      } catch (geminiErr) {
+        console.error("Gemini Imagen image generation error:", geminiErr);
+      }
+    }
+
+    // 3. Try OpenAI DALL-E 3
+    if (openaiApiKey && !generatedAiUrl) {
+      try {
         const aiResponse = await fetch("https://api.openai.com/v1/images/generations", {
           method: "POST",
           headers: {
@@ -237,12 +304,16 @@ export async function POST(req: NextRequest) {
         if (aiResponse.ok) {
           const aiJson = await aiResponse.json();
           if (aiJson.data?.[0]?.url) {
-            diagramUrl = aiJson.data[0].url;
+            generatedAiUrl = aiJson.data[0].url;
           }
         }
       } catch (aiErr) {
-        console.error("DALL-E generation fallback note:", aiErr);
+        console.error("DALL-E generation error:", aiErr);
       }
+    }
+
+    if (generatedAiUrl) {
+      diagramUrl = generatedAiUrl;
     }
 
     const generatedData = {
