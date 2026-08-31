@@ -1,17 +1,18 @@
 /**
  * Robust Cross-Platform Web Audio & Sound Generator
- * Generates crisp gym countdown beeps, ring tones, and completion buzzers without external audio asset dependencies.
+ * Generates harsh, high-intensity gym alarm buzzers, claxons, bells, and sirens without external audio asset dependencies.
  * Satisfies iOS Safari & Android Chrome autoplay policies by pre-warming AudioContext on user interaction.
+ * Supports continuous repeating alarm loops until explicitly dismissed by the user.
  */
 
 export type TimerSoundId =
-  | "chime"
+  | "air_horn"
+  | "emergency_alarm"
+  | "industrial_buzzer"
   | "boxing_bell"
-  | "digital_beep"
-  | "victory_fanfare"
-  | "retro_arcade"
-  | "deep_gong"
-  | "referee_whistle";
+  | "referee_whistle"
+  | "digital_panic"
+  | "chime";
 
 export interface TimerSoundOption {
   id: TimerSoundId;
@@ -21,16 +22,17 @@ export interface TimerSoundOption {
 }
 
 export const TIMER_SOUND_OPTIONS: TimerSoundOption[] = [
-  { id: "chime", name: "Energy Chime", description: "Crisp major arpeggio chime", icon: "✨" },
-  { id: "boxing_bell", name: "Boxing Bell", description: "Heavy metallic gym bell ring", icon: "🥊" },
-  { id: "digital_beep", name: "Digital Watch", description: "Triple staccato sport beep", icon: "⏱️" },
-  { id: "victory_fanfare", name: "Victory Fanfare", description: "Triumphant synth chord flourish", icon: "🎺" },
-  { id: "retro_arcade", name: "Retro Arcade", description: "8-bit power-up frequency sweep", icon: "👾" },
-  { id: "deep_gong", name: "Deep Gong", description: "Low resonant gong vibration", icon: "🧘" },
-  { id: "referee_whistle", name: "Referee Whistle", description: "High-pitch dual whistle chirp", icon: "📣" },
+  { id: "air_horn", name: "Gym Air Horn", description: "Loud piercing dual-tone stadium air horn", icon: "🚨" },
+  { id: "emergency_alarm", name: "Emergency Siren", description: "Harsh alternating rapid alert siren", icon: "⚠️" },
+  { id: "industrial_buzzer", name: "Shot Clock Buzzer", description: "Abrasive heavy gym buzzer overdrive", icon: "⚡" },
+  { id: "boxing_bell", name: "Triple Boxing Bell", description: "3 rapid hard metallic ring strikes", icon: "🥊" },
+  { id: "referee_whistle", name: "Piercing Whistle", description: "Screeching 3.5kHz dual referee blast", icon: "📣" },
+  { id: "digital_panic", name: "Digital Panic Beeps", description: "High-pitch 2.4kHz urgent rapid pulses", icon: "⏱️" },
+  { id: "chime", name: "Sharp Power Chime", description: "Punchy high-energy ascending arpeggio", icon: "✨" },
 ];
 
 let globalAudioCtx: AudioContext | null = null;
+let activeAlarmInterval: NodeJS.Timeout | null = null;
 
 export function setAudioContextForTesting(ctx: AudioContext | null): void {
   globalAudioCtx = ctx;
@@ -62,12 +64,12 @@ export function prewarmAudio(): void {
 }
 
 /**
- * Trigger haptic vibration feedback on supported mobile devices
+ * Trigger intense haptic vibration feedback on supported mobile devices
  */
 export function triggerHapticFeedback(): void {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
     try {
-      navigator.vibrate([200, 100, 200, 100, 300]);
+      navigator.vibrate([300, 150, 300, 150, 400]);
     } catch {}
   }
 }
@@ -77,8 +79,8 @@ function playTone(
   freq: number,
   startTime: number,
   duration: number,
-  volume = 0.3,
-  type: OscillatorType = "sine"
+  volume = 0.5,
+  type: OscillatorType = "sawtooth"
 ): void {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -87,7 +89,7 @@ function playTone(
   osc.frequency.setValueAtTime(freq, startTime);
 
   gain.gain.setValueAtTime(0.0001, startTime);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.001, volume), startTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.001, volume), startTime + 0.015);
   gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
   osc.connect(gain);
@@ -98,149 +100,123 @@ function playTone(
 }
 
 /**
- * 1. Energy Chime: Ascending Major Triad (A5 -> C6 -> E6)
+ * 1. Gym Air Horn: Loud, harsh multi-harmonic stadium blast
  */
-function playAscendingChime(ctx: AudioContext, now: number): void {
-  playTone(ctx, 880, now, 0.12, 0.35, "sine");
-  playTone(ctx, 1046.5, now + 0.14, 0.12, 0.35, "sine");
-  playTone(ctx, 1318.5, now + 0.28, 0.45, 0.45, "sine");
+function playAirHorn(ctx: AudioContext, now: number): void {
+  const freqs = [466.16, 587.33, 700.0, 932.33]; // Bb4, D5, F5, Bb5 harsh chord
+  freqs.forEach((freq, i) => {
+    playTone(ctx, freq, now, 0.45, 0.45 / (i > 1 ? 1.5 : 1), "sawtooth");
+    playTone(ctx, freq * 1.01, now, 0.45, 0.35 / (i > 1 ? 1.5 : 1), "square");
+  });
 }
 
 /**
- * 2. Boxing Bell: Rich metallic ring with resonant overtones
+ * 2. Emergency Siren: Abrasive warbling emergency siren pulse
+ */
+function playEmergencyAlarm(ctx: AudioContext, now: number): void {
+  for (let i = 0; i < 3; i++) {
+    const start = now + i * 0.16;
+    playTone(ctx, 1100, start, 0.08, 0.5, "sawtooth");
+    playTone(ctx, 1650, start + 0.08, 0.08, 0.5, "square");
+  }
+}
+
+/**
+ * 3. Shot Clock Buzzer: Harsh overdriven gym buzzer
+ */
+function playIndustrialBuzzer(ctx: AudioContext, now: number): void {
+  const subHarmonics = [140, 210, 280, 420, 560];
+  subHarmonics.forEach((freq) => {
+    playTone(ctx, freq, now, 0.65, 0.4, "square");
+    playTone(ctx, freq * 1.02, now, 0.65, 0.35, "sawtooth");
+  });
+}
+
+/**
+ * 4. Triple Heavy Boxing Bell: 3 rapid loud metallic strikes
  */
 function playBoxingBell(ctx: AudioContext, now: number): void {
-  const frequencies = [440, 880, 1320, 1760, 2200];
-  const volumes = [0.45, 0.3, 0.2, 0.12, 0.08];
+  const strikes = [0, 0.18, 0.36];
+  strikes.forEach((offset) => {
+    const strikeTime = now + offset;
+    const frequencies = [523.25, 1046.5, 1567.98, 2093.0];
+    const volumes = [0.55, 0.4, 0.25, 0.15];
 
-  frequencies.forEach((freq, idx) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, now);
+    frequencies.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = idx === 0 ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(freq, strikeTime);
 
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(volumes[idx], now + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+      gain.gain.setValueAtTime(0.0001, strikeTime);
+      gain.gain.exponentialRampToValueAtTime(volumes[idx], strikeTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, strikeTime + 0.75);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    osc.start(now);
-    osc.stop(now + 1.25);
+      osc.start(strikeTime);
+      osc.stop(strikeTime + 0.8);
+    });
   });
 }
 
 /**
- * 3. Digital Watch: 3 rapid high-pitched staccato sports watch beeps
- */
-function playDigitalBeep(ctx: AudioContext, now: number): void {
-  const beeps = [0, 0.12, 0.24, 0.36];
-  beeps.forEach((offset) => {
-    playTone(ctx, 1864.66, now + offset, 0.07, 0.35, "square");
-  });
-}
-
-/**
- * 4. Victory Fanfare: Triumphant 4-note brass/synth power chords
- */
-function playVictoryFanfare(ctx: AudioContext, now: number): void {
-  const notes = [
-    { freq: 523.25, time: 0, dur: 0.12 },     // C5
-    { freq: 659.25, time: 0.12, dur: 0.12 },  // E5
-    { freq: 783.99, time: 0.24, dur: 0.14 },  // G5
-    { freq: 1046.5, time: 0.38, dur: 0.55 },  // C6 (Triumphant Hold)
-  ];
-
-  notes.forEach((n) => {
-    playTone(ctx, n.freq, now + n.time, n.dur, 0.38, "triangle");
-    playTone(ctx, n.freq * 1.002, now + n.time, n.dur, 0.2, "sine");
-  });
-}
-
-/**
- * 5. Retro Arcade: Classic 8-bit fast ascending frequency ramp
- */
-function playRetroArcade(ctx: AudioContext, now: number): void {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(300, now);
-  osc.frequency.exponentialRampToValueAtTime(1800, now + 0.35);
-
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.28, now + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
-
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-
-  osc.start(now);
-  osc.stop(now + 0.4);
-}
-
-/**
- * 6. Deep Gong: Warm low-frequency meditation gong with long slow decay
- */
-function playDeepGong(ctx: AudioContext, now: number): void {
-  const harmonics = [196, 293.66, 392, 587.33];
-  harmonics.forEach((freq, idx) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(freq, now);
-
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.4 / (idx + 1), now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 1.65);
-  });
-}
-
-/**
- * 7. Referee Whistle: High-pitch dual whistle chirp with flutter modulation
+ * 5. Screeching Referee Whistle: Piercing 3.5kHz dual blast
  */
 function playRefereeWhistle(ctx: AudioContext, now: number): void {
-  const whistleFreqs = [2600, 2850];
+  const whistleFreqs = [3200, 3600];
   whistleFreqs.forEach((freq) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    // Modulator for whistle flutter
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
-    lfo.frequency.setValueAtTime(25, now);
-    lfoGain.gain.setValueAtTime(30, now);
+    lfo.frequency.setValueAtTime(32, now);
+    lfoGain.gain.setValueAtTime(50, now);
     lfo.connect(osc.frequency);
 
-    osc.type = "sine";
+    osc.type = "sawtooth";
     osc.frequency.setValueAtTime(freq, now);
 
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.25, now + 0.03);
-    gain.gain.setValueAtTime(0.25, now + 0.22);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+    gain.gain.exponentialRampToValueAtTime(0.45, now + 0.02);
+    gain.gain.setValueAtTime(0.45, now + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     lfo.start(now);
     osc.start(now);
-    lfo.stop(now + 0.35);
-    osc.stop(now + 0.35);
+    lfo.stop(now + 0.5);
+    osc.stop(now + 0.5);
   });
 }
 
 /**
- * Main function to play selected timer sound
+ * 6. Digital Panic Beeps: 4 high-pitched 2.4kHz urgent pulses
  */
-export function playTimerSound(soundId: TimerSoundId = "chime"): void {
+function playDigitalPanic(ctx: AudioContext, now: number): void {
+  const beeps = [0, 0.1, 0.2, 0.3];
+  beeps.forEach((offset) => {
+    playTone(ctx, 2400, now + offset, 0.06, 0.55, "square");
+  });
+}
+
+/**
+ * 7. Sharp Power Chime: High-energy loud arpeggio
+ */
+function playSharpPowerChime(ctx: AudioContext, now: number): void {
+  playTone(ctx, 880, now, 0.12, 0.5, "triangle");
+  playTone(ctx, 1174.66, now + 0.12, 0.12, 0.5, "triangle");
+  playTone(ctx, 1567.98, now + 0.24, 0.5, 0.6, "sawtooth");
+}
+
+/**
+ * Play a single shot of the selected sound
+ */
+export function playTimerSound(soundId: TimerSoundId = "air_horn"): void {
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
@@ -248,27 +224,27 @@ export function playTimerSound(soundId: TimerSoundId = "chime"): void {
     const now = ctx.currentTime;
 
     switch (soundId) {
+      case "emergency_alarm":
+        playEmergencyAlarm(ctx, now);
+        break;
+      case "industrial_buzzer":
+        playIndustrialBuzzer(ctx, now);
+        break;
       case "boxing_bell":
         playBoxingBell(ctx, now);
-        break;
-      case "digital_beep":
-        playDigitalBeep(ctx, now);
-        break;
-      case "victory_fanfare":
-        playVictoryFanfare(ctx, now);
-        break;
-      case "retro_arcade":
-        playRetroArcade(ctx, now);
-        break;
-      case "deep_gong":
-        playDeepGong(ctx, now);
         break;
       case "referee_whistle":
         playRefereeWhistle(ctx, now);
         break;
+      case "digital_panic":
+        playDigitalPanic(ctx, now);
+        break;
       case "chime":
+        playSharpPowerChime(ctx, now);
+        break;
+      case "air_horn":
       default:
-        playAscendingChime(ctx, now);
+        playAirHorn(ctx, now);
         break;
     }
 
@@ -279,12 +255,39 @@ export function playTimerSound(soundId: TimerSoundId = "chime"): void {
 }
 
 /**
- * Backward-compatible completion beep
+ * Start repeating alarm sound continuously until explicitly dismissed via stopAlarmLoop()
+ */
+export function startAlarmLoop(soundId: TimerSoundId = "air_horn", intervalMs = 1500): () => void {
+  stopAlarmLoop();
+
+  // Play initial alarm sound immediately
+  playTimerSound(soundId);
+
+  // Loop repeating alarm
+  activeAlarmInterval = setInterval(() => {
+    playTimerSound(soundId);
+  }, intervalMs);
+
+  return stopAlarmLoop;
+}
+
+/**
+ * Stop any currently repeating alarm loop
+ */
+export function stopAlarmLoop(): void {
+  if (activeAlarmInterval) {
+    clearInterval(activeAlarmInterval);
+    activeAlarmInterval = null;
+  }
+}
+
+/**
+ * Backward-compatible completion beep trigger
  */
 export function playTimerCompletionBeep(): void {
   const savedSound = typeof window !== "undefined"
-    ? (localStorage.getItem("strkyr_timer_sound") as TimerSoundId) || "chime"
-    : "chime";
+    ? (localStorage.getItem("strkyr_timer_sound") as TimerSoundId) || "air_horn"
+    : "air_horn";
   playTimerSound(savedSound);
 }
 
@@ -296,6 +299,6 @@ export function playCountdownTick(): void {
     const ctx = getAudioContext();
     if (!ctx) return;
     const now = ctx.currentTime;
-    playTone(ctx, 659.25, now, 0.06, 0.15, "sine");
+    playTone(ctx, 800, now, 0.05, 0.2, "sine");
   } catch {}
 }

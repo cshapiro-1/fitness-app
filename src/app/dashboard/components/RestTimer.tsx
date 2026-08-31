@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Timer, Play, Pause, RotateCcw, Plus, X, Volume2, VolumeX,
   Minimize2, Maximize2, Settings, Music, Check, ArrowLeft,
-  ChevronRight, Clock, Sparkles
+  ChevronRight, Clock, Sparkles, BellOff, AlertTriangle, Flame,
+  CheckCircle2
 } from "lucide-react";
 
 import {
   playTimerSound,
-  playTimerCompletionBeep,
+  startAlarmLoop,
+  stopAlarmLoop,
   prewarmAudio,
   TIMER_SOUND_OPTIONS,
   TimerSoundId
@@ -26,6 +28,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isAlarmRinging, setIsAlarmRinging] = useState(false);
 
   // Custom Time Input State
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -34,8 +37,15 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
   // Sound Picker State
   const [showSoundPicker, setShowSoundPicker] = useState(false);
-  const [selectedSound, setSelectedSound] = useState<TimerSoundId>("chime");
+  const [selectedSound, setSelectedSound] = useState<TimerSoundId>("air_horn");
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+
+  // Stop alarm loop on unmount
+  useEffect(() => {
+    return () => {
+      stopAlarmLoop();
+    };
+  }, []);
 
   // Load saved sound preference
   useEffect(() => {
@@ -51,12 +61,18 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
     }
   }, []);
 
+  const dismissAlarm = useCallback(() => {
+    stopAlarmLoop();
+    setIsAlarmRinging(false);
+  }, []);
+
   const handleSelectSound = (soundId: TimerSoundId) => {
     setSelectedSound(soundId);
     if (typeof window !== "undefined") {
       localStorage.setItem("strkyr_timer_sound", soundId);
     }
     prewarmAudio();
+    stopAlarmLoop();
     setPlayingPreview(soundId);
     playTimerSound(soundId);
     setTimeout(() => setPlayingPreview(null), 1000);
@@ -70,6 +86,8 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
     }
     if (next) {
       prewarmAudio();
+    } else {
+      dismissAlarm();
     }
   };
 
@@ -81,8 +99,10 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
       }, 1000);
     } else if (secondsRemaining === 0 && isRunning) {
       setIsRunning(false);
+      setIsAlarmRinging(true);
       if (soundEnabled) {
-        playTimerSound(selectedSound);
+        // Start repeating alarm loop every 1.5s until dismissed
+        startAlarmLoop(selectedSound, 1500);
       }
     }
     return () => {
@@ -92,6 +112,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
   const startPreset = (secs: number) => {
     prewarmAudio();
+    dismissAlarm();
     setTotalSeconds(secs);
     setSecondsRemaining(secs);
     setIsRunning(true);
@@ -100,6 +121,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
   const handleApplyCustomTime = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    dismissAlarm();
     const mins = Math.max(0, Math.min(customMinutes, 60));
     const secs = Math.max(0, Math.min(customSeconds, 59));
     const total = mins * 60 + secs;
@@ -118,6 +140,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
   const add30Seconds = () => {
     prewarmAudio();
+    dismissAlarm();
     setTotalSeconds((prev) => prev + 30);
     setSecondsRemaining((prev) => prev + 30);
     setIsRunning(true);
@@ -125,6 +148,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
   const resetTimer = () => {
     prewarmAudio();
+    dismissAlarm();
     setSecondsRemaining(totalSeconds);
     setIsRunning(false);
   };
@@ -140,16 +164,21 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
   if (isMinimized) {
     return (
       <div
-        onClick={() => setIsMinimized(false)}
+        onClick={() => {
+          setIsMinimized(false);
+          if (isAlarmRinging) {
+            dismissAlarm();
+          }
+        }}
         style={{
           position: "fixed",
           bottom: "20px",
           right: "20px",
-          background: secondsRemaining === 0 ? "#16a34a" : "#0f172a",
+          background: isAlarmRinging ? "#dc2626" : secondsRemaining === 0 ? "#16a34a" : "#0f172a",
           color: "#ffffff",
           padding: "8px 14px",
           borderRadius: "30px",
-          boxShadow: "0 10px 25px -5px rgba(0,0,0,0.3)",
+          boxShadow: isAlarmRinging ? "0 0 20px rgba(220, 38, 38, 0.6)" : "0 10px 25px -5px rgba(0,0,0,0.3)",
           display: "flex",
           alignItems: "center",
           gap: "8px",
@@ -157,13 +186,14 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
           zIndex: 9999,
           fontSize: "13px",
           fontWeight: 700,
-          border: "2px solid #2563eb",
+          border: `2px solid ${isAlarmRinging ? "#f87171" : "#2563eb"}`,
+          animation: isAlarmRinging ? "pulse 1s infinite" : "none",
           transition: "transform 0.15s ease",
         }}
       >
         <Timer size={16} className={isRunning ? "spin-pulse" : ""} />
-        <span>{secondsRemaining === 0 ? "Rest Over!" : formatTime(secondsRemaining)}</span>
-        <Maximize2 size={13} style={{ color: "#94a3b8" }} />
+        <span>{isAlarmRinging ? "🚨 REST OVER! Tap to Dismiss" : formatTime(secondsRemaining)}</span>
+        <Maximize2 size={13} style={{ color: "#ffffff" }} />
       </div>
     );
   }
@@ -176,8 +206,10 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
         right: "24px",
         background: "#ffffff",
         borderRadius: "16px",
-        border: "1px solid #e2e8f0",
-        boxShadow: "0 20px 30px -10px rgba(0,0,0,0.18)",
+        border: `2px solid ${isAlarmRinging ? "#ef4444" : "#e2e8f0"}`,
+        boxShadow: isAlarmRinging
+          ? "0 0 30px rgba(239, 68, 68, 0.35), 0 20px 30px -10px rgba(0,0,0,0.25)"
+          : "0 20px 30px -10px rgba(0,0,0,0.18)",
         width: "320px",
         zIndex: 9999,
         overflow: "hidden",
@@ -187,7 +219,11 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
       {/* Header */}
       <div
         style={{
-          background: secondsRemaining === 0 ? "#16a34a" : "linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)",
+          background: isAlarmRinging
+            ? "linear-gradient(90deg, #dc2626 0%, #b91c1c 100%)"
+            : secondsRemaining === 0
+            ? "#16a34a"
+            : "linear-gradient(90deg, #1e3a8a 0%, #2563eb 100%)",
           color: "#ffffff",
           padding: "10px 14px",
           display: "flex",
@@ -198,12 +234,14 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700 }}>
           <Timer size={15} />
           <span>
-            {showSoundPicker
-              ? "Ring Tone Settings"
+            {isAlarmRinging
+              ? "🚨 REST OVER! TIME FOR NEXT SET"
+              : showSoundPicker
+              ? "Harsh Ring Tone Settings"
               : showCustomModal
               ? "Custom Rest Timer"
               : secondsRemaining === 0
-              ? "Rest Complete! Ready for Next Set"
+              ? "Rest Complete"
               : "Rest Timer"}
           </span>
         </div>
@@ -224,7 +262,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
               padding: "3px 5px",
               borderRadius: "4px",
             }}
-            title="Choose ring tone"
+            title="Choose alarm sound"
           >
             <Music size={14} />
           </button>
@@ -234,7 +272,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
             type="button"
             onClick={handleToggleSound}
             style={{ background: "none", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px" }}
-            title={soundEnabled ? "Mute chime" : "Enable chime"}
+            title={soundEnabled ? "Mute alarm" : "Enable alarm"}
           >
             {soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
           </button>
@@ -253,7 +291,10 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
           {onClose && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                dismissAlarm();
+                onClose();
+              }}
               style={{ background: "none", border: "none", color: "#ffffff", cursor: "pointer", padding: "2px" }}
               title="Close timer"
             >
@@ -269,7 +310,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
           style={{
             height: "100%",
             width: `${progressPct}%`,
-            background: secondsRemaining === 0 ? "#16a34a" : "#2563eb",
+            background: isAlarmRinging ? "#dc2626" : secondsRemaining === 0 ? "#16a34a" : "#2563eb",
             transition: "width 0.5s ease",
           }}
         />
@@ -277,10 +318,10 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
       {/* VIEW 1: SOUND PICKER DRAWER */}
       {showSoundPicker && (
-        <div style={{ padding: "14px", maxHeight: "280px", overflowY: "auto", background: "#f8fafc" }}>
+        <div style={{ padding: "14px", maxHeight: "290px", overflowY: "auto", background: "#f8fafc" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
-              Select Timer Alarm Sound
+              Select Harsh Alarm Tone
             </span>
             <button
               onClick={() => setShowSoundPicker(false)}
@@ -304,8 +345,8 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
                     alignItems: "center",
                     justifyContent: "space-between",
                     padding: "8px 10px",
-                    background: isCurrent ? "#eff6ff" : "#ffffff",
-                    border: `1px solid ${isCurrent ? "#93c5fd" : "#e2e8f0"}`,
+                    background: isCurrent ? "#fef2f2" : "#ffffff",
+                    border: `1px solid ${isCurrent ? "#f87171" : "#e2e8f0"}`,
                     borderRadius: "8px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
@@ -314,7 +355,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <span style={{ fontSize: "16px" }}>{sound.icon}</span>
                     <div>
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: isCurrent ? "#1e40af" : "#0f172a" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: isCurrent ? "#991b1b" : "#0f172a" }}>
                         {sound.name}
                       </div>
                       <div style={{ fontSize: "10px", color: "#64748b" }}>{sound.description}</div>
@@ -332,17 +373,17 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
                         padding: "3px 7px",
                         fontSize: "10px",
                         fontWeight: 700,
-                        background: isPlaying ? "#2563eb" : "#f1f5f9",
+                        background: isPlaying ? "#dc2626" : "#f1f5f9",
                         color: isPlaying ? "#ffffff" : "#475569",
                         border: "1px solid #cbd5e1",
                         borderRadius: "4px",
                         cursor: "pointer",
                       }}
-                      title="Preview Sound"
+                      title="Preview Alarm"
                     >
-                      {isPlaying ? "▶ Playing" : "▶ Test"}
+                      {isPlaying ? "▶ Blasting" : "▶ Test"}
                     </button>
-                    {isCurrent && <Check size={14} style={{ color: "#2563eb" }} />}
+                    {isCurrent && <Check size={14} style={{ color: "#dc2626" }} />}
                   </div>
                 </div>
               );
@@ -483,43 +524,87 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
       {/* VIEW 3: MAIN COUNTDOWN DISPLAY */}
       {!showCustomModal && !showSoundPicker && (
         <div style={{ padding: "16px", textAlign: "center" }}>
-          <div
-            style={{
-              fontSize: "44px",
-              fontWeight: 800,
-              fontVariantNumeric: "tabular-nums",
-              color: secondsRemaining === 0 ? "#16a34a" : "#0f172a",
-              margin: "2px 0 10px 0",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            {formatTime(secondsRemaining)}
-          </div>
+          {/* Big Alarm Dismiss Banner when Alarm is Ringing */}
+          {isAlarmRinging ? (
+            <div style={{ marginBottom: "14px" }}>
+              <div
+                style={{
+                  fontSize: "36px",
+                  fontWeight: 900,
+                  color: "#dc2626",
+                  margin: "0 0 10px 0",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                0:00
+              </div>
+
+              <button
+                type="button"
+                onClick={dismissAlarm}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 14px rgba(220, 38, 38, 0.4)",
+                  animation: "pulse 1.2s infinite",
+                }}
+              >
+                <BellOff size={18} />
+                <span>DISMISS ALARM (READY)</span>
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                fontSize: "44px",
+                fontWeight: 800,
+                fontVariantNumeric: "tabular-nums",
+                color: secondsRemaining === 0 ? "#16a34a" : "#0f172a",
+                margin: "2px 0 10px 0",
+                letterSpacing: "-0.5px",
+              }}
+            >
+              {formatTime(secondsRemaining)}
+            </div>
+          )}
 
           {/* Current Ring Tone Badge */}
-          <div style={{ marginBottom: "12px" }}>
-            <button
-              type="button"
-              onClick={() => setShowSoundPicker(true)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                background: "#f1f5f9",
-                border: "1px solid #e2e8f0",
-                borderRadius: "20px",
-                padding: "2px 10px",
-                fontSize: "11px",
-                color: "#475569",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
-              title="Click to change ring tone"
-            >
-              <span>{TIMER_SOUND_OPTIONS.find((s) => s.id === selectedSound)?.icon}</span>
-              <span>Tone: {TIMER_SOUND_OPTIONS.find((s) => s.id === selectedSound)?.name}</span>
-            </button>
-          </div>
+          {!isAlarmRinging && (
+            <div style={{ marginBottom: "12px" }}>
+              <button
+                type="button"
+                onClick={() => setShowSoundPicker(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  background: "#f1f5f9",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "20px",
+                  padding: "2px 10px",
+                  fontSize: "11px",
+                  color: "#475569",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+                title="Click to change alarm tone"
+              >
+                <span>{TIMER_SOUND_OPTIONS.find((s) => s.id === selectedSound)?.icon}</span>
+                <span>Tone: {TIMER_SOUND_OPTIONS.find((s) => s.id === selectedSound)?.name}</span>
+              </button>
+            </div>
+          )}
 
           {/* Play / Pause / Reset / +30s Actions */}
           <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "14px" }}>
@@ -527,6 +612,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
               type="button"
               onClick={() => {
                 prewarmAudio();
+                dismissAlarm();
                 setIsRunning(!isRunning);
               }}
               className="btn-primary"
@@ -613,6 +699,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
             <button
               type="button"
               onClick={() => {
+                dismissAlarm();
                 setShowCustomModal(true);
                 setShowSoundPicker(false);
               }}
