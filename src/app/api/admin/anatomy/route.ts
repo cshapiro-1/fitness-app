@@ -4,6 +4,47 @@ import { prisma } from "@/lib/prisma";
 import { verifyAdminAccess } from "@/lib/adminGuard";
 import { INITIAL_UNIFIED_EXERCISES, normalizeExerciseName } from "@/lib/unifiedExerciseLibrary";
 
+/**
+ * Ensures the Exercise table exists in Postgres with all required columns and indexes
+ */
+async function ensureExerciseTableExists(): Promise<void> {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Exercise" (
+        "id" TEXT PRIMARY KEY,
+        "name" TEXT UNIQUE NOT NULL,
+        "normalizedName" TEXT UNIQUE NOT NULL,
+        "type" TEXT NOT NULL DEFAULT 'EXERCISE',
+        "muscleGroup" TEXT NOT NULL DEFAULT 'Chest',
+        "equipment" TEXT NOT NULL DEFAULT 'Bodyweight',
+        "category" TEXT NOT NULL DEFAULT 'STRENGTH',
+        "primaryMuscles" TEXT NOT NULL DEFAULT '[]',
+        "secondaryMuscles" TEXT NOT NULL DEFAULT '[]',
+        "biomechanicsCue" TEXT,
+        "steps" TEXT,
+        "commonMistakes" TEXT,
+        "breathingPattern" TEXT,
+        "diagramUrl" TEXT,
+        "diagramStatus" TEXT NOT NULL DEFAULT 'PENDING_APPROVAL',
+        "diagramNotes" TEXT,
+        "approvedByUserId" TEXT,
+        "approvedAt" TIMESTAMP(3),
+        "createdByUserId" TEXT,
+        "createdByUserRole" TEXT DEFAULT 'SYSTEM',
+        "isCustom" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_muscleGroup_idx" ON "Exercise"("muscleGroup");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_type_idx" ON "Exercise"("type");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_diagramStatus_idx" ON "Exercise"("diagramStatus");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "Exercise_normalizedName_idx" ON "Exercise"("normalizedName");`);
+  } catch (err) {
+    console.warn("Exercise table DDL check note:", err);
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const auth = await verifyAdminAccess(req);
@@ -11,15 +52,20 @@ export async function GET(req: NextRequest) {
       return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
-    // Auto-seed initial unified library if empty or missing items
+    // 1. Ensure table exists in database
+    await ensureExerciseTableExists();
+
+    // 2. Auto-seed initial unified library if table is empty
     try {
       const existingCount = await prisma.exercise.count();
       if (existingCount === 0) {
         for (const item of INITIAL_UNIFIED_EXERCISES) {
+          const generatedId = `ex-${normalizeExerciseName(item.name)}`;
           await prisma.exercise.upsert({
             where: { normalizedName: item.normalizedName },
             update: {},
             create: {
+              id: generatedId,
               name: item.name,
               normalizedName: item.normalizedName,
               type: item.type,
@@ -41,7 +87,7 @@ export async function GET(req: NextRequest) {
         }
       }
     } catch (seedErr) {
-      console.error("Auto-seed error (table may need DDL migration):", seedErr);
+      console.error("Auto-seed error:", seedErr);
     }
 
     let exercises: any[] = [];
@@ -50,7 +96,7 @@ export async function GET(req: NextRequest) {
         orderBy: [{ diagramStatus: "desc" }, { type: "asc" }, { name: "asc" }],
       });
     } catch {
-      // Fallback to in-memory initial list if table not yet migrated
+      // Fallback in-memory list
       exercises = INITIAL_UNIFIED_EXERCISES.map((item, idx) => ({
         id: `mock-${idx}`,
         ...item,
@@ -130,6 +176,9 @@ export async function PATCH(req: NextRequest) {
       return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
 
+    // Ensure database table exists
+    await ensureExerciseTableExists();
+
     const body = await req.json().catch(() => ({}));
     const {
       id,
@@ -166,18 +215,39 @@ export async function PATCH(req: NextRequest) {
     if (steps !== undefined) updateData.steps = JSON.stringify(steps);
     if (commonMistakes !== undefined) updateData.commonMistakes = JSON.stringify(commonMistakes);
 
-    let updated: any;
+    const norm = normalizeExerciseName(name || "");
+    let updated: any = null;
+
     if (id && !id.startsWith("mock-")) {
-      updated = await prisma.exercise.update({
-        where: { id },
-        data: updateData,
-      });
+      try {
+        updated = await prisma.exercise.update({
+          where: { id },
+          data: updateData,
+        });
+      } catch (updateErr) {
+        if (name) {
+          const generatedId = `ex-${norm}`;
+          updated = await prisma.exercise.upsert({
+            where: { normalizedName: norm },
+            update: updateData,
+            create: {
+              id: generatedId,
+              name,
+              normalizedName: norm,
+              ...updateData,
+            },
+          });
+        } else {
+          throw updateErr;
+        }
+      }
     } else if (name) {
-      const norm = normalizeExerciseName(name);
+      const generatedId = `ex-${norm}`;
       updated = await prisma.exercise.upsert({
         where: { normalizedName: norm },
         update: updateData,
         create: {
+          id: generatedId,
           name,
           normalizedName: norm,
           ...updateData,
@@ -191,6 +261,7 @@ export async function PATCH(req: NextRequest) {
       exercise: updated,
     });
   } catch (error: any) {
+    console.error("Anatomy PATCH error:", error);
     return NextResponse.json({ error: error.message || "Failed to update anatomy status" }, { status: 500 });
   }
 }

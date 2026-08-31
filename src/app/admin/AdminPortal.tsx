@@ -330,8 +330,25 @@ export function AdminPortal({ userName }: { userName: string }) {
   }, [activeAnatomyItem]);
 
   const handleApproveAnatomy = async (item: UnifiedAnatomyExercise) => {
-    setSavingAnatomyId(item.id);
+    setSavingAnatomyId(item.id || item.name);
     try {
+      // Optimistically mark as approved in UI
+      setAnatomyExercises((prev) =>
+        prev.map((ex) =>
+          ex.name === item.name || ex.id === item.id
+            ? {
+                ...ex,
+                diagramStatus: "APPROVED",
+                diagramUrl: editedDiagramUrl || item.diagramUrl,
+                biomechanicsCue: editedCue || item.biomechanicsCue,
+                primaryMuscles: (editedPrimaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
+                secondaryMuscles: (editedSecondaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
+                approvedAt: new Date().toISOString(),
+              }
+            : ex
+        )
+      );
+
       const res = await fetch("/api/admin/anatomy", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -341,8 +358,8 @@ export function AdminPortal({ userName }: { userName: string }) {
           diagramStatus: "APPROVED",
           diagramUrl: editedDiagramUrl || item.diagramUrl,
           biomechanicsCue: editedCue || item.biomechanicsCue,
-          primaryMuscles: editedPrimaryMuscles.split(",").map((s) => s.trim()).filter(Boolean),
-          secondaryMuscles: editedSecondaryMuscles.split(",").map((s) => s.trim()).filter(Boolean),
+          primaryMuscles: (editedPrimaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
+          secondaryMuscles: (editedSecondaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
         }),
       });
 
@@ -352,16 +369,21 @@ export function AdminPortal({ userName }: { userName: string }) {
         if (selectedAnatomyIndex < filteredAnatomyList.length - 1) {
           setSelectedAnatomyIndex((prev) => prev + 1);
         }
+      } else {
+        const errJson = await res.json().catch(() => ({ error: "Failed to approve anatomy diagram" }));
+        alert(errJson.error || "Failed to approve anatomy diagram");
+        await fetchAnatomyData();
       }
-    } catch {
-      alert("Failed to approve anatomy diagram");
+    } catch (err: any) {
+      alert(err?.message || "Failed to approve anatomy diagram");
+      await fetchAnatomyData();
     } finally {
       setSavingAnatomyId(null);
     }
   };
 
   const handleSaveAnatomyEdits = async (item: UnifiedAnatomyExercise) => {
-    setSavingAnatomyId(item.id);
+    setSavingAnatomyId(item.id || item.name);
     try {
       const res = await fetch("/api/admin/anatomy", {
         method: "PATCH",
@@ -371,16 +393,18 @@ export function AdminPortal({ userName }: { userName: string }) {
           name: item.name,
           diagramUrl: editedDiagramUrl,
           biomechanicsCue: editedCue,
-          primaryMuscles: editedPrimaryMuscles.split(",").map((s) => s.trim()).filter(Boolean),
-          secondaryMuscles: editedSecondaryMuscles.split(",").map((s) => s.trim()).filter(Boolean),
+          primaryMuscles: (editedPrimaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
+          secondaryMuscles: (editedSecondaryMuscles || "").split(",").map((s) => s.trim()).filter(Boolean),
         }),
       });
       if (res.ok) {
         await fetchAnatomyData();
-        alert("Anatomy metadata saved successfully!");
+      } else {
+        const err = await res.json().catch(() => ({ error: "Failed to save edits" }));
+        alert(err.error || "Failed to save edits");
       }
-    } catch {
-      alert("Failed to save edits");
+    } catch (err: any) {
+      alert(err?.message || "Failed to save edits");
     } finally {
       setSavingAnatomyId(null);
     }
