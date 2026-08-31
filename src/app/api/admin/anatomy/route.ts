@@ -89,8 +89,8 @@ export async function GET(req: NextRequest) {
                 createdByUserRole: "SYSTEM",
               },
             });
-          } else if (item.normalizedName === "chest_dip" || shouldForceSync) {
-            // Specifically update Chest Dip back to pending with new accurate SVG diagram
+          } else {
+            // Update existing with new dedicated unique SVG diagram & cues
             const updatePayload: any = {
               diagramUrl: item.diagramUrl,
               biomechanicsCue: item.biomechanicsCue,
