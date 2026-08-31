@@ -1362,6 +1362,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                     <div>
                       <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", background: "#f8fafc", position: "relative" }}>
                         <img
+                          key={editedDiagramUrl || activeAnatomyItem.diagramUrl}
                           src={editedDiagramUrl || activeAnatomyItem.diagramUrl || "/anatomy/squat.jpg"}
                           alt={activeAnatomyItem.name}
                           style={{ width: "100%", height: "280px", objectFit: "cover", display: "block" }}

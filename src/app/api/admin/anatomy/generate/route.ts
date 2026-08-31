@@ -2,15 +2,11 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { checkRateLimit, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
 import { sanitizeText } from "@/lib/sanitize";
 import { normalizeExerciseName, INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 
 export async function POST(req: NextRequest) {
   try {
-    const rateCheck = checkRateLimit(req, RATE_LIMIT_PRESETS.AI);
-    if (rateCheck.limited && rateCheck.response) return rateCheck.response;
-
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,21 +21,66 @@ export async function POST(req: NextRequest) {
 
     const norm = normalizeExerciseName(exerciseName);
 
-    // 1. Check if there is an exact match in initial unified library definitions
-    const existingLibMatch = INITIAL_UNIFIED_EXERCISES.find(
-      (ex) => ex.normalizedName === norm || ex.name.toLowerCase() === exerciseName.toLowerCase()
-    );
+    // Category-specific visual pools for intelligent regeneration
+    const chestVisuals = [
+      "/anatomy/chest_dip.svg",
+      "/anatomy/incline_bench.svg",
+      "/anatomy/bench.jpg",
+      "/anatomy/push_up.svg",
+      "/anatomy/chest_stretch.jpg",
+    ];
 
-    // Kinesiological Intelligence: Determine primary muscles, secondary synergists, cues, and best diagram reference
-    let primaryMuscles: string[] = existingLibMatch?.primaryMuscles || [];
-    let secondaryMuscles: string[] = existingLibMatch?.secondaryMuscles || [];
-    let biomechanicsCue = existingLibMatch?.biomechanicsCue || "";
-    let steps: string[] = existingLibMatch?.steps || [];
-    let commonMistakes: string[] = existingLibMatch?.commonMistakes || [];
-    let breathingPattern = existingLibMatch?.breathingPattern || "";
-    let diagramUrl = existingLibMatch?.diagramUrl || "/anatomy/squat.jpg";
+    const backVisuals = [
+      "/anatomy/barbell_row.svg",
+      "/anatomy/pull_up.svg",
+      "/anatomy/lat_pulldown.jpg",
+      "/anatomy/face_pull.svg",
+      "/anatomy/lat_stretch.svg",
+      "/anatomy/childs_pose.svg",
+    ];
 
-    // Visual Variations Palette for Dynamic Regeneration
+    const legVisuals = [
+      "/anatomy/squat.jpg",
+      "/anatomy/bulgarian_split_squat.svg",
+      "/anatomy/leg_extension.jpg",
+      "/anatomy/hip_thrust.jpg",
+      "/anatomy/deadlift.jpg",
+      "/anatomy/rdl.jpg",
+      "/anatomy/leg_curl.jpg",
+      "/anatomy/calf_raise.jpg",
+      "/anatomy/hip_abduction.jpg",
+      "/anatomy/couch_stretch.svg",
+      "/anatomy/quad_stretch.svg",
+      "/anatomy/hamstring_fold.svg",
+    ];
+
+    const shoulderVisuals = [
+      "/anatomy/overhead_press.jpg",
+      "/anatomy/lateral_raise.jpg",
+      "/anatomy/face_pull.svg",
+      "/anatomy/shoulder_crossbody.svg",
+      "/anatomy/sleeper_stretch.svg",
+      "/anatomy/neck_trap_stretch.svg",
+    ];
+
+    const armVisuals = [
+      "/anatomy/bicep_curl.jpg",
+      "/anatomy/hammer_curl.jpg",
+      "/anatomy/tricep_pushdown.jpg",
+      "/anatomy/tricep_stretch.svg",
+      "/anatomy/bicep_stretch.svg",
+      "/anatomy/wrist_mobility.svg",
+    ];
+
+    const coreVisuals = [
+      "/anatomy/plank.jpg",
+      "/anatomy/back_hyperextension.svg",
+      "/anatomy/ql_extension.svg",
+      "/anatomy/cobra_stretch.svg",
+      "/anatomy/ql_stretch.svg",
+      "/anatomy/supine_twist.svg",
+    ];
+
     const stretchVisuals = [
       "/anatomy/pigeon.jpg",
       "/anatomy/couch_stretch.svg",
@@ -64,37 +105,45 @@ export async function POST(req: NextRequest) {
       "/anatomy/ql_stretch.svg",
       "/anatomy/supine_twist.svg",
       "/anatomy/worlds_greatest.svg",
+      "/anatomy/cat_cow.jpg",
+      "/anatomy/chest_stretch.jpg",
     ];
 
-    const exerciseVisuals = [
-      "/anatomy/bench.jpg",
-      "/anatomy/incline_bench.svg",
-      "/anatomy/chest_dip.svg",
-      "/anatomy/push_up.svg",
-      "/anatomy/deadlift.jpg",
-      "/anatomy/barbell_row.svg",
-      "/anatomy/lat_pulldown.jpg",
-      "/anatomy/pull_up.svg",
-      "/anatomy/face_pull.svg",
-      "/anatomy/squat.jpg",
-      "/anatomy/bulgarian_split_squat.svg",
-      "/anatomy/leg_extension.jpg",
-      "/anatomy/leg_curl.jpg",
-      "/anatomy/calf_raise.jpg",
-      "/anatomy/hip_thrust.jpg",
-      "/anatomy/rdl.jpg",
-      "/anatomy/overhead_press.jpg",
-      "/anatomy/lateral_raise.jpg",
-      "/anatomy/bicep_curl.jpg",
-      "/anatomy/hammer_curl.jpg",
-      "/anatomy/tricep_pushdown.jpg",
-      "/anatomy/plank.jpg",
-      "/anatomy/back_hyperextension.svg",
-      "/anatomy/ql_extension.svg",
-    ];
+    // Select targeted palette based on muscle group and movement
+    let targetPalette = stretchVisuals;
+    if (movementType !== "STRETCH" && muscleGroup !== "Stretching") {
+      if (/chest|pec|bench|dip|push/i.test(muscleGroup) || /chest|pec|bench|dip|push/i.test(norm)) {
+        targetPalette = chestVisuals;
+      } else if (/back|lat|row|pull|chin/i.test(muscleGroup) || /back|lat|row|pull|chin/i.test(norm)) {
+        targetPalette = backVisuals;
+      } else if (/leg|squat|quad|hamstring|glute|calf|thrust|deadlift/i.test(muscleGroup) || /leg|squat|quad|hamstring|glute|calf|thrust|deadlift/i.test(norm)) {
+        targetPalette = legVisuals;
+      } else if (/shoulder|delt|press|raise/i.test(muscleGroup) || /shoulder|delt|press|raise/i.test(norm)) {
+        targetPalette = shoulderVisuals;
+      } else if (/arm|bicep|tricep|curl|forearm/i.test(muscleGroup) || /arm|bicep|tricep|curl|forearm/i.test(norm)) {
+        targetPalette = armVisuals;
+      } else if (/core|abs|ab|oblique|ql|spine/i.test(muscleGroup) || /core|abs|ab|oblique|ql|spine/i.test(norm)) {
+        targetPalette = coreVisuals;
+      } else {
+        targetPalette = legVisuals;
+      }
+    }
+
+    // 1. Check if there is an exact match in initial unified library definitions
+    const existingLibMatch = INITIAL_UNIFIED_EXERCISES.find(
+      (ex) => ex.normalizedName === norm || ex.name.toLowerCase() === exerciseName.toLowerCase()
+    );
+
+    let primaryMuscles: string[] = existingLibMatch?.primaryMuscles || [];
+    let secondaryMuscles: string[] = existingLibMatch?.secondaryMuscles || [];
+    let biomechanicsCue = existingLibMatch?.biomechanicsCue || "";
+    let steps: string[] = existingLibMatch?.steps || [];
+    let commonMistakes: string[] = existingLibMatch?.commonMistakes || [];
+    let breathingPattern = existingLibMatch?.breathingPattern || "";
+    let diagramUrl = existingLibMatch?.diagramUrl || targetPalette[0];
 
     if (!existingLibMatch) {
-      if (movementType === "STRETCH" || muscleGroup === "Stretching" || /stretch|mobility|pigeon|opening|fold|yoga/i.test(norm)) {
+      if (movementType === "STRETCH" || muscleGroup === "Stretching" || /stretch|mobility|pigeon|piriformis|fold|opening/i.test(norm)) {
         if (/pigeon|piriformis|figure 4|outer hip|glute/i.test(norm)) {
           primaryMuscles = ["Piriformis", "Gluteus Medius", "Deep Hip External Rotators"];
           secondaryMuscles = ["Gluteus Maximus", "Psoas Major", "Tensor Fasciae Latae"];
@@ -121,17 +170,6 @@ export async function POST(req: NextRequest) {
           biomechanicsCue = "Flow with breath, maintaining length through the spine without forcing joint ranges.";
           diagramUrl = "/anatomy/cat_cow.jpg";
         }
-        steps = [
-          `Setup: Settle into starting position on mat with relaxed spine and neutral pelvis.`,
-          `Movement: Breathe in deeply, then exhale to gently ease into the targeted stretch zone.`,
-          `Hold: Maintain steady diaphragmatic breathing for 30-45 seconds without bouncing.`,
-          `Release: Transition out of the stretch slowly and switch sides if unilateral.`,
-        ];
-        commonMistakes = [
-          "Holding breath during deep stretch — breathe slowly through nose.",
-          "Forcing painful joint ranges beyond muscular stretch threshold.",
-        ];
-        breathingPattern = "4-second deep nasal inhale → 6-second relaxing exhale, melting tension on each out-breath.";
       } else if (/dip|parallel bar/i.test(norm)) {
         primaryMuscles = ["Lower Pectoralis Major (Sternal Head)"];
         secondaryMuscles = ["Anterior Deltoid", "Triceps Brachii", "Rhomboids"];
@@ -171,14 +209,13 @@ export async function POST(req: NextRequest) {
         primaryMuscles = ["Quadriceps Femoris", "Gluteus Maximus"];
         secondaryMuscles = ["Hamstrings", "Core"];
         biomechanicsCue = "Keep torso upright, push through full foot, and drive knees in line with toes.";
-        diagramUrl = "/anatomy/squat.jpg";
+        diagramUrl = targetPalette[0];
       }
     }
 
-    // If variant is requested to cycle through alternative visual renderings:
+    // If variant requested (> 0), cycle through the targeted visual palette
     if (variant > 0) {
-      const palette = (movementType === "STRETCH" || muscleGroup === "Stretching") ? stretchVisuals : exerciseVisuals;
-      diagramUrl = palette[variant % palette.length];
+      diagramUrl = targetPalette[variant % targetPalette.length];
     }
 
     const generatedData = {
@@ -188,15 +225,15 @@ export async function POST(req: NextRequest) {
       muscleGroup,
       equipment,
       category: movementType === "STRETCH" ? "STATIC_STRETCH" : "STRENGTH",
-      primaryMuscles,
+      primaryMuscles: primaryMuscles.length > 0 ? primaryMuscles : [muscleGroup],
       secondaryMuscles,
-      biomechanicsCue,
-      steps,
-      commonMistakes,
-      breathingPattern,
+      biomechanicsCue: biomechanicsCue || "Maintain strict posture, align joints with line of force, and control the range of motion.",
+      steps: steps.length > 0 ? steps : ["Execute with controlled tempo and full range of motion."],
+      commonMistakes: commonMistakes.length > 0 ? commonMistakes : ["Using momentum or breaking neutral posture."],
+      breathingPattern: breathingPattern || "Breathe rhythmically with eccentric and concentric phases.",
       diagramUrl,
       diagramStatus: "PENDING_APPROVAL",
-      createdByUserRole: session.user.role || "TRAINER",
+      createdByUserRole: session.user.role || "ADMIN",
       createdByUserId: session.user.id,
       isCustom: true,
       variant,
