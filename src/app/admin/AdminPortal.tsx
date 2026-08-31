@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   ShieldCheck, Users, TrendingUp, DollarSign, Clock, Zap, Search, RefreshCw,
   Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
-  Briefcase, User, Timer, Calendar, LogIn, Trash2, Hourglass
+  Briefcase, User, Timer, Calendar, LogIn, Trash2, Hourglass, Sparkles, Filter,
+  Eye, EyeOff, ShieldAlert, Cpu
 } from "lucide-react";
 import Link from "next/link";
 
@@ -15,6 +16,7 @@ interface AdminTrainer {
   image: string | null;
   role: "TRAINER" | "CLIENT" | "ADMIN";
   isAdmin: boolean;
+  isInternalAdmin?: boolean;
   subscriptionStatus: string | null;
   computedStatus: "trial" | "active" | "expired" | "client_free";
   trialEndsAt: string | null;
@@ -41,6 +43,7 @@ interface AdminClient {
   trainerName: string;
   workoutsLogged: number;
   isRegistered: boolean;
+  isInternalAdmin?: boolean;
   lastLoginAt?: string | null;
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
@@ -68,9 +71,26 @@ interface AdminStats {
   expiredUsers: number;
   estimatedMRR: number;
   conversionRate: number;
+
+  // Platform-wide combined metrics
   totalLogins?: number;
   overallAvgSessionSeconds?: number;
   totalAppTimeSeconds?: number;
+
+  // Organic Customer Metrics (Excluding Admin Dev Usage)
+  organicTrainersCount?: number;
+  organicClientsCount?: number;
+  organicTotalLogins?: number;
+  organicAvgSessionSeconds?: number;
+  organicTotalAppTimeSeconds?: number;
+  organicDau?: number;
+  organicMau?: number;
+  organicStickinessRatio?: number;
+
+  // Internal Admin & Developer Metrics (Collin's Isolated Usage)
+  adminTotalLogins?: number;
+  adminAvgSessionSeconds?: number;
+  adminTotalAppTimeSeconds?: number;
 }
 
 interface StripeBillingData {
@@ -100,6 +120,8 @@ interface StripeBillingData {
     created: string;
   }>;
 }
+
+type TelemetryViewMode = "ORGANIC" | "ALL" | "ADMIN_ONLY";
 
 function formatSessionDuration(seconds?: number | null): string {
   if (seconds === undefined || seconds === null || seconds <= 0) return "-";
@@ -151,8 +173,10 @@ export function AdminPortal({ userName }: { userName: string }) {
   const [clients, setClients] = useState<AdminClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"trainers" | "clients">("trainers");
+  const [telemetryMode, setTelemetryMode] = useState<TelemetryViewMode>("ORGANIC");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [excludeAdminAccounts, setExcludeAdminAccounts] = useState(true);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -227,6 +251,8 @@ export function AdminPortal({ userName }: { userName: string }) {
 
   const filteredTrainers = useMemo(() => {
     return trainers.filter((t) => {
+      if (excludeAdminAccounts && t.isInternalAdmin) return false;
+
       const query = searchQuery.toLowerCase();
       const nameMatch = t.name?.toLowerCase().includes(query) || false;
       const emailMatch = t.email.toLowerCase().includes(query);
@@ -235,17 +261,56 @@ export function AdminPortal({ userName }: { userName: string }) {
       const matchesStatus = statusFilter === "ALL" || t.computedStatus === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
-  }, [trainers, searchQuery, statusFilter]);
+  }, [trainers, searchQuery, statusFilter, excludeAdminAccounts]);
 
   const filteredClients = useMemo(() => {
     return clients.filter((c) => {
+      if (excludeAdminAccounts && c.isInternalAdmin) return false;
+
       const query = searchQuery.toLowerCase();
       const nameMatch = c.name.toLowerCase().includes(query);
       const emailMatch = c.email.toLowerCase().includes(query);
       const trainerMatch = c.trainerName.toLowerCase().includes(query);
       return nameMatch || emailMatch || trainerMatch;
     });
-  }, [clients, searchQuery]);
+  }, [clients, searchQuery, excludeAdminAccounts]);
+
+  // Display values based on selected telemetry view mode
+  const currentAvgSession =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicAvgSessionSeconds ?? 0
+      : telemetryMode === "ADMIN_ONLY"
+      ? stats?.adminAvgSessionSeconds ?? 0
+      : stats?.overallAvgSessionSeconds ?? 0;
+
+  const currentTotalLogins =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicTotalLogins ?? 0
+      : telemetryMode === "ADMIN_ONLY"
+      ? stats?.adminTotalLogins ?? 0
+      : stats?.totalLogins ?? 0;
+
+  const currentTotalAppTime =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicTotalAppTimeSeconds ?? 0
+      : telemetryMode === "ADMIN_ONLY"
+      ? stats?.adminTotalAppTimeSeconds ?? 0
+      : stats?.totalAppTimeSeconds ?? 0;
+
+  const currentDau =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicDau ?? 0
+      : stats?.dau ?? 1;
+
+  const currentMau =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicMau ?? 0
+      : stats?.mau ?? 1;
+
+  const currentStickiness =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicStickinessRatio ?? 0
+      : stats?.stickinessRatio ?? 100;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -298,6 +363,74 @@ export function AdminPortal({ userName }: { userName: string }) {
           </div>
         )}
 
+        {/* Telemetry Segment Selector Banner */}
+        <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "14px 18px", marginBottom: "18px", display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <Filter size={16} style={{ color: "#2563eb" }} />
+            <div>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>Telemetry View Mode:</span>
+              <span style={{ fontSize: "12px", color: "#64748b", marginLeft: "6px" }}>
+                {telemetryMode === "ORGANIC"
+                  ? "🌱 Pure Customer Analytics (Excludes Collin's dev/admin usage)"
+                  : telemetryMode === "ADMIN_ONLY"
+                  ? "👑 Collin's Dev & Admin Telemetry Only"
+                  : "⚡ All Platform Usage Combined"}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px" }}>
+            <button
+              onClick={() => setTelemetryMode("ORGANIC")}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                background: telemetryMode === "ORGANIC" ? "#16a34a" : "transparent",
+                color: telemetryMode === "ORGANIC" ? "#ffffff" : "#475569",
+                transition: "all 0.15s ease",
+              }}
+            >
+              🌱 Organic Customers
+            </button>
+            <button
+              onClick={() => setTelemetryMode("ALL")}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                background: telemetryMode === "ALL" ? "#2563eb" : "transparent",
+                color: telemetryMode === "ALL" ? "#ffffff" : "#475569",
+                transition: "all 0.15s ease",
+              }}
+            >
+              ⚡ All Combined
+            </button>
+            <button
+              onClick={() => setTelemetryMode("ADMIN_ONLY")}
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                borderRadius: "6px",
+                border: "none",
+                cursor: "pointer",
+                background: telemetryMode === "ADMIN_ONLY" ? "#9333ea" : "transparent",
+                color: telemetryMode === "ADMIN_ONLY" ? "#ffffff" : "#475569",
+                transition: "all 0.15s ease",
+              }}
+            >
+              👑 Collin (Dev)
+            </button>
+          </div>
+        </div>
+
         {/* KPI Telemetry Grid */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "14px", marginBottom: "24px" }}>
           {/* Active Paid Trainers */}
@@ -317,11 +450,11 @@ export function AdminPortal({ userName }: { userName: string }) {
           {/* Total Trainers */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>TOTAL TRAINERS</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC COACHES" : "TOTAL COACHES"}</span>
               <Briefcase size={16} style={{ color: "#2563eb" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {trainers.length || stats?.totalTrainers || 0}
+              {telemetryMode === "ORGANIC" ? stats?.organicTrainersCount ?? 0 : trainers.length || stats?.totalTrainers || 0}
             </div>
             <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
               {stats?.trialingUsers ?? 0} trialing · {stats?.expiredUsers ?? 0} expired
@@ -331,56 +464,42 @@ export function AdminPortal({ userName }: { userName: string }) {
           {/* Total Managed Athletes / Clients */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>TOTAL CLIENTS</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC ATHLETES" : "TOTAL CLIENTS"}</span>
               <Users size={16} style={{ color: "#7c3aed" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {clients.length || stats?.totalClients || 0}
+              {telemetryMode === "ORGANIC" ? stats?.organicClientsCount ?? 0 : clients.length || stats?.totalClients || 0}
             </div>
             <div style={{ fontSize: "11px", color: "#7c3aed", marginTop: "2px", fontWeight: 600 }}>
               {stats?.avgClientsPerTrainer ?? 0} clients / coach
             </div>
           </div>
 
-          {/* Workouts Logged */}
-          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>WORKOUT LOGS</span>
-              <Dumbbell size={16} style={{ color: "#ea580c" }} />
-            </div>
-            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {stats?.totalWorkouts ?? 0}
-            </div>
-            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-              {stats?.totalCompletedWorkouts ?? 0} finished ({stats?.completionRate ?? 0}%)
-            </div>
-          </div>
-
           {/* Average App Session Length */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>AVG APP SESSION</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC AVG SESSION" : telemetryMode === "ADMIN_ONLY" ? "COLLIN AVG SESSION" : "COMBINED AVG SESSION"}</span>
               <Hourglass size={16} style={{ color: "#059669" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {formatSessionDuration(stats?.overallAvgSessionSeconds)}
+              {formatSessionDuration(currentAvgSession)}
             </div>
             <div style={{ fontSize: "11px", color: "#059669", marginTop: "2px", fontWeight: 600 }}>
-              {formatTotalAppTime(stats?.totalAppTimeSeconds)} total in app
+              {formatTotalAppTime(currentTotalAppTime)} total time
             </div>
           </div>
 
           {/* Total App Logins */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>TOTAL LOGINS</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC LOGINS" : telemetryMode === "ADMIN_ONLY" ? "COLLIN LOGINS" : "TOTAL LOGINS"}</span>
               <LogIn size={16} style={{ color: "#0284c7" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {stats?.totalLogins ?? (trainers.length + clients.length)}
+              {currentTotalLogins}
             </div>
             <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "2px", fontWeight: 600 }}>
-              {stats?.dau ?? 1} DAU · {stats?.stickinessRatio ?? 100}% stickiness
+              {currentDau} DAU · {currentStickiness}% stickiness
             </div>
           </div>
         </div>
@@ -449,7 +568,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                 }}
               >
                 <Briefcase size={15} />
-                <span>Trainers &amp; Coaches ({trainers.length})</span>
+                <span>Trainers &amp; Coaches ({filteredTrainers.length})</span>
               </button>
 
               <button
@@ -471,16 +590,29 @@ export function AdminPortal({ userName }: { userName: string }) {
                 }}
               >
                 <Users size={15} />
-                <span>Clients &amp; Athletes ({clients.length})</span>
+                <span>Clients &amp; Athletes ({filteredClients.length})</span>
               </button>
             </div>
 
-            <button
-              onClick={fetchAdminData}
-              style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
-            >
-              <RefreshCw size={13} className={loading ? "spin" : ""} /> Refresh
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              {/* Exclude Admin Toggle */}
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#475569", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={excludeAdminAccounts}
+                  onChange={(e) => setExcludeAdminAccounts(e.target.checked)}
+                  style={{ accentColor: "#2563eb", cursor: "pointer" }}
+                />
+                <span>Exclude Admin Accounts</span>
+              </label>
+
+              <button
+                onClick={fetchAdminData}
+                style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 12px", fontSize: "12px", background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", cursor: "pointer", fontWeight: 600 }}
+              >
+                <RefreshCw size={13} className={loading ? "spin" : ""} /> Refresh
+              </button>
+            </div>
           </div>
 
           {/* Search & Filter Controls */}
@@ -549,8 +681,13 @@ export function AdminPortal({ userName }: { userName: string }) {
                       return (
                         <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ padding: "12px" }}>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {t.name || "Unnamed Trainer"}
+                            <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span>{t.name || "Unnamed Trainer"}</span>
+                              {t.isInternalAdmin && (
+                                <span style={{ fontSize: "10px", background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                                  👑 DEV / ADMIN
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: "11px", color: "#64748b" }}>{t.email}</div>
                           </td>
@@ -728,8 +865,13 @@ export function AdminPortal({ userName }: { userName: string }) {
                       return (
                         <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ padding: "12px" }}>
-                            <div style={{ fontWeight: 700, color: "#0f172a" }}>
-                              {c.name}
+                            <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span>{c.name}</span>
+                              {c.isInternalAdmin && (
+                                <span style={{ fontSize: "10px", background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                                  👑 DEV / ADMIN
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}</div>
                             {c.phone && <div style={{ fontSize: "10px", color: "#94a3b8" }}>{c.phone}</div>}

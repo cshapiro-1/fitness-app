@@ -121,14 +121,14 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
     });
   });
 
-  describe("GET /api/admin/stats with Login & Session Analytics", () => {
-    it("should return logins count, average session duration, and clean up legacy FitCoach accounts", async () => {
+  describe("GET /api/admin/stats with Organic vs Admin Usage Separation", () => {
+    it("should separate admin/developer usage from organic customer usage", async () => {
       vi.mocked(getServerSession).mockResolvedValue({
-        user: { id: "admin-1", email: "admin@strkyr.fit" },
+        user: { id: "admin-collin", email: "collin.shapiro1@gmail.com" },
       } as any);
 
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
-        id: "admin-1",
+        id: "admin-collin",
         isAdmin: true,
       } as any);
 
@@ -138,55 +138,75 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
       vi.mocked(prisma.workoutSession.findMany).mockResolvedValue([]);
       vi.mocked(prisma.workoutSet.count).mockResolvedValue(40);
 
-      const trainerDate = new Date("2026-08-31T08:10:00Z");
-      const clientDate = new Date("2026-08-31T08:20:00Z");
+      const now = new Date("2026-08-31T08:10:00Z");
 
       vi.mocked(prisma.user.findMany).mockResolvedValue([
+        // Admin / Dev user (Collin)
         {
-          id: "trainer-1",
+          id: "admin-collin",
+          name: "Collin Shapiro",
+          email: "collin.shapiro1@gmail.com",
+          image: null,
+          role: "ADMIN",
+          isAdmin: true,
+          subscriptionStatus: "active",
+          trialEndsAt: null,
+          subscribedUntil: new Date("2099-01-01"),
+          lastLoginAt: now,
+          lastActiveAt: now,
+          lastSessionDurationSeconds: 7200,
+          loginCount: 50,
+          totalSessionSeconds: 144000,
+          createdAt: now,
+          _count: { clients: 1, loggedWorkouts: 20 },
+        },
+        // Organic Customer Trainer (Coach Tim)
+        {
+          id: "trainer-tim",
           name: "Coach Tim",
-          email: "tim@strkyr.fit",
+          email: "tim@gym.com",
           image: null,
           role: "TRAINER",
           isAdmin: false,
           subscriptionStatus: "active",
           trialEndsAt: null,
           subscribedUntil: new Date("2027-01-01"),
-          lastLoginAt: trainerDate,
-          lastActiveAt: trainerDate,
+          lastLoginAt: now,
+          lastActiveAt: now,
           lastSessionDurationSeconds: 1800,
-          loginCount: 5,
-          totalSessionSeconds: 9000,
-          createdAt: trainerDate,
-          _count: { clients: 3, loggedWorkouts: 15 },
+          loginCount: 4,
+          totalSessionSeconds: 7200,
+          createdAt: now,
+          _count: { clients: 2, loggedWorkouts: 10 },
         },
       ] as any);
 
       vi.mocked(prisma.client.findMany).mockResolvedValue([
+        // Organic Customer Client (Sarah)
         {
-          id: "client-1",
+          id: "client-sarah",
           name: "Athlete Sarah",
           email: "sarah@athlete.com",
           phone: null,
           image: null,
-          lastActiveAt: clientDate,
+          lastActiveAt: now,
           lastSessionDurationSeconds: 1200,
-          loginCount: 3,
-          totalSessionSeconds: 3600,
-          createdAt: clientDate,
-          user: { id: "trainer-1", name: "Coach Tim", email: "tim@strkyr.fit" },
+          loginCount: 2,
+          totalSessionSeconds: 2400,
+          createdAt: now,
+          user: { id: "trainer-tim", name: "Coach Tim", email: "tim@gym.com" },
           loginUser: {
             id: "user-sarah",
             name: "Athlete Sarah",
             email: "sarah@athlete.com",
-            createdAt: clientDate,
-            lastLoginAt: clientDate,
-            lastActiveAt: clientDate,
+            createdAt: now,
+            lastLoginAt: now,
+            lastActiveAt: now,
             lastSessionDurationSeconds: 1200,
-            loginCount: 3,
-            totalSessionSeconds: 3600,
+            loginCount: 2,
+            totalSessionSeconds: 2400,
           },
-          _count: { workoutSessions: 8 },
+          _count: { workoutSessions: 5 },
         },
       ] as any);
 
@@ -195,18 +215,20 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
 
-      expect(data.trainers).toBeDefined();
-      expect(data.trainers.length).toBe(1);
-      expect(data.trainers[0].loginCount).toBe(5);
-      expect(data.trainers[0].avgSessionDurationSeconds).toBe(1800);
+      // Check tagging
+      expect(data.trainers[0].isInternalAdmin).toBe(true); // Collin
+      expect(data.trainers[1].isInternalAdmin).toBe(false); // Tim
+      expect(data.clients[0].isInternalAdmin).toBe(false); // Sarah
 
-      expect(data.clients).toBeDefined();
-      expect(data.clients.length).toBe(1);
-      expect(data.clients[0].loginCount).toBe(3);
-      expect(data.clients[0].avgSessionDurationSeconds).toBe(1200);
+      // Check Organic Separation
+      expect(data.stats.organicTrainersCount).toBe(1);
+      expect(data.stats.organicClientsCount).toBe(1);
+      expect(data.stats.organicTotalLogins).toBe(6); // Tim (4) + Sarah (2)
+      expect(data.stats.organicAvgSessionSeconds).toBe(1500); // (1800 + 1200) / 2
 
-      expect(data.stats.totalLogins).toBe(8);
-      expect(data.stats.overallAvgSessionSeconds).toBe(1500);
+      // Check Admin Isolated Metrics
+      expect(data.stats.adminTotalLogins).toBe(50); // Collin's 50 logins isolated
+      expect(data.stats.adminAvgSessionSeconds).toBe(2880); // 144000 / 50
     });
   });
 

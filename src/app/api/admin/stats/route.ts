@@ -233,6 +233,9 @@ export async function GET(req: NextRequest) {
       const totalSessionSeconds = u.totalSessionSeconds || u.lastSessionDurationSeconds || 0;
       const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
 
+      const userEmail = (u.email || "").toLowerCase().trim();
+      const isInternalAdmin = !!u.isAdmin || userEmail === "collin.shapiro1@gmail.com" || userEmail === "collin@strkyr.fit" || userEmail === "admin@strkyr.fit" || userEmail === "service@strkyr.fit";
+
       return {
         ...u,
         computedStatus,
@@ -244,6 +247,7 @@ export async function GET(req: NextRequest) {
         loginCount,
         totalSessionSeconds,
         avgSessionDurationSeconds,
+        isInternalAdmin,
       };
     });
 
@@ -257,6 +261,9 @@ export async function GET(req: NextRequest) {
       const loginCount = clientUser?.loginCount || c.loginCount || 1;
       const totalSessionSeconds = clientUser?.totalSessionSeconds || c.totalSessionSeconds || clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0;
       const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
+
+      const clientEmail = (c.email || clientUser?.email || "").toLowerCase().trim();
+      const isInternalAdmin = clientEmail === "collin.shapiro1@gmail.com" || clientEmail === "collin@strkyr.fit" || clientEmail === "admin@strkyr.fit" || clientEmail === "service@strkyr.fit";
 
       return {
         id: c.id,
@@ -275,23 +282,71 @@ export async function GET(req: NextRequest) {
         loginCount,
         totalSessionSeconds,
         avgSessionDurationSeconds,
+        isInternalAdmin,
       };
     });
 
     const formattedUsers = formattedTrainers;
 
-    // Overall aggregate session metrics
-    const totalLogins = formattedTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
-                        formattedClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
-    const allActiveDurations = [
-      ...formattedTrainers.map((t) => t.avgSessionDurationSeconds || 0),
-      ...formattedClients.map((c) => c.avgSessionDurationSeconds || 0),
+    // Separate Organic Customers vs Internal Developer / Admin Accounts
+    const organicTrainers = formattedTrainers.filter((t) => !t.isInternalAdmin);
+    const organicClients = formattedClients.filter((c) => !c.isInternalAdmin);
+    const adminTrainers = formattedTrainers.filter((t) => t.isInternalAdmin);
+    const adminClients = formattedClients.filter((c) => c.isInternalAdmin);
+
+    // 1. Organic Customer Metrics (Excluding Collin's Dev Usage)
+    const organicTotalLogins = organicTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
+                               organicClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
+    const organicActiveDurations = [
+      ...organicTrainers.map((t) => t.avgSessionDurationSeconds || 0),
+      ...organicClients.map((c) => c.avgSessionDurationSeconds || 0),
     ].filter((s) => s > 0);
+    const organicAvgSessionSeconds = organicActiveDurations.length > 0
+      ? Math.round(organicActiveDurations.reduce((a, b) => a + b, 0) / organicActiveDurations.length)
+      : 0;
+    const organicTotalAppTimeSeconds = organicTrainers.reduce((acc, t) => acc + (t.totalSessionSeconds || 0), 0) +
+                                       organicClients.reduce((acc, c) => acc + (c.totalSessionSeconds || 0), 0);
+
+    // Organic DAU / MAU
+    const organicDauSet = new Set<string>();
+    recent24hWorkouts.forEach((w: any) => {
+      const isFromAdminTrainer = adminTrainers.some((at) => at.id === w.loggedById);
+      const isFromAdminClient = adminTrainers.some((at) => at.id === w.client?.userId);
+      if (w.loggedById && !isFromAdminTrainer) organicDauSet.add(w.loggedById);
+      if (w.client?.userId && !isFromAdminClient) organicDauSet.add(w.client.userId);
+    });
+    const organicDau = organicDauSet.size;
+
+    const organicMauSet = new Set<string>();
+    recent30dWorkouts.forEach((w: any) => {
+      const isFromAdminTrainer = adminTrainers.some((at) => at.id === w.loggedById);
+      const isFromAdminClient = adminTrainers.some((at) => at.id === w.client?.userId);
+      if (w.loggedById && !isFromAdminTrainer) organicMauSet.add(w.loggedById);
+      if (w.client?.userId && !isFromAdminClient) organicMauSet.add(w.client.userId);
+    });
+    const organicMau = organicMauSet.size;
+    const organicStickinessRatio = organicMau > 0 ? Math.round((organicDau / organicMau) * 100) : 0;
+
+    // 2. Internal Admin / Developer Metrics (Collin's isolated usage)
+    const adminTotalLogins = adminTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
+                             adminClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
+    const adminActiveDurations = [
+      ...adminTrainers.map((t) => t.avgSessionDurationSeconds || 0),
+      ...adminClients.map((c) => c.avgSessionDurationSeconds || 0),
+    ].filter((s) => s > 0);
+    const adminAvgSessionSeconds = adminActiveDurations.length > 0
+      ? Math.round(adminActiveDurations.reduce((a, b) => a + b, 0) / adminActiveDurations.length)
+      : 0;
+    const adminTotalAppTimeSeconds = adminTrainers.reduce((acc, t) => acc + (t.totalSessionSeconds || 0), 0) +
+                                    adminClients.reduce((acc, c) => acc + (c.totalSessionSeconds || 0), 0);
+
+    // 3. Combined Total Metrics
+    const totalLogins = organicTotalLogins + adminTotalLogins;
+    const allActiveDurations = [...organicActiveDurations, ...adminActiveDurations];
     const overallAvgSessionSeconds = allActiveDurations.length > 0
       ? Math.round(allActiveDurations.reduce((a, b) => a + b, 0) / allActiveDurations.length)
       : 0;
-    const totalAppTimeSeconds = formattedTrainers.reduce((acc, t) => acc + (t.totalSessionSeconds || 0), 0) +
-                                formattedClients.reduce((acc, c) => acc + (c.totalSessionSeconds || 0), 0);
+    const totalAppTimeSeconds = organicTotalAppTimeSeconds + adminTotalAppTimeSeconds;
 
     // Real-time Live Stripe Billing Metrics
     let stripeBilling: any = {
@@ -319,8 +374,8 @@ export async function GET(req: NextRequest) {
         let available = 0;
         let pending = 0;
         if (balance) {
-          available = balance.available.reduce((sum, b) => sum + b.amount, 0) / 100;
-          pending = balance.pending.reduce((sum, b) => sum + b.amount, 0) / 100;
+          available = balance.available.reduce((sum, b) => sum + (b.currency === "usd" ? b.amount : 0), 0) / 100;
+          pending = balance.pending.reduce((sum, b) => sum + (b.currency === "usd" ? b.amount : 0), 0) / 100;
         }
 
         let monthlyCount = 0;
@@ -328,31 +383,31 @@ export async function GET(req: NextRequest) {
         let totalMrr = 0;
 
         if (subscriptions?.data) {
-          subscriptions.data.forEach((sub) => {
-            const item = sub.items.data[0];
-            const unitAmount = item?.price?.unit_amount || 0;
+          subscriptions.data.forEach((sub: any) => {
+            const item = sub.items?.data?.[0];
             const interval = item?.price?.recurring?.interval;
+            const amount = (item?.price?.unit_amount || 0) / 100;
 
-            if (interval === "year") {
-              annualCount++;
-              totalMrr += Math.round((unitAmount / 100) / 12);
-            } else {
+            if (interval === "month") {
               monthlyCount++;
-              totalMrr += Math.round(unitAmount / 100);
+              totalMrr += amount || 19;
+            } else if (interval === "year") {
+              annualCount++;
+              totalMrr += Math.round((amount || 200) / 12);
             }
           });
         }
 
-        const recentPayoutsFormatted = (payouts?.data || []).map((p) => ({
+        const recentPayoutsFormatted = (payouts?.data || []).map((p: any) => ({
           id: p.id,
           amount: p.amount / 100,
           currency: p.currency.toUpperCase(),
           status: p.status,
           arrivalDate: new Date(p.arrival_date * 1000).toLocaleDateString(),
-          method: p.method,
+          method: p.type || "standard",
         }));
 
-        const recentTransactionsFormatted = (charges?.data || []).map((c) => ({
+        const recentTransactionsFormatted = (charges?.data || []).map((c: any) => ({
           id: c.id,
           amount: c.amount / 100,
           currency: c.currency.toUpperCase(),
@@ -391,10 +446,10 @@ export async function GET(req: NextRequest) {
         totalCompletedWorkouts: completedWorkouts,
         inProgressSessions,
         totalSetsCount,
-        dau,
+        dau: organicDau,
         wau,
-        mau,
-        stickinessRatio,
+        mau: organicMau,
+        stickinessRatio: organicStickinessRatio,
         completionRate,
         avgClientsPerTrainer,
         activeSubscriptions: stripeBilling.connected ? stripeBilling.totalPayingSubscribers : activeSubscriptions,
@@ -402,9 +457,26 @@ export async function GET(req: NextRequest) {
         expiredUsers,
         estimatedMRR,
         conversionRate,
+
+        // Platform-wide combined metrics
         totalLogins,
         overallAvgSessionSeconds,
         totalAppTimeSeconds,
+
+        // Organic Customer Metrics (Excluding Admin Dev Usage)
+        organicTrainersCount: organicTrainers.length,
+        organicClientsCount: organicClients.length,
+        organicTotalLogins,
+        organicAvgSessionSeconds,
+        organicTotalAppTimeSeconds,
+        organicDau,
+        organicMau,
+        organicStickinessRatio,
+
+        // Internal Admin & Developer Metrics (Collin's Isolated Usage)
+        adminTotalLogins,
+        adminAvgSessionSeconds,
+        adminTotalAppTimeSeconds,
       },
       stripeBilling,
       trainers: formattedTrainers,
