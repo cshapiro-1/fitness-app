@@ -1250,7 +1250,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                       title="Sync and load all newly defined stretches and exercises into database"
                     >
                       <RefreshCw size={13} />
-                      <span>🔄 Sync Full Library (27 Stretches &amp; Exercises)</span>
+                      <span>🔄 Sync Full Library (51 Stretches &amp; Exercises)</span>
                     </button>
                     <span style={{ fontSize: "13px", fontWeight: 800, color: "#16a34a", background: "#ffffff", padding: "4px 12px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
                       ✓ {anatomySummary?.approvedCount ?? 0} Approved
@@ -1367,7 +1367,14 @@ export function AdminPortal({ userName }: { userName: string }) {
                           alt={activeAnatomyItem.name}
                           style={{ width: "100%", height: "280px", objectFit: "cover", display: "block" }}
                           onError={(e) => {
-                            (e.target as any).src = "/anatomy/squat.jpg";
+                            const currentSrc = (e.target as HTMLImageElement).src;
+                            if (currentSrc.endsWith(".jpg")) {
+                              (e.target as HTMLImageElement).src = currentSrc.replace(".jpg", ".svg");
+                            } else if (currentSrc.endsWith(".svg")) {
+                              (e.target as HTMLImageElement).src = currentSrc.replace(".svg", ".jpg");
+                            } else {
+                              (e.target as HTMLImageElement).src = "/anatomy/squat.jpg";
+                            }
                           }}
                         />
 

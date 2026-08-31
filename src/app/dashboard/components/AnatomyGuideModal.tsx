@@ -97,6 +97,16 @@ export function AnatomyGuideModal({
                 src={chartData.image}
                 alt={chartData.title}
                 style={{ width: "100%", height: "auto", display: "block", objectFit: "cover" }}
+                onError={(e) => {
+                  const currentSrc = (e.target as HTMLImageElement).src;
+                  if (currentSrc.endsWith(".jpg")) {
+                    (e.target as HTMLImageElement).src = currentSrc.replace(".jpg", ".svg");
+                  } else if (currentSrc.endsWith(".svg")) {
+                    (e.target as HTMLImageElement).src = currentSrc.replace(".svg", ".jpg");
+                  } else {
+                    (e.target as HTMLImageElement).src = "/anatomy/squat.jpg";
+                  }
+                }}
               />
             </div>
 

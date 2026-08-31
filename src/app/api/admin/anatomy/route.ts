@@ -55,58 +55,55 @@ export async function GET(req: NextRequest) {
     // 1. Ensure table exists in database
     await ensureExerciseTableExists();
 
-    // 2. Intelligent Auto-seed and Sync unified library (syncs missing items and updates updated diagrams)
+    // 2. Intelligent Auto-seed and Sync unified library (always updates outdated diagram URLs)
     const shouldForceSync = req.nextUrl.searchParams.get("resync") === "true";
     try {
-      const existingCount = await prisma.exercise.count();
-      if (existingCount < INITIAL_UNIFIED_EXERCISES.length || shouldForceSync) {
-        for (const item of INITIAL_UNIFIED_EXERCISES) {
-          const generatedId = `ex-${normalizeExerciseName(item.name)}`;
-          const existing = await prisma.exercise.findUnique({
-            where: { normalizedName: item.normalizedName },
-          });
+      for (const item of INITIAL_UNIFIED_EXERCISES) {
+        const generatedId = `ex-${normalizeExerciseName(item.name)}`;
+        const existing = await prisma.exercise.findUnique({
+          where: { normalizedName: item.normalizedName },
+        });
 
-          if (!existing) {
-            // New movement: insert fresh
-            await prisma.exercise.create({
-              data: {
-                id: generatedId,
-                name: item.name,
-                normalizedName: item.normalizedName,
-                type: item.type,
-                muscleGroup: item.muscleGroup,
-                equipment: item.equipment,
-                category: item.category,
-                primaryMuscles: JSON.stringify(item.primaryMuscles),
-                secondaryMuscles: JSON.stringify(item.secondaryMuscles),
-                biomechanicsCue: item.biomechanicsCue,
-                steps: JSON.stringify(item.steps),
-                commonMistakes: JSON.stringify(item.commonMistakes),
-                breathingPattern: item.breathingPattern,
-                diagramUrl: item.diagramUrl,
-                diagramStatus: item.diagramStatus,
-                isCustom: false,
-                createdByUserRole: "SYSTEM",
-              },
-            });
-          } else {
-            // Update existing with new dedicated unique SVG diagram & cues
-            const updatePayload: any = {
-              diagramUrl: item.diagramUrl,
-              biomechanicsCue: item.biomechanicsCue,
+        if (!existing) {
+          // New movement: insert fresh
+          await prisma.exercise.create({
+            data: {
+              id: generatedId,
+              name: item.name,
+              normalizedName: item.normalizedName,
+              type: item.type,
+              muscleGroup: item.muscleGroup,
+              equipment: item.equipment,
+              category: item.category,
               primaryMuscles: JSON.stringify(item.primaryMuscles),
               secondaryMuscles: JSON.stringify(item.secondaryMuscles),
-            };
-            if (item.normalizedName === "chest_dip") {
-              updatePayload.diagramStatus = "PENDING_APPROVAL";
-              updatePayload.approvedByUserId = null;
-              updatePayload.approvedAt = null;
-            }
-            await prisma.exercise.update({
-              where: { normalizedName: item.normalizedName },
-              data: updatePayload,
-            });
+              biomechanicsCue: item.biomechanicsCue,
+              steps: JSON.stringify(item.steps),
+              commonMistakes: JSON.stringify(item.commonMistakes),
+              breathingPattern: item.breathingPattern,
+              diagramUrl: item.diagramUrl,
+              diagramStatus: item.diagramStatus,
+              isCustom: false,
+              createdByUserRole: "SYSTEM",
+            },
+          });
+        } else if (existing.diagramUrl !== item.diagramUrl || shouldForceSync) {
+          // Update existing with new dedicated unique diagram URL & cues
+          const updatePayload: any = {
+            diagramUrl: item.diagramUrl,
+            biomechanicsCue: item.biomechanicsCue,
+            primaryMuscles: JSON.stringify(item.primaryMuscles),
+            secondaryMuscles: JSON.stringify(item.secondaryMuscles),
+          };
+          if (item.normalizedName === "chest_dip") {
+            updatePayload.diagramStatus = "PENDING_APPROVAL";
+            updatePayload.approvedByUserId = null;
+            updatePayload.approvedAt = null;
           }
+          await prisma.exercise.update({
+            where: { normalizedName: item.normalizedName },
+            data: updatePayload,
+          });
         }
       }
     } catch (seedErr) {
