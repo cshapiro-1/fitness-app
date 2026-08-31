@@ -382,6 +382,55 @@ export function AdminPortal({ userName }: { userName: string }) {
     }
   };
 
+  const handleRevertAnatomyToPending = async (item: UnifiedAnatomyExercise) => {
+    setSavingAnatomyId(item.id || item.name);
+    try {
+      // Optimistically mark as pending in UI
+      setAnatomyExercises((prev) =>
+        prev.map((ex) =>
+          ex.name === item.name || ex.id === item.id
+            ? { ...ex, diagramStatus: "PENDING_APPROVAL", approvedAt: null, approvedByUserId: null }
+            : ex
+        )
+      );
+
+      const res = await fetch("/api/admin/anatomy", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          name: item.name,
+          diagramStatus: "PENDING_APPROVAL",
+        }),
+      });
+
+      if (res.ok) {
+        await fetchAnatomyData();
+      }
+    } catch {
+      alert("Failed to revert status");
+    } finally {
+      setSavingAnatomyId(null);
+    }
+  };
+
+  const handleSyncFullLibrary = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/anatomy?resync=true");
+      if (res.ok) {
+        const data = await res.json();
+        setAnatomyExercises(data.exercises || []);
+        setAnatomySummary(data.summary || null);
+        alert(`Successfully synced ${data.exercises?.length || 0} exercises and stretches!`);
+      }
+    } catch {
+      alert("Failed to sync library");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSaveAnatomyEdits = async (item: UnifiedAnatomyExercise) => {
     setSavingAnatomyId(item.id || item.name);
     try {
@@ -1095,7 +1144,29 @@ export function AdminPortal({ userName }: { userName: string }) {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={handleSyncFullLibrary}
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        background: "#7c3aed",
+                        color: "#ffffff",
+                        border: "none",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 1px 3px rgba(124,58,237,0.3)",
+                      }}
+                      title="Sync and load all newly defined stretches and exercises into database"
+                    >
+                      <RefreshCw size={13} />
+                      <span>🔄 Sync Full Library (27 Stretches &amp; Exercises)</span>
+                    </button>
                     <span style={{ fontSize: "13px", fontWeight: 800, color: "#16a34a", background: "#ffffff", padding: "4px 12px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
                       ✓ {anatomySummary?.approvedCount ?? 0} Approved
                     </span>
@@ -1291,13 +1362,14 @@ export function AdminPortal({ userName }: { userName: string }) {
                       </div>
 
                       {/* Action Approval Bar */}
-                      <div style={{ display: "flex", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+                      <div style={{ display: "flex", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "16px", flexWrap: "wrap" }}>
                         <button
                           type="button"
                           onClick={() => handleApproveAnatomy(activeAnatomyItem)}
-                          disabled={savingAnatomyId === activeAnatomyItem.id}
+                          disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
                           style={{
                             flex: 2,
+                            minWidth: "200px",
                             padding: "10px 18px",
                             fontSize: "13px",
                             fontWeight: 800,
@@ -1317,12 +1389,39 @@ export function AdminPortal({ userName }: { userName: string }) {
                           <span>{activeAnatomyItem.diagramStatus === "APPROVED" ? "✓ Approved (Re-Save & Next)" : "✓ Approve Anatomy Diagram & Proceed"}</span>
                         </button>
 
+                        {activeAnatomyItem.diagramStatus === "APPROVED" && (
+                          <button
+                            type="button"
+                            onClick={() => handleRevertAnatomyToPending(activeAnatomyItem)}
+                            disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
+                            style={{
+                              padding: "10px 14px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              background: "#fffbeb",
+                              color: "#d97706",
+                              border: "1px solid #fde68a",
+                              borderRadius: "8px",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "6px",
+                            }}
+                            title="Revert diagram back to pending approval state"
+                          >
+                            <RotateCcw size={14} />
+                            <span>↩ Revert to Pending</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => handleSaveAnatomyEdits(activeAnatomyItem)}
-                          disabled={savingAnatomyId === activeAnatomyItem.id}
+                          disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
                           style={{
                             flex: 1,
+                            minWidth: "120px",
                             padding: "10px 14px",
                             fontSize: "12px",
                             fontWeight: 700,

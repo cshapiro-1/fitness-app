@@ -148,6 +148,46 @@ describe("Master Admin Anatomy Studio & 1-by-1 Approval System", () => {
         })
       );
     });
+
+    it("should allow admin to revert an accidentally approved diagram back to PENDING_APPROVAL", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "admin-collin", email: "collin.shapiro1@gmail.com" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "admin-collin",
+        isAdmin: true,
+      } as any);
+
+      vi.mocked(prisma.exercise.update).mockResolvedValue({
+        id: "ex-chest-dip",
+        name: "Chest Dip",
+        diagramStatus: "PENDING_APPROVAL",
+      } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/admin/anatomy", {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: "ex-chest-dip",
+          name: "Chest Dip",
+          diagramStatus: "PENDING_APPROVAL",
+        }),
+      });
+
+      const res = await adminAnatomyPATCH(req);
+      expect(res.status).toBe(200);
+
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(prisma.exercise.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "ex-chest-dip" },
+          data: expect.objectContaining({
+            diagramStatus: "PENDING_APPROVAL",
+          }),
+        })
+      );
+    });
   });
 
   describe("POST /api/admin/anatomy/generate", () => {
