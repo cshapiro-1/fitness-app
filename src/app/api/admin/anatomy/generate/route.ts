@@ -226,41 +226,45 @@ export async function POST(req: NextRequest) {
 
     let generatedAiUrl: string | null = null;
 
-    // 1. Try Google Imagen 3 (Nano Banana / Gemini) using existing Gemini key
+    // 1. Try Google Nano Banana / Imagen 3 using Gemini key
     if (geminiApiKey && !generatedAiUrl) {
-      const models = [
-        "imagen-3.0-generate-002",
-        "imagen-3.0-fast-generate-001"
+      const contentModels = [
+        "nano-banana-pro-preview",
+        "gemini-3-pro-image",
+        "gemini-3.1-flash-image",
+        "gemini-2.5-flash-image"
       ];
 
-      for (const model of models) {
+      for (const model of contentModels) {
         try {
-          const geminiRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${geminiApiKey}`,
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                instances: [{ prompt: aiPrompt }],
-                parameters: {
-                  sampleCount: 1,
-                  aspectRatio: "1:1",
-                  outputOptions: { mimeType: "image/jpeg" },
-                },
+                contents: [{ parts: [{ text: aiPrompt }] }]
               }),
             }
           );
 
-          if (geminiRes.ok) {
-            const geminiJson = await geminiRes.json();
-            const b64 = geminiJson.predictions?.[0]?.bytesBase64Encoded;
-            if (b64) {
-              generatedAiUrl = `data:image/jpeg;base64,${b64}`;
-              break;
+          if (res.ok) {
+            const data = await res.json();
+            const candidates = data.candidates || [];
+            for (const cand of candidates) {
+              const parts = cand.content?.parts || [];
+              for (const part of parts) {
+                if (part.inlineData?.data) {
+                  generatedAiUrl = `data:image/jpeg;base64,${part.inlineData.data}`;
+                  break;
+                }
+              }
+              if (generatedAiUrl) break;
             }
+            if (generatedAiUrl) break;
           }
-        } catch (geminiErr) {
-          console.error(`Gemini Imagen ${model} error:`, geminiErr);
+        } catch (err) {
+          console.error(`Gemini generateContent ${model} error:`, err);
         }
       }
     }

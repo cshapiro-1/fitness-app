@@ -82,7 +82,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Excessive arching that turns incline into a flat press.",
     ],
     breathingPattern: "Inhale on descent → Exhale as bar passes sticking point.",
-    diagramUrl: "/anatomy/incline_bench.svg",
+    diagramUrl: "/anatomy/incline_bench.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -105,7 +105,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Wrists collapsing backward.",
     ],
     breathingPattern: "Inhale down into deep chest stretch → Exhale as you press up.",
-    diagramUrl: "/anatomy/flat_dumbbell_press.svg",
+    diagramUrl: "/anatomy/flat_dumbbell_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -128,7 +128,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Head jutting forward to fake depth.",
     ],
     breathingPattern: "Inhale on lowering → Exhale as you push up.",
-    diagramUrl: "/anatomy/push_up.svg",
+    diagramUrl: "/anatomy/push_up.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -205,7 +205,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pulling to clavicle instead of navel.",
     ],
     breathingPattern: "Inhale at bottom stretch → Exhale as you pull bar to torso.",
-    diagramUrl: "/anatomy/barbell_row.svg",
+    diagramUrl: "/anatomy/barbell_row.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -229,7 +229,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pulling bar behind the neck.",
     ],
     breathingPattern: "Inhale at overhead stretch → Exhale as you pull to chest.",
-    diagramUrl: "/anatomy/lat_pulldown.svg",
+    diagramUrl: "/anatomy/lat_pulldown.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -253,7 +253,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Cutting range of motion at bottom or top.",
     ],
     breathingPattern: "Inhale at bottom hang → Exhale as you pull chin over bar.",
-    diagramUrl: "/anatomy/pull_up.svg",
+    diagramUrl: "/anatomy/pull_up.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -268,16 +268,16 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
     biomechanicsCue: "Set cable at eye level. Pull center of rope to bridge of nose while externally rotating thumbs back.",
     steps: [
       "Attach rope to eye-level cable with overhand/neutral thumbs-back grip.",
-      "Step back for tension, pull rope toward forehead while separating hands outward.",
-      "Hold external rotation squeeze for 1 second.",
-      "Control cable back to straight arm stretch.",
+      "Step back into split stance with slight torso lean.",
+      "Pull rope apart and toward bridge of nose, driving knuckles back.",
+      "Hold contraction for 1 second before extending arms.",
     ],
     commonMistakes: [
-      "Pulling downward to neck instead of outward to forehead.",
-      "Using heavy momentum and hyperextending lower back.",
+      "Using heavy momentum / arching lower back.",
+      "Leading with elbows down instead of flared high and back.",
     ],
-    breathingPattern: "Inhale at reach → Exhale as hands pull back to ears.",
-    diagramUrl: "/anatomy/face_pull.svg",
+    breathingPattern: "Inhale on extension → Exhale as you pull rope to face.",
+    diagramUrl: "/anatomy/face_pull.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -328,7 +328,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Front heel lifting off floor.",
     ],
     breathingPattern: "Inhale on descent → Exhale as you drive through front foot.",
-    diagramUrl: "/anatomy/bulgarian_split_squat.svg",
+    diagramUrl: "/anatomy/bulgarian_split_squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -352,7 +352,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Butt lifting off the seat on heavy reps.",
     ],
     breathingPattern: "Inhale at bottom → Exhale as you extend legs to lockout.",
-    diagramUrl: "/anatomy/leg_extension.svg",
+    diagramUrl: "/anatomy/leg_extension.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -376,7 +376,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Allowing weight stack to slam at bottom.",
     ],
     breathingPattern: "Inhale on eccentric descent → Exhale on curling heels to glutes.",
-    diagramUrl: "/anatomy/leg_curl.svg",
+    diagramUrl: "/anatomy/leg_curl.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -400,7 +400,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Bending knees during standing raises (shifts load away from gastrocnemius).",
     ],
     breathingPattern: "Inhale on bottom stretch → Exhale as you rise onto toes.",
-    diagramUrl: "/anatomy/standing_calf_raise.svg",
+    diagramUrl: "/anatomy/standing_calf_raise.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -424,7 +424,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Feet placed too far forward or too close to hips.",
     ],
     breathingPattern: "Inhale on lowering → Exhale as you thrust hips upward.",
-    diagramUrl: "/anatomy/hip_thrust.svg",
+    diagramUrl: "/anatomy/hip_thrust.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -449,7 +449,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rounding lumbar spine.",
     ],
     breathingPattern: "Inhale on hip hinge descent → Exhale as hips drive through to top.",
-    diagramUrl: "/anatomy/romanian_deadlift.svg",
+    diagramUrl: "/anatomy/romanian_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -477,7 +477,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pressing bar forward in an arc rather than straight up.",
     ],
     breathingPattern: "Inhale at clavicle → Exhale as bar reaches overhead lockout.",
-    diagramUrl: "/anatomy/overhead_press.svg",
+    diagramUrl: "/anatomy/overhead_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -501,7 +501,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Shrugging upper traps to lift the dumbbells.",
     ],
     breathingPattern: "Inhale at bottom → Exhale as arms raise to shoulder height.",
-    diagramUrl: "/anatomy/lateral_raise.svg",
+    diagramUrl: "/anatomy/lateral_raise.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -525,7 +525,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Allowing elbows to drift far forward.",
     ],
     breathingPattern: "Inhale on descent → Exhale as bar curls up.",
-    diagramUrl: "/anatomy/bicep_curl.svg",
+    diagramUrl: "/anatomy/bicep_curl.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -549,7 +549,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Using shoulder momentum.",
     ],
     breathingPattern: "Inhale down → Exhale curling up.",
-    diagramUrl: "/anatomy/hammer_curl.svg",
+    diagramUrl: "/anatomy/hammer_curl.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -573,7 +573,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Letting shoulders roll forward to press with bodyweight.",
     ],
     breathingPattern: "Inhale on bend → Exhale on extension lockout.",
-    diagramUrl: "/anatomy/tricep_pushdown.svg",
+    diagramUrl: "/anatomy/tricep_pushdown.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -601,7 +601,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Holding breath (maintain steady diaphragmatic breathing).",
     ],
     breathingPattern: "Steady rhythmic nose inhalations and pursed lip exhalations while maintaining 360° abdominal brace.",
-    diagramUrl: "/anatomy/plank.svg",
+    diagramUrl: "/anatomy/plank.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -625,7 +625,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Jerking head backward.",
     ],
     breathingPattern: "Inhale on descent → Exhale as you extend spine to neutral.",
-    diagramUrl: "/anatomy/back_hyperextension.svg",
+    diagramUrl: "/anatomy/back_hyperextension.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -649,7 +649,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Jerking head or pulling neck.",
     ],
     breathingPattern: "Inhale on lateral descent stretch → Exhale as you contract obliques and QL to parallel.",
-    diagramUrl: "/anatomy/ql_extension.svg",
+    diagramUrl: "/anatomy/ql_extension.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -703,7 +703,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Arching lower back excessively.",
     ],
     breathingPattern: "Inhale as band passes overhead → Exhale as band lowers behind back.",
-    diagramUrl: "/anatomy/band_pass_throughs.svg",
+    diagramUrl: "/anatomy/band_pass_throughs.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -729,7 +729,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Holding breath during deep lateral stretch.",
     ],
     breathingPattern: "Deep nasal inhale expanding ribcage → Long relaxing exhale sinking hips deeper.",
-    diagramUrl: "/anatomy/lat_stretch.svg",
+    diagramUrl: "/anatomy/lat_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -753,7 +753,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Tensing shoulders up into neck.",
     ],
     breathingPattern: "Slow diaphragmatic inhalations filling lower back → Relaxing exhalations sinking into floor.",
-    diagramUrl: "/anatomy/childs_pose.svg",
+    diagramUrl: "/anatomy/childs_pose.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -777,7 +777,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Letting opposite shoulder shrug up.",
     ],
     breathingPattern: "Slow steady nasal breathing throughout.",
-    diagramUrl: "/anatomy/neck_trap_stretch.svg",
+    diagramUrl: "/anatomy/neck_trap_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -801,7 +801,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rushing repetitions without breath synchronization.",
     ],
     breathingPattern: "Inhale on Cow (extension) → Exhale forcefully on Cat (flexion).",
-    diagramUrl: "/anatomy/cat_cow.svg",
+    diagramUrl: "/anatomy/cat_cow.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -825,7 +825,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pulling neck with hands.",
     ],
     breathingPattern: "Slow, rhythmic deep breathing throughout rolling.",
-    diagramUrl: "/anatomy/foam_roll_thoracic.svg",
+    diagramUrl: "/anatomy/foam_roll_thoracic.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -849,7 +849,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Collapsing neck.",
     ],
     breathingPattern: "Inhale to set position → Exhale as shoulder melts into mat.",
-    diagramUrl: "/anatomy/thread_the_needle.svg",
+    diagramUrl: "/anatomy/thread_the_needle.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -899,7 +899,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Excessive lumbar arching.",
     ],
     breathingPattern: "Steady rhythmic breathing throughout.",
-    diagramUrl: "/anatomy/standing_quad_stretch.svg",
+    diagramUrl: "/anatomy/standing_quad_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -923,7 +923,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Forcing painful hip joint compression.",
     ],
     breathingPattern: "Slow deep nasal inhalations → Relaxing out-breaths sinking hips backward.",
-    diagramUrl: "/anatomy/frog_stretch.svg",
+    diagramUrl: "/anatomy/frog_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -973,7 +973,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Twisting pelvis to one side.",
     ],
     breathingPattern: "Inhale relax → Exhale gently drawing thigh closer.",
-    diagramUrl: "/anatomy/figure4_stretch.svg",
+    diagramUrl: "/anatomy/figure4_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -997,7 +997,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Slumping weight entirely to one side.",
     ],
     breathingPattern: "Inhale tall → Exhale folding over front shin.",
-    diagramUrl: "/anatomy/hip_90_90.svg",
+    diagramUrl: "/anatomy/hip_90_90.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1021,7 +1021,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Straining neck by looking forward.",
     ],
     breathingPattern: "Inhale to lengthen spine → Exhale to fold deeper toward thighs.",
-    diagramUrl: "/anatomy/hamstring_fold.svg",
+    diagramUrl: "/anatomy/hamstring_fold.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1045,7 +1045,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Hunching upper back.",
     ],
     breathingPattern: "Deep nasal inhalations lengthening spine → Exhalations opening groin.",
-    diagramUrl: "/anatomy/butterfly_stretch.svg",
+    diagramUrl: "/anatomy/butterfly_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1069,7 +1069,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Turning back toes outward.",
     ],
     breathingPattern: "Steady rhythmic breathing throughout.",
-    diagramUrl: "/anatomy/calf_stretch.svg",
+    diagramUrl: "/anatomy/calf_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -1095,7 +1095,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Twisting torso to follow the arm.",
     ],
     breathingPattern: "Inhale tall → Exhale drawing arm closer to chest.",
-    diagramUrl: "/anatomy/shoulder_crossbody.svg",
+    diagramUrl: "/anatomy/shoulder_crossbody.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1119,7 +1119,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rolling shoulder blade off the floor.",
     ],
     breathingPattern: "Slow gentle breathing throughout.",
-    diagramUrl: "/anatomy/sleeper_stretch.svg",
+    diagramUrl: "/anatomy/sleeper_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -1144,7 +1144,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pushing head forward.",
     ],
     breathingPattern: "Inhale lengthen spine → Exhale deepening tricep stretch.",
-    diagramUrl: "/anatomy/tricep_stretch.svg",
+    diagramUrl: "/anatomy/tricep_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1168,7 +1168,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Bending elbow on wall.",
     ],
     breathingPattern: "Deep rhythmic breathing throughout.",
-    diagramUrl: "/anatomy/bicep_stretch.svg",
+    diagramUrl: "/anatomy/bicep_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1192,7 +1192,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Applying excessive bodyweight suddenly.",
     ],
     breathingPattern: "Gentle diaphragmatic breathing.",
-    diagramUrl: "/anatomy/wrist_mobility.svg",
+    diagramUrl: "/anatomy/wrist_mobility.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -1218,7 +1218,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Compressing lumbar spine abruptly.",
     ],
     breathingPattern: "Inhale into abdominal wall → Exhale relaxing shoulders down.",
-    diagramUrl: "/anatomy/cobra_stretch.svg",
+    diagramUrl: "/anatomy/cobra_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1242,7 +1242,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Collapsing chest.",
     ],
     breathingPattern: "Inhale expanding lateral ribcage and flank → Exhale deepening side bend.",
-    diagramUrl: "/anatomy/ql_stretch.svg",
+    diagramUrl: "/anatomy/ql_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1266,7 +1266,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Forcing knee down with excessive hand pressure.",
     ],
     breathingPattern: "Inhale lengthen spine → Exhale allowing knee and shoulder to melt into floor.",
-    diagramUrl: "/anatomy/supine_twist.svg",
+    diagramUrl: "/anatomy/supine_twist.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1290,7 +1290,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rotating through lower back rather than thoracic spine.",
     ],
     breathingPattern: "Inhale on elbow dip → Exhale on overhead thoracic reach.",
-    diagramUrl: "/anatomy/worlds_greatest.svg",
+    diagramUrl: "/anatomy/worlds_greatest.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 ];
