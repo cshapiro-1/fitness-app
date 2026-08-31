@@ -679,7 +679,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Arching lower back instead of opening chest.",
     ],
     breathingPattern: "Inhale tall through spine → Exhale as chest relaxes deeper into doorway stretch.",
-    diagramUrl: "/anatomy/chest_doorway_stretch.svg",
+    diagramUrl: "/anatomy/chest_doorway_stretch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
