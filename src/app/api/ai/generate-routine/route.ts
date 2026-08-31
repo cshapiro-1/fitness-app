@@ -70,6 +70,7 @@ const TEMPLATES: Record<string, Record<string, GeneratedExercise[]>> = {
 };
 
 import { checkRateLimit, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
+import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 
 export async function POST(req: NextRequest) {
   try {
@@ -78,12 +79,10 @@ export async function POST(req: NextRequest) {
       return rateCheck.response;
     }
 
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Optional session - allow guest previews and authenticated users alike
+    const session = await getServerSession(authOptions).catch(() => null);
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
 
     if (body.sessionType === "MOBILITY") {
       const {

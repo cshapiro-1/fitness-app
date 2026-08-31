@@ -522,6 +522,36 @@ export async function POST(req: NextRequest) {
     const norm = exerciseName.toLowerCase();
     const cleanNorm = norm.replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
 
+    // 0. Instant Lookup in Master Unified Exercise & Stretch Library (80 Movements)
+    const { INITIAL_UNIFIED_EXERCISES } = await import("@/lib/unifiedExerciseLibrary");
+    const unifiedMatch = INITIAL_UNIFIED_EXERCISES.find(
+      (e) =>
+        e.normalizedName === cleanNorm ||
+        e.name.toLowerCase() === norm ||
+        e.name.toLowerCase().includes(norm) ||
+        norm.includes(e.name.toLowerCase()) ||
+        e.normalizedName.includes(cleanNorm)
+    );
+
+    if (unifiedMatch) {
+      return NextResponse.json({
+        success: true,
+        exerciseName: unifiedMatch.name,
+        chart: {
+          image: unifiedMatch.diagramUrl || "/anatomy/squat.jpg",
+          title: `${unifiedMatch.name} (${unifiedMatch.type === "STRETCH" ? "Mobility & Stretch Guide" : "Visual Anatomy Guide"})`,
+          primaryMuscles: unifiedMatch.primaryMuscles.length > 0 ? unifiedMatch.primaryMuscles : [unifiedMatch.muscleGroup],
+          secondaryMuscles: unifiedMatch.secondaryMuscles,
+          biomechanicsCue: unifiedMatch.biomechanicsCue || "Maintain strict posture, align joints with line of force, and control the range of motion.",
+          steps: unifiedMatch.steps.length > 0 ? unifiedMatch.steps : ["Execute with controlled tempo and full range of motion."],
+          commonMistakes: unifiedMatch.commonMistakes.length > 0 ? unifiedMatch.commonMistakes : ["Using momentum or breaking neutral posture."],
+          breathingPattern: unifiedMatch.breathingPattern || "Breathe rhythmically with eccentric and concentric phases.",
+          diagramStatus: unifiedMatch.diagramStatus,
+          queryName: exerciseName,
+        },
+      });
+    }
+
     // 1. Check if we have a persisted Exercise in DB with validated diagram
     try {
       const { prisma } = await import("@/lib/prisma");

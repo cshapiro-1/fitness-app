@@ -74,7 +74,7 @@ describe("Anatomy & Kinesiology Visual Guide API", () => {
 
     const json = await res.json();
     expect(json.success).toBe(true);
-    expect(json.chart.image).toBe("/anatomy/bulgarian_split_squat.svg");
+    expect(json.chart.image).toBe("/anatomy/bulgarian_split_squat.jpg");
     expect(json.chart.title).toContain("Bulgarian Split Squat");
   });
 

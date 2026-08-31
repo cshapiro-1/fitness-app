@@ -111,4 +111,25 @@ describe("AI Workout Generator API", () => {
     expect(exNames.some((n: string) => n.includes("squat"))).toBe(true);
     expect(exNames.some((n: string) => n.includes("rdl") || n.includes("deadlift"))).toBe(true);
   });
+
+  it("should allow guest / unauthenticated users to generate a recovery routine seamlessly", async () => {
+    const req = new NextRequest("http://localhost:3000/api/ai/generate-routine", {
+      method: "POST",
+      body: JSON.stringify({
+        sessionType: "MOBILITY",
+        muscleGroups: ["Full Body"],
+        routineType: "recovery",
+        durationMinutes: 15,
+        perStretchSeconds: 60,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.routine.name).toContain("Recovery");
+    expect(json.routine.movements.length).toBe(15);
+  });
 });
