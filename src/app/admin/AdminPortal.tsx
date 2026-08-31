@@ -93,7 +93,7 @@ interface StripeBillingData {
 }
 
 function formatSessionDuration(seconds?: number | null): string {
-  if (seconds === undefined || seconds === null || seconds <= 0) return "< 1 min";
+  if (seconds === undefined || seconds === null || seconds <= 0) return "-";
   if (seconds < 60) return `${seconds}s`;
   const mins = Math.floor(seconds / 60);
   const remainingSecs = seconds % 60;
@@ -105,7 +105,7 @@ function formatSessionDuration(seconds?: number | null): string {
   return `${hours}h ${remainingMins}m`;
 }
 
-function formatRelativeTime(dateStr?: string | null): { text: string; full: string; isRecent: boolean } {
+function formatRelativeTime(dateStr?: string | null, seconds?: number | null): { text: string; full: string; isRecent: boolean } {
   if (!dateStr) return { text: "Never", full: "No recorded activity", isRecent: false };
   const date = new Date(dateStr);
   const full = date.toLocaleString();
@@ -113,15 +113,17 @@ function formatRelativeTime(dateStr?: string | null): { text: string; full: stri
   if (isNaN(diffMs)) return { text: "Unknown", full: "Invalid Date", isRecent: false };
 
   const diffSecs = Math.floor(diffMs / 1000);
-  if (diffSecs < 60) return { text: "Active now", full, isRecent: true };
+  const hasSession = (seconds || 0) > 0;
+
+  if (diffSecs < 120 && hasSession) return { text: "Active now", full, isRecent: true };
   const diffMins = Math.floor(diffSecs / 60);
-  if (diffMins < 60) return { text: `${diffMins}m ago`, full, isRecent: diffMins <= 15 };
+  if (diffMins < 60) return { text: `${diffMins}m ago`, full, isRecent: diffMins <= 5 && hasSession };
   const diffHours = Math.floor(diffMins / 60);
   if (diffHours < 24) return { text: `${diffHours}h ago`, full, isRecent: false };
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays === 1) return { text: "Yesterday", full, isRecent: false };
   if (diffDays < 7) return { text: `${diffDays}d ago`, full, isRecent: false };
-  return { text: date.toLocaleDateString(), full, isRecent: false };
+  return { text: date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }), full, isRecent: false };
 }
 
 export function AdminPortal({ userName }: { userName: string }) {
@@ -483,7 +485,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                     </tr>
                   ) : (
                     filteredTrainers.map((t) => {
-                      const rel = formatRelativeTime(t.lastActiveAt || t.lastLoginAt);
+                      const rel = formatRelativeTime(t.lastActiveAt || t.lastLoginAt, t.lastSessionDurationSeconds);
                       const durationStr = formatSessionDuration(t.lastSessionDurationSeconds);
 
                       return (
@@ -631,7 +633,7 @@ export function AdminPortal({ userName }: { userName: string }) {
                     </tr>
                   ) : (
                     filteredClients.map((c) => {
-                      const rel = formatRelativeTime(c.lastActiveAt || c.lastLoginAt);
+                      const rel = formatRelativeTime(c.lastActiveAt || c.lastLoginAt, c.lastSessionDurationSeconds);
                       const durationStr = formatSessionDuration(c.lastSessionDurationSeconds);
 
                       return (
