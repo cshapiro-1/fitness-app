@@ -3,6 +3,16 @@ const path = require('path');
 
 const publicAnatomyDir = path.join(__dirname, '..', 'public', 'anatomy');
 
+function escapeXml(unsafe) {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 function createMedicalDiagramSvg({
   title,
   subtitle,
@@ -14,6 +24,11 @@ function createMedicalDiagramSvg({
   synergistMuscleGlow,
   jointAngleOverlay
 }) {
+  const safeTitle = escapeXml(title.toUpperCase());
+  const safeSubtitle = escapeXml(subtitle);
+  const safePrimary = escapeXml(primaryTarget.toUpperCase());
+  const safeSynergist = escapeXml(synergistTarget);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 640" width="100%" height="100%" style="background: radial-gradient(circle at 45% 45%, #131d31 0%, #080c14 100%); font-family: system-ui, -apple-system, sans-serif;">
   <defs>
     <!-- Multi-stage Glow Filters -->
@@ -74,8 +89,8 @@ function createMedicalDiagramSvg({
   <g transform="translate(36, 32)">
     <rect width="480" height="52" rx="10" fill="#0b1120" stroke="#1e293b" stroke-width="1.5" filter="url(#card-shadow)"/>
     <circle cx="24" cy="26" r="7" fill="#38bdf8" filter="url(#primary-intense-glow)"/>
-    <text x="44" y="24" fill="#ffffff" font-size="14" font-weight="800" letter-spacing="0.5">${title.toUpperCase()}</text>
-    <text x="44" y="42" fill="#94a3b8" font-size="11" font-weight="600">${subtitle}</text>
+    <text x="44" y="24" fill="#ffffff" font-size="14" font-weight="800" letter-spacing="0.5">${safeTitle}</text>
+    <text x="44" y="42" fill="#94a3b8" font-size="11" font-weight="600">${safeSubtitle}</text>
     <rect x="360" y="14" width="105" height="24" rx="6" fill="#1e293b" stroke="#334155"/>
     <text x="412" y="30" fill="#38bdf8" font-size="10" font-weight="800" text-anchor="middle">3D ANATOMY</text>
   </g>
@@ -107,19 +122,19 @@ function createMedicalDiagramSvg({
     <!-- Header Indicator -->
     <rect x="16" y="16" width="272" height="28" rx="6" fill="#1e293b"/>
     <circle cx="28" cy="30" r="5" fill="#38bdf8"/>
-    <text x="40" y="34" fill="#38bdf8" font-size="11" font-weight="800">PRIMARY: ${primaryTarget.toUpperCase()}</text>
+    <text x="40" y="34" fill="#38bdf8" font-size="11" font-weight="800">PRIMARY: ${safePrimary}</text>
 
     <!-- Synergist Indicator -->
     <rect x="16" y="50" width="272" height="24" rx="6" fill="#182030"/>
     <circle cx="28" cy="62" r="4" fill="#f59e0b"/>
-    <text x="40" y="66" fill="#f59e0b" font-size="10" font-weight="700">SYNERGISTS: ${synergistTarget}</text>
+    <text x="40" y="66" fill="#f59e0b" font-size="10" font-weight="700">SYNERGISTS: ${safeSynergist}</text>
 
     <!-- Biomechanics Coaching Points -->
     <text x="16" y="94" fill="#64748b" font-size="10" font-weight="800" letter-spacing="0.5">COACHING CUES &amp; KINEMATICS</text>
     ${cues.map((c, i) => `
     <g transform="translate(16, ${110 + i * 26})">
       <circle cx="6" cy="6" r="2.5" fill="#38bdf8"/>
-      <text x="16" y="10" fill="#f1f5f9" font-size="11" font-weight="600">${c}</text>
+      <text x="16" y="10" fill="#f1f5f9" font-size="11" font-weight="600">${escapeXml(c)}</text>
     </g>`).join('')}
   </g>
 </svg>`;
@@ -934,6 +949,470 @@ const allRenders = {
     primaryMuscleGlow: `
       <path d="M 310 405 L 240 445" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
       <path d="M 370 405 L 440 445" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 32. Figure 4 Glute Stretch
+  'figure4_stretch.svg': {
+    title: "Figure 4 Glute & Piriformis Stretch",
+    subtitle: "Deep Hip Rotator & Gluteus Medius Release",
+    primaryTarget: "Piriformis & Gluteus Medius",
+    synergistTarget: "Gluteus Maximus, Tensor Fasciae Latae",
+    cues: [
+      "Cross ankle over opposite knee into 4-shape",
+      "Pull supporting thigh gently to chest",
+      "Keep tailbone down flat on mat"
+    ],
+    anatomyFigure: `
+      <circle cx="210" cy="400" r="22" fill="url(#flesh-base)"/>
+      <path d="M 230 420 L 340 420 L 350 480" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <path d="M 330 420 L 290 360 L 360 360" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="340" cy="420" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 315 400 Q 360 380 345 440 Z" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 33. 90/90 Hip Mobility Flow
+  'hip_90_90.svg': {
+    title: "90/90 Hip Internal & External Rotation Flow",
+    subtitle: "Multi-Planar Hip Joint Capsule Mobility",
+    primaryTarget: "Hip Internal & External Rotators",
+    synergistTarget: "Gluteus Medius, Adductors, Piriformis",
+    cues: [
+      "Both knees bent strictly at 90° angles",
+      "Sit tall with neutral pelvis & spine",
+      "Hinge over front shin, then rotate across"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="240" r="24" fill="url(#flesh-base)"/>
+      <path d="M 330 270 L 330 380" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 330 380 L 250 420 L 250 490" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <path d="M 330 380 L 410 420 L 480 420" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="410" cy="410" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <ellipse cx="330" cy="380" rx="30" ry="20" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 34. Standing Hamstring Fold
+  'hamstring_fold.svg': {
+    title: "Standing Hamstring Forward Fold",
+    subtitle: "Posterior Chain & Hamstring Lengthening",
+    primaryTarget: "Hamstrings (Semitendinosus & Biceps Femoris)",
+    synergistTarget: "Gastrocnemius, Erector Spinae",
+    cues: [
+      "Hinge at hips with soft unlocked knees",
+      "Reach crown of head toward floor",
+      "Lengthen sit-bones toward ceiling"
+    ],
+    anatomyFigure: `
+      <circle cx="330" cy="450" r="22" fill="url(#flesh-base)"/>
+      <path d="M 330 430 L 330 330 L 360 480 L 360 550" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 360 480 L 360 540" stroke="url(#synergist-fibers)" stroke-width="10"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 335 340 L 360 460" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 35. Seated Butterfly Stretch
+  'butterfly_stretch.svg': {
+    title: "Seated Butterfly Adductor Stretch",
+    subtitle: "Inner Thigh & Groin Flexibility",
+    primaryTarget: "Adductor Brevis, Longus & Pectineus",
+    synergistTarget: "Gracilis, Pelvic Floor",
+    cues: [
+      "Soles of feet together, knees dropped out",
+      "Sit upright on sit bones",
+      "Gently press knees toward floor with breath"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="250" r="24" fill="url(#flesh-base)"/>
+      <path d="M 340 280 L 340 380" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 340 380 L 250 420 L 340 450" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <path d="M 340 380 L 430 420 L 340 450" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="340" cy="440" r="12" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 320 385 L 265 420" stroke="url(#primary-fibers)" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 360 385 L 415 420" stroke="url(#primary-fibers)" stroke-width="16" stroke-linecap="round"/>
+    `
+  },
+
+  // 36. Calf Wall Stretch
+  'calf_stretch.svg': {
+    title: "Calf Wall Stretch (Gastrocnemius & Soleus)",
+    subtitle: "Ankle Dorsiflexion & Achilles Decompression",
+    primaryTarget: "Gastrocnemius & Soleus",
+    synergistTarget: "Achilles Tendon, Plantar Fascia",
+    cues: [
+      "Rear heel flat on floor with straight knee",
+      "Hands on wall, lean hips forward",
+      "Feel stretch in upper and lower calf"
+    ],
+    anatomyFigure: `
+      <line x1="480" y1="120" x2="480" y2="540" stroke="#475569" stroke-width="16"/>
+      <circle cx="320" cy="220" r="24" fill="url(#flesh-base)"/>
+      <path d="M 330 250 L 460 270" stroke="url(#flesh-base)" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 310 320 L 380 420 L 380 540" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+      <path d="M 310 320 L 230 440 L 210 540" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 215 500 L 210 535" stroke="url(#synergist-fibers)" stroke-width="10"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 240 435 Q 215 470 220 510 Z" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 37. Cross-Body Shoulder Stretch
+  'shoulder_crossbody.svg': {
+    title: "Cross-Body Posterior Deltoid Stretch",
+    subtitle: "Posterior Shoulder Capsule & Infraspinatus Opening",
+    primaryTarget: "Posterior Deltoid & Infraspinatus",
+    synergistTarget: "Rhomboids, Middle Trapezius",
+    cues: [
+      "Draw arm horizontally across chest",
+      "Use opposite forearm to gently hug arm in",
+      "Keep stretching shoulder down from ear"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="220" r="26" fill="url(#flesh-base)"/>
+      <path d="M 320 250 L 360 250 L 350 450 L 330 450 Z" fill="url(#flesh-base)"/>
+      <path d="M 360 260 L 250 280" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round"/>
+      <path d="M 310 260 L 280 340 L 280 270" stroke="#475569" stroke-width="16" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="330" cy="250" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <circle cx="370" cy="260" r="18" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 38. Sleeper Rotator Cuff Stretch
+  'sleeper_stretch.svg': {
+    title: "Sleeper Rotator Cuff Internal Rotation",
+    subtitle: "Infraspinatus & Teres Minor Posterior Capsule",
+    primaryTarget: "Infraspinatus & Teres Minor",
+    synergistTarget: "Posterior Glenohumeral Capsule",
+    cues: [
+      "Side-lying with arm at 90° to torso",
+      "Gently guide wrist downward toward floor",
+      "Stop at gentle stretch without pinching"
+    ],
+    anatomyFigure: `
+      <circle cx="240" cy="380" r="22" fill="url(#flesh-base)"/>
+      <path d="M 260 400 L 420 400" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round"/>
+      <path d="M 300 400 L 300 320 L 360 320" stroke="url(#flesh-base)" stroke-width="16" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="285" cy="400" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <circle cx="295" cy="385" r="16" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 39. Overhead Triceps Stretch
+  'tricep_stretch.svg': {
+    title: "Overhead Triceps & Lat Stretch",
+    subtitle: "Triceps Long Head & Latissimus Dorsi Lengthening",
+    primaryTarget: "Triceps Brachii (Long Head)",
+    synergistTarget: "Latissimus Dorsi, Teres Major",
+    cues: [
+      "Reach elbow toward ceiling, hand behind neck",
+      "Gently guide elbow back with opposite hand",
+      "Keep core braced without arching low back"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="220" r="26" fill="url(#flesh-base)"/>
+      <path d="M 320 250 L 360 250 L 350 450 L 330 450 Z" fill="url(#flesh-base)"/>
+      <path d="M 360 260 L 360 140 L 330 180" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 350 270 L 350 350" stroke="url(#synergist-fibers)" stroke-width="14"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 360 160 L 360 240" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 40. Biceps Wall Stretch
+  'bicep_stretch.svg': {
+    title: "Biceps & Anterior Shoulder Wall Stretch",
+    subtitle: "Biceps Brachii & Bicipital Groove Decompression",
+    primaryTarget: "Biceps Brachii & Brachialis",
+    synergistTarget: "Anterior Deltoid, Pectoralis Major",
+    cues: [
+      "Palm flat against wall with thumb pointing up",
+      "Rotate chest and torso away from wall",
+      "Keep shoulder depressed down and back"
+    ],
+    anatomyFigure: `
+      <line x1="220" y1="120" x2="220" y2="540" stroke="#475569" stroke-width="16"/>
+      <circle cx="340" cy="220" r="26" fill="url(#flesh-base)"/>
+      <path d="M 320 250 L 360 250 L 350 450 L 330 450 Z" fill="url(#flesh-base)"/>
+      <path d="M 320 260 L 220 260" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="310" cy="260" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 235 260 L 305 260" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 41. Wrist Mobility Flow
+  'wrist_mobility.svg': {
+    title: "Wrist Flexor & Extensor Mobility Flow",
+    subtitle: "Carpal Tunnel & Forearm Fascia Release",
+    primaryTarget: "Wrist Flexors & Extensors",
+    synergistTarget: "Pronator Teres, Brachioradialis",
+    cues: [
+      "On all fours with palms flat and fingers back",
+      "Gently rock bodyweight backward for flexors",
+      "Flip hands back-of-wrist down for extensors"
+    ],
+    anatomyFigure: `
+      <circle cx="240" cy="340" r="22" fill="url(#flesh-base)"/>
+      <path d="M 260 360 L 420 360" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round"/>
+      <line x1="270" y1="360" x2="270" y2="480" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
+      <line x1="410" y1="360" x2="410" y2="480" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 270 380 L 270 420" stroke="url(#synergist-fibers)" stroke-width="12"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 270 425 L 270 475" stroke="url(#primary-fibers)" stroke-width="16" stroke-linecap="round"/>
+    `
+  },
+
+  // 42. Cobra Abdominal Stretch
+  'cobra_stretch.svg': {
+    title: "Cobra Abdominal & Anterior Line Stretch",
+    subtitle: "Rectus Abdominis & Psoas Expansion",
+    primaryTarget: "Rectus Abdominis & Linea Alba",
+    synergistTarget: "Psoas Major, Anterior Intercostals",
+    cues: [
+      "Lie prone, press palms into floor under shoulders",
+      "Gently extend arms and lift chest proud",
+      "Keep hips and pubic bone anchored to mat"
+    ],
+    anatomyFigure: `
+      <circle cx="210" cy="330" r="22" fill="url(#flesh-base)"/>
+      <path d="M 230 350 Q 300 390 450 430" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <line x1="230" y1="350" x2="250" y2="450" stroke="#475569" stroke-width="18" stroke-linecap="round"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 330 380 L 370 410" stroke="url(#synergist-fibers)" stroke-width="14"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 240 360 Q 280 375 320 390" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 43. QL Side Bend Stretch
+  'ql_stretch.svg': {
+    title: "QL Side Bend & Lateral Trunk Stretch",
+    subtitle: "Quadratus Lumborum & Oblique Decompression",
+    primaryTarget: "Quadratus Lumborum & Obliques",
+    synergistTarget: "Latissimus Dorsi, Intercostals",
+    cues: [
+      "Reach top arm overhead in an arc across body",
+      "Side-bend torso away from stretching hip",
+      "Breathe deeply into the lateral lower back"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="210" r="24" fill="url(#flesh-base)"/>
+      <path d="M 340 240 Q 370 320 340 450" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <path d="M 340 240 Q 300 160 260 220" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="340" cy="270" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 350 310 Q 375 350 350 390" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 44. Supine Spinal Twist
+  'supine_twist.svg': {
+    title: "Supine Spinal Twist & Glute Opener",
+    subtitle: "Rotational Mobility & Lateral Glute Release",
+    primaryTarget: "Multifidus, Spinal Rotators & Gluteus Medius",
+    synergistTarget: "Pectoralis Major, Obliques",
+    cues: [
+      "Lie on back, draw one knee across torso to floor",
+      "Extend opposite arm flat to floor with gaze back",
+      "Allow gravity and breath to melt spine open"
+    ],
+    anatomyFigure: `
+      <circle cx="210" cy="380" r="22" fill="url(#flesh-base)"/>
+      <path d="M 230 400 L 400 400" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round"/>
+      <path d="M 330 400 L 350 480 L 420 480" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="260" cy="400" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 290 395 L 360 415" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 45. World's Greatest Stretch
+  'worlds_greatest.svg': {
+    title: "World's Greatest Stretch (Lunge + T-Spine)",
+    subtitle: "Full-Body Kinetic Chain Mobility Matrix",
+    primaryTarget: "Hip Flexors, Thoracic Spine & Hamstrings",
+    synergistTarget: "Adductors, Calves, Glutes, Shoulders",
+    cues: [
+      "Deep runner's lunge with rear leg straight",
+      "Drop inside elbow to instep",
+      "Rotate top hand to ceiling, following with eyes"
+    ],
+    anatomyFigure: `
+      <circle cx="260" cy="320" r="22" fill="url(#flesh-base)"/>
+      <path d="M 280 340 L 370 420 L 470 440" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round" fill="none"/>
+      <path d="M 270 340 L 270 200" stroke="url(#flesh-base)" stroke-width="16" stroke-linecap="round"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="430" cy="430" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 280 340 L 360 410" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
+    `
+  },
+
+  // 46. Barbell Bench Press Vector
+  'barbell_bench_press.svg': {
+    title: "Barbell Bench Press",
+    subtitle: "Horizontal Pectoral Drive & Scapular Stability",
+    primaryTarget: "Pectoralis Major & Minor",
+    synergistTarget: "Anterior Deltoid, Triceps Brachii",
+    cues: [
+      "Retract and depress scapulae",
+      "Touch lower sternum under control",
+      "Drive feet firmly through floor"
+    ],
+    anatomyFigure: `
+      <rect x="220" y="380" width="300" height="24" rx="6" fill="#1e293b"/>
+      <circle cx="260" cy="360" r="24" fill="url(#flesh-base)"/>
+      <path d="M 280 360 L 440 360" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round"/>
+      <line x1="180" y1="280" x2="520" y2="280" stroke="#94a3b8" stroke-width="8"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="300" cy="360" r="16" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <ellipse cx="340" cy="355" rx="30" ry="16" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 47. Barbell Deadlift Vector
+  'barbell_deadlift.svg': {
+    title: "Conventional Barbell Deadlift",
+    subtitle: "Posterior Chain Kinetic Power & Spinal Neutrality",
+    primaryTarget: "Gluteus Maximus, Hamstrings & Erectors",
+    synergistTarget: "Latissimus Dorsi, Trapezius, Forearms",
+    cues: [
+      "Bar over mid-foot with vertical shins",
+      "Wedge hips and pull slack from bar",
+      "Drive the floor away with quads & glutes"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="220" r="24" fill="url(#flesh-base)"/>
+      <path d="M 330 250 L 330 380 L 300 480 L 300 550" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round" fill="none"/>
+      <line x1="220" y1="460" x2="460" y2="460" stroke="#94a3b8" stroke-width="8"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 330 260 L 330 360" stroke="url(#synergist-fibers)" stroke-width="14"/>
+    `,
+    primaryMuscleGlow: `
+      <ellipse cx="320" cy="390" rx="25" ry="18" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 48. Barbell Squat Vector
+  'barbell_squat.svg': {
+    title: "Barbell Back Squat",
+    subtitle: "Triple Flexion & Quadriceps Power",
+    primaryTarget: "Quadriceps Femoris & Gluteus Maximus",
+    synergistTarget: "Adductor Magnus, Hamstrings, Core",
+    cues: [
+      "Brace core 360° into lifting belt",
+      "Knees track over second toe",
+      "Hit parallel with upright chest"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="200" r="24" fill="url(#flesh-base)"/>
+      <line x1="240" y1="210" x2="440" y2="210" stroke="#94a3b8" stroke-width="8"/>
+      <path d="M 340 230 L 340 350 L 300 440 L 300 540" stroke="url(#flesh-base)" stroke-width="22" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <path d="M 340 240 L 340 330" stroke="url(#synergist-fibers)" stroke-width="12"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 335 360 L 310 435" stroke="url(#primary-fibers)" stroke-width="20" stroke-linecap="round"/>
+    `
+  },
+
+  // 49. Pigeon Stretch Vector
+  'pigeon_stretch.svg': {
+    title: "Pigeon Hip & Glute Opener",
+    subtitle: "Gluteus Medius & Deep External Rotator Release",
+    primaryTarget: "Gluteus Medius & Piriformis",
+    synergistTarget: "Psoas, Tensor Fasciae Latae",
+    cues: [
+      "Front shin angled 45° to 90° across mat",
+      "Square hips toward floor",
+      "Lengthen spine forward over front leg"
+    ],
+    anatomyFigure: `
+      <circle cx="260" cy="340" r="22" fill="url(#flesh-base)"/>
+      <path d="M 280 360 L 380 430 L 480 440" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round" fill="none"/>
+      <path d="M 340 420 L 260 450" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="430" cy="430" r="14" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <ellipse cx="360" cy="420" rx="24" ry="16" fill="url(#primary-fibers)" stroke="#7dd3fc" stroke-width="2"/>
+    `
+  },
+
+  // 50. Quad Stretch Vector
+  'quad_stretch.svg': {
+    title: "Standing Quad Stretch",
+    subtitle: "Quadriceps & Hip Flexor Opening",
+    primaryTarget: "Quadriceps Femoris",
+    synergistTarget: "Iliopsoas, Anterior Tibialis",
+    cues: [
+      "Keep knees pinned side by side",
+      "Tuck pelvis under gently",
+      "Draw heel straight to glute"
+    ],
+    anatomyFigure: `
+      <circle cx="340" cy="180" r="26" fill="url(#flesh-base)"/>
+      <path d="M 340 210 L 340 360 L 340 530" stroke="url(#flesh-base)" stroke-width="20" stroke-linecap="round"/>
+      <path d="M 340 360 L 360 440 L 380 360" stroke="url(#flesh-base)" stroke-width="18" stroke-linecap="round" fill="none"/>
+    `,
+    synergistMuscleGlow: `
+      <circle cx="340" cy="350" r="12" fill="url(#synergist-fibers)"/>
+    `,
+    primaryMuscleGlow: `
+      <path d="M 345 365 L 360 435" stroke="url(#primary-fibers)" stroke-width="18" stroke-linecap="round"/>
     `
   }
 };
