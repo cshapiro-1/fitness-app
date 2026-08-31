@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
     let steps: string[] = existingLibMatch?.steps || [];
     let commonMistakes: string[] = existingLibMatch?.commonMistakes || [];
     let breathingPattern = existingLibMatch?.breathingPattern || "";
-    let diagramUrl = existingLibMatch?.diagramUrl || targetPalette[0];
+    let diagramUrl = existingLibMatch?.diagramUrl || `/anatomy/${norm}.jpg`;
 
     if (!existingLibMatch) {
       if (movementType === "STRETCH" || muscleGroup === "Stretching" || /stretch|mobility|pigeon|piriformis|fold|opening/i.test(norm)) {
@@ -153,12 +153,12 @@ export async function POST(req: NextRequest) {
           primaryMuscles = ["Rectus Femoris", "Psoas Major", "Iliacus"];
           secondaryMuscles = ["Tensor Fasciae Latae", "Vastus Lateralis"];
           biomechanicsCue = "Rear knee against wall with shin vertical. Squeeze rear glute into posterior tilt.";
-          diagramUrl = "/anatomy/couch_stretch.svg";
+          diagramUrl = "/anatomy/couch_stretch.jpg";
         } else if (/chest|pec|doorway|shoulder opener/i.test(norm)) {
           primaryMuscles = ["Pectoralis Major", "Pectoralis Minor"];
           secondaryMuscles = ["Anterior Deltoid", "Coracobrachialis", "Biceps Brachii"];
           biomechanicsCue = "Keep scapula depressed, rotate torso away gently until chest fibers lengthen.";
-          diagramUrl = "/anatomy/chest_stretch.jpg";
+          diagramUrl = "/anatomy/chest_doorway_stretch.svg";
         } else if (/lat|child|hang/i.test(norm)) {
           primaryMuscles = ["Latissimus Dorsi", "Teres Major"];
           secondaryMuscles = ["Thoracolumbar Fascia", "Intercostals"];
@@ -168,13 +168,13 @@ export async function POST(req: NextRequest) {
           primaryMuscles = ["Erector Spinae", "Thoracolumbar Fascia", "Hamstrings"];
           secondaryMuscles = ["Gluteus Maximus", "Latissimus Dorsi", "Core"];
           biomechanicsCue = "Flow with breath, maintaining length through the spine without forcing joint ranges.";
-          diagramUrl = "/anatomy/cat_cow.jpg";
+          diagramUrl = `/anatomy/${norm}.svg`;
         }
       } else if (/dip|parallel bar/i.test(norm)) {
         primaryMuscles = ["Lower Pectoralis Major (Sternal Head)"];
         secondaryMuscles = ["Anterior Deltoid", "Triceps Brachii", "Rhomboids"];
         biomechanicsCue = "Lean torso 30° forward, flare elbows slightly out, and lower until shoulders pass elbows.";
-        diagramUrl = "/anatomy/chest_dip.svg";
+        diagramUrl = "/anatomy/chest_dip.jpg";
       } else if (/incline|upper chest/i.test(norm)) {
         primaryMuscles = ["Pectoralis Major (Clavicular 'Upper' Head)"];
         secondaryMuscles = ["Anterior Deltoid", "Triceps Brachii"];
@@ -209,13 +209,40 @@ export async function POST(req: NextRequest) {
         primaryMuscles = ["Quadriceps Femoris", "Gluteus Maximus"];
         secondaryMuscles = ["Hamstrings", "Core"];
         biomechanicsCue = "Keep torso upright, push through full foot, and drive knees in line with toes.";
-        diagramUrl = targetPalette[0];
+        diagramUrl = `/anatomy/${norm}.svg`;
       }
     }
 
-    // If variant requested (> 0), cycle through the targeted visual palette
-    if (variant > 0) {
-      diagramUrl = targetPalette[variant % targetPalette.length];
+    // Optional Real-time OpenAI DALL-E 3 generation if API key is present and generation requested
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    if (openaiApiKey && body.useGenerativeAI === true) {
+      try {
+        const aiPrompt = `Medical 3D anatomical visualization of an athletic human body performing ${exerciseName}. Dark slate background (#090d16). Primary target muscles (${primaryMuscles.join(", ")}) glowing in vibrant electric cyan (#38bdf8). Synergist muscles (${secondaryMuscles.join(", ")}) glowing in warm amber (#f59e0b). Clean, hyper-detailed, photorealistic medical fitness anatomy render, octane render style, accurate biomechanics.`;
+
+        const aiResponse = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${openaiApiKey}`,
+          },
+          body: JSON.stringify({
+            model: "dall-e-3",
+            prompt: aiPrompt,
+            n: 1,
+            size: "1024x1024",
+            quality: "standard",
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiJson = await aiResponse.json();
+          if (aiJson.data?.[0]?.url) {
+            diagramUrl = aiJson.data[0].url;
+          }
+        }
+      } catch (aiErr) {
+        console.error("DALL-E generation fallback note:", aiErr);
+      }
     }
 
     const generatedData = {
