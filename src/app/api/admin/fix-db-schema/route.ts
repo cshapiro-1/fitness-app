@@ -47,13 +47,74 @@ export async function GET(req: NextRequest) {
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "loggedByRole" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "sessionType" TEXT DEFAULT 'WORKOUT';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "programId" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "programWeek" INTEGER;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSession" ADD COLUMN IF NOT EXISTS "programDay" INTEGER;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "deletedAt" TIMESTAMP(3);`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedById" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "Workout" ADD COLUMN IF NOT EXISTS "loggedByName" TEXT;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutExercise" ADD COLUMN IF NOT EXISTS "category" TEXT DEFAULT 'STRENGTH';`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutExercise" ADD COLUMN IF NOT EXISTS "supersetGroup" TEXT;`);
+    await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutExercise" ADD COLUMN IF NOT EXISTS "restSeconds" INTEGER DEFAULT 60;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "distance" DOUBLE PRECISION;`);
     await prisma.$executeRawUnsafe(`ALTER TABLE "WorkoutSet" ADD COLUMN IF NOT EXISTS "durationSeconds" INTEGER;`);
-    results.push("Synchronized Workout & Wellness columns (including deletedAt & attribution)");
+    results.push("Synchronized Workout & Wellness columns (including deletedAt, attribution, and program/superset fields)");
+
+    // 3b. Program Planner Tables
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "TrainingProgram" (
+        "id" TEXT PRIMARY KEY,
+        "trainerId" TEXT NOT NULL,
+        "clientId" TEXT,
+        "name" TEXT NOT NULL,
+        "description" TEXT,
+        "durationWeeks" INTEGER NOT NULL DEFAULT 6,
+        "startDate" TEXT,
+        "endDate" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'DRAFT',
+        "progressionType" TEXT NOT NULL DEFAULT 'LINEAR_OVERLOAD',
+        "progressionRate" DOUBLE PRECISION DEFAULT 2.5,
+        "deloadFrequency" INTEGER DEFAULT 4,
+        "notes" TEXT,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TrainingProgram_trainerId_idx" ON "TrainingProgram"("trainerId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TrainingProgram_clientId_idx" ON "TrainingProgram"("clientId");`);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "TrainingProgram_status_idx" ON "TrainingProgram"("status");`);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProgramWorkoutTemplate" (
+        "id" TEXT PRIMARY KEY,
+        "programId" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "order" INTEGER NOT NULL DEFAULT 0,
+        "cadence" TEXT NOT NULL DEFAULT 'WEEKLY',
+        "dayOfWeek" INTEGER
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProgramWorkoutTemplate_programId_idx" ON "ProgramWorkoutTemplate"("programId");`);
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "ProgramExerciseTemplate" (
+        "id" TEXT PRIMARY KEY,
+        "programWorkoutTemplateId" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "order" INTEGER NOT NULL DEFAULT 0,
+        "category" TEXT DEFAULT 'STRENGTH',
+        "targetSets" INTEGER NOT NULL DEFAULT 3,
+        "targetReps" TEXT NOT NULL DEFAULT '8-10',
+        "suggestedWeight" DOUBLE PRECISION DEFAULT 0,
+        "rpe" DOUBLE PRECISION,
+        "supersetGroup" TEXT,
+        "restSeconds" INTEGER DEFAULT 90,
+        "coachingCue" TEXT,
+        "progressionNotes" TEXT
+      );
+    `);
+    await prisma.$executeRawUnsafe(`CREATE INDEX IF NOT EXISTS "ProgramExerciseTemplate_programWorkoutTemplateId_idx" ON "ProgramExerciseTemplate"("programWorkoutTemplateId");`);
+    results.push("Ensured Program Planner tables exist (TrainingProgram, ProgramWorkoutTemplate, ProgramExerciseTemplate)");
 
     // 4. Create NutritionPlan table if not exists
     await prisma.$executeRawUnsafe(`
