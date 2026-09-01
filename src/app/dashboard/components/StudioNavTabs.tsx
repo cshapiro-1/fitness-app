@@ -7,7 +7,6 @@ import {
   Clock,
   TrendingUp,
   Heart,
-  Flame,
 } from "lucide-react";
 
 export type StudioTabType = "log" | "programs" | "history" | "analytics" | "mobility";
@@ -31,65 +30,60 @@ export function StudioNavTabs({
     {
       id: "log" as StudioTabType,
       label: "Workout Logger",
-      shortLabel: "Logger",
-      subtitle: "Build & Log Sets",
       icon: Dumbbell,
-      badge: hasActiveWorkout ? "In Progress" : plannedCount > 0 ? `${plannedCount} Planned` : undefined,
-      badgeType: hasActiveWorkout ? "active" : "neutral",
+      countBadge: hasActiveWorkout ? "Active" : plannedCount > 0 ? `${plannedCount}` : undefined,
+      badgeColor: hasActiveWorkout ? "#dc2626" : "#2563eb",
+      badgeBg: hasActiveWorkout ? "#fee2e2" : "#eff6ff",
       color: "#2563eb",
-      activeBg: "linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)",
+      activeBg: "#eff6ff",
       activeBorder: "#93c5fd",
       activeText: "#1d4ed8",
     },
     {
       id: "programs" as StudioTabType,
       label: "Training Programs",
-      shortLabel: "Programs",
-      subtitle: "Periodization & Splits",
       icon: Layers,
-      badge: plannedCount > 0 ? `${plannedCount} Scheduled` : undefined,
-      badgeType: "purple",
+      countBadge: plannedCount > 0 ? `${plannedCount}` : undefined,
+      badgeColor: "#6d28d9",
+      badgeBg: "#ede9fe",
       color: "#7c3aed",
-      activeBg: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)",
+      activeBg: "#f5f3ff",
       activeBorder: "#c4b5fd",
       activeText: "#6d28d9",
     },
     {
       id: "history" as StudioTabType,
       label: "Workout History",
-      shortLabel: "History",
-      subtitle: "Past Logs & PRs",
       icon: Clock,
-      badge: completedCount > 0 ? `${completedCount} Logs` : undefined,
-      badgeType: "green",
+      countBadge: completedCount > 0 ? `${completedCount}` : undefined,
+      badgeColor: "#047857",
+      badgeBg: "#d1fae5",
       color: "#059669",
-      activeBg: "linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)",
+      activeBg: "#ecfdf5",
       activeBorder: "#6ee7b7",
       activeText: "#047857",
     },
     {
       id: "analytics" as StudioTabType,
       label: "Analytics & Volume",
-      shortLabel: "Analytics",
-      subtitle: "Trends & 1RM Math",
       icon: TrendingUp,
-      badge: undefined,
-      badgeType: "neutral",
+      countBadge: undefined,
+      badgeColor: "#0369a1",
+      badgeBg: "#e0f2fe",
       color: "#0284c7",
-      activeBg: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)",
+      activeBg: "#f0f9ff",
       activeBorder: "#7dd3fc",
       activeText: "#0369a1",
     },
     {
       id: "mobility" as StudioTabType,
       label: "Recovery & Mobility",
-      shortLabel: "Recovery",
-      subtitle: "Stretches & Warm-Ups",
       icon: Heart,
-      badge: "Hub",
-      badgeType: "pink",
+      countBadge: undefined,
+      badgeColor: "#be185d",
+      badgeBg: "#fce7f3",
       color: "#db2777",
-      activeBg: "linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%)",
+      activeBg: "#fdf2f8",
       activeBorder: "#f9a8d4",
       activeText: "#be185d",
     },
@@ -99,17 +93,15 @@ export function StudioNavTabs({
     <div
       style={{
         display: "flex",
-        alignItems: "stretch",
-        gap: "8px",
-        padding: "6px",
+        alignItems: "center",
+        gap: "6px",
+        padding: "5px",
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        borderRadius: "14px",
+        borderRadius: "12px",
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
         overflowX: "auto",
-        scrollbarWidth: "none",
-        msOverflowStyle: "none",
-        marginBottom: "18px",
+        marginBottom: "16px",
       }}
       className="studio-nav-ribbon"
     >
@@ -123,105 +115,54 @@ export function StudioNavTabs({
             type="button"
             onClick={() => onSelectTab(t.id)}
             style={{
-              flex: "1 1 0",
-              minWidth: "135px",
-              display: "flex",
+              flex: 1,
+              minWidth: "fit-content",
+              display: "inline-flex",
               alignItems: "center",
-              gap: "10px",
-              padding: "10px 14px",
-              borderRadius: "10px",
+              justifyContent: "center",
+              gap: "8px",
+              padding: "9px 14px",
+              borderRadius: "8px",
               border: isActive ? `1.5px solid ${t.activeBorder}` : "1px solid transparent",
               background: isActive ? t.activeBg : "transparent",
               color: isActive ? t.activeText : "#475569",
               cursor: "pointer",
               transition: "all 0.15s ease",
-              textAlign: "left",
-              boxShadow: isActive ? "0 2px 4px rgba(0, 0, 0, 0.04)" : "none",
+              boxShadow: isActive ? "0 1px 3px rgba(0, 0, 0, 0.05)" : "none",
             }}
             className={`studio-nav-tab-btn ${isActive ? "active" : ""}`}
           >
-            {/* Icon Pill */}
-            <div
+            <IconComponent
+              size={17}
+              style={{ color: isActive ? t.color : "#64748b", flexShrink: 0 }}
+            />
+
+            <span
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "8px",
-                background: isActive ? "#ffffff" : "#f1f5f9",
-                border: isActive ? `1px solid ${t.activeBorder}` : "1px solid #e2e8f0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: isActive ? t.color : "#64748b",
-                flexShrink: 0,
-                boxShadow: isActive ? "0 1px 2px rgba(0, 0, 0, 0.05)" : "none",
+                fontSize: "13px",
+                fontWeight: isActive ? 800 : 600,
+                color: isActive ? t.activeText : "#334155",
+                whiteSpace: "nowrap",
               }}
             >
-              <IconComponent size={18} />
-            </div>
+              {t.label}
+            </span>
 
-            {/* Tab Text & Subtitle */}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: isActive ? 800 : 700,
-                    color: isActive ? t.activeText : "#1e293b",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {t.label}
-                </span>
-                {t.badge && (
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      padding: "1px 6px",
-                      borderRadius: "10px",
-                      background:
-                        t.badgeType === "active"
-                          ? "#fee2e2"
-                          : t.badgeType === "purple"
-                          ? "#ede9fe"
-                          : t.badgeType === "green"
-                          ? "#d1fae5"
-                          : t.badgeType === "pink"
-                          ? "#fce7f3"
-                          : "#f1f5f9",
-                      color:
-                        t.badgeType === "active"
-                          ? "#dc2626"
-                          : t.badgeType === "purple"
-                          ? "#6d28d9"
-                          : t.badgeType === "green"
-                          ? "#047857"
-                          : t.badgeType === "pink"
-                          ? "#be185d"
-                          : "#64748b",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {t.badge}
-                  </span>
-                )}
-              </div>
-              <div
+            {t.countBadge && (
+              <span
                 style={{
                   fontSize: "11px",
-                  color: isActive ? t.color : "#94a3b8",
-                  fontWeight: 500,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  marginTop: "1px",
+                  fontWeight: 700,
+                  padding: "1px 7px",
+                  borderRadius: "10px",
+                  background: t.badgeBg,
+                  color: t.badgeColor,
+                  flexShrink: 0,
                 }}
               >
-                {t.subtitle}
-              </div>
-            </div>
+                {t.countBadge}
+              </span>
+            )}
           </button>
         );
       })}

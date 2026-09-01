@@ -22,8 +22,8 @@ describe("StudioNavTabs Component Tests", () => {
     expect(screen.getByText("Analytics & Volume")).toBeInTheDocument();
     expect(screen.getByText("Recovery & Mobility")).toBeInTheDocument();
 
-    expect(screen.getByText("3 Planned")).toBeInTheDocument();
-    expect(screen.getByText("15 Logs")).toBeInTheDocument();
+    expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("15")).toBeInTheDocument();
 
     // Click on Programs tab
     fireEvent.click(screen.getByText("Training Programs"));
