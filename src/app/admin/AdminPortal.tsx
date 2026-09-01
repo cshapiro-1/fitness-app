@@ -598,7 +598,7 @@ export function AdminPortal({ userName }: { userName: string }) {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <Link
+            <a
               href="/dashboard"
               style={{
                 display: "inline-flex",
@@ -615,7 +615,7 @@ export function AdminPortal({ userName }: { userName: string }) {
               }}
             >
               <ArrowLeft size={14} /> Back to Dashboard
-            </Link>
+            </a>
           </div>
         </div>
       </header>

@@ -805,6 +805,31 @@ export function ProgramPlanner({
                     </div>
                   )}
 
+                  {/* Active Schedule Date Range */}
+                  {isActive && program.startDate && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "12px",
+                        color: "#0369a1",
+                        background: "#eff6ff",
+                        border: "1px solid #bfdbfe",
+                        padding: "4px 10px",
+                        borderRadius: "6px",
+                        marginBottom: "12px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      <CalendarRange size={14} color="#0284c7" />
+                      <span>
+                        Schedule: {new Date(program.startDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {program.endDate ? ` — ${new Date(program.endDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Periodization Settings Overview */}
                   <div
                     style={{

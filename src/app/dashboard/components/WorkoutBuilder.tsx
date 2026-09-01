@@ -437,10 +437,23 @@ export function WorkoutBuilder({
               {plannedWorkouts.map((plannedWorkout) => (
                 <div key={plannedWorkout.id} className="planned-row">
                   <div>
-                    <div className="planned-row-title">
-                      {plannedWorkout.status === "IN_PROGRESS" ? "In Progress" : "Planned"} — {plannedWorkout.exercises.length} exercises
+                    <div className="planned-row-title" style={{ fontWeight: 800, color: "#0f172a", marginBottom: "2px" }}>
+                      {plannedWorkout.notes || `${plannedWorkout.status === "IN_PROGRESS" ? "In Progress" : "Planned"} Session (${plannedWorkout.exercises.length} exercises)`}
                     </div>
-                    <div className="planned-row-meta">{new Date(plannedWorkout.createdAt).toLocaleString()}</div>
+                    <div className="planned-row-meta" style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginTop: "3px" }}>
+                      {plannedWorkout.startedAt ? (
+                        <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 700, background: "#eff6ff", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
+                          📅 Assigned for {new Date(plannedWorkout.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          📅 Assigned on {new Date(plannedWorkout.createdAt).toLocaleDateString()}
+                        </span>
+                      )}
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        • {plannedWorkout.exercises.length} exercises
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                     <button

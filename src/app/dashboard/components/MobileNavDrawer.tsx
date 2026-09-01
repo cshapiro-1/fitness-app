@@ -381,7 +381,7 @@ export function MobileNavDrawer({
           </button>
 
           {isAdmin && (
-            <Link
+            <a
               href="/admin"
               onClick={onClose}
               style={{
@@ -399,7 +399,7 @@ export function MobileNavDrawer({
             >
               <ShieldCheck size={18} style={{ color: "#dc2626" }} />
               <span>Super Admin Portal</span>
-            </Link>
+            </a>
           )}
         </div>
 

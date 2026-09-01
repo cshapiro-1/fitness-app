@@ -452,17 +452,6 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     }
   }, [activeWorkout, selected?.id]);
 
-  // Browser level beforeunload warning
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedWorkout) {
-        e.preventDefault();
-        e.returnValue = "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedWorkout]);
 
   // Smooth in-app navigation with persistent draft auto-save
   const handleRequestTab = (targetTab: "log" | "programs" | "history" | "analytics" | "mobility") => {

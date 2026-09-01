@@ -439,7 +439,7 @@ export function AppHeaderMenu({
             </button>
 
             {isAdmin && (
-              <Link
+              <a
                 href="/admin"
                 onClick={() => setIsOpen(false)}
                 style={{
@@ -458,7 +458,7 @@ export function AppHeaderMenu({
               >
                 <ShieldCheck size={16} style={{ color: "#dc2626" }} />
                 <span>Super Admin Portal</span>
-              </Link>
+              </a>
             )}
           </div>
 

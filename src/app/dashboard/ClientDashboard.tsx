@@ -837,13 +837,19 @@ export function ClientDashboard({
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <Calendar size={14} style={{ color: "#2563eb" }} />
                       <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
-                        Planned Session · {workout.exercises?.length || 0} Exercises
+                        {workout.notes || `Planned Session · ${workout.exercises?.length || 0} Exercises`}
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
-                        {new Date(workout.createdAt).toLocaleDateString()}
-                      </span>
+                      {workout.startedAt ? (
+                        <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 700, background: "#eff6ff", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
+                          📅 Assigned for {new Date(workout.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                          {new Date(workout.createdAt).toLocaleDateString()}
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleDeleteWorkout(workout.id)}
