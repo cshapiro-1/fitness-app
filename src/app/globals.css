@@ -1030,10 +1030,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   vertical-align: middle;
 }
 
-/* Mobile Bottom Navigation Styles */
+/* Mobile Bottom Navigation & Responsive Layout */
 @media (min-width: 769px) {
   .mobile-bottom-nav {
     display: none !important;
+  }
+  .studio-nav-ribbon {
+    display: flex !important;
   }
 }
 
@@ -1042,22 +1045,55 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     display: flex !important;
   }
   .main {
-    padding-bottom: 84px !important;
+    padding-bottom: 88px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
   .sidebar {
     display: none !important;
   }
+  /* On mobile, completely hide top tab buttons in favor of bottom navigation */
   .studio-nav-ribbon {
-    gap: 6px !important;
-    padding: 4px !important;
+    display: none !important;
   }
-  .studio-nav-tab-btn {
-    min-width: 110px !important;
-    padding: 8px 10px !important;
+
+  /* Compact Active In-Progress Workout Banners on Mobile */
+  .active-workout-status-bar {
+    padding: 6px 10px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+  }
+  .active-workout-status-bar .status-text {
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+  .active-workout-status-bar .status-btn {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+
+  .live-workout-banner {
+    padding: 6px 10px !important;
+    margin-bottom: 10px !important;
+    border-radius: 10px !important;
+    gap: 6px !important;
+  }
+  .live-workout-banner .live-title {
+    font-size: 12px !important;
+  }
+  .live-workout-banner .live-meta {
+    font-size: 10px !important;
+    gap: 6px !important;
+  }
+  .live-workout-banner .live-banner-resume-btn,
+  .live-workout-banner .live-banner-complete-btn {
+    padding: 5px 9px !important;
+    font-size: 11px !important;
   }
 }
 
-/* Studio Nav Ribbon Enhanced Separation */
+/* Studio Nav Ribbon Enhanced Separation (Desktop) */
 .studio-nav-ribbon {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1072,5 +1108,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 }
 .studio-nav-tab-btn.active {
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Active Workout Status Bar Base */
+.active-workout-status-bar {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+  gap: 8px;
 }
 

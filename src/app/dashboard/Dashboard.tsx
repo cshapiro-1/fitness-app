@@ -1134,43 +1134,31 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
               {/* Active Workout Floating Status Bar */}
               {hasUnsavedWorkout && tab !== "log" && (
-                <div
-                  style={{
-                    background: "linear-gradient(135deg, #1e3a8a, #2563eb)",
-                    color: "#ffffff",
-                    padding: "10px 16px",
-                    borderRadius: "10px",
-                    marginBottom: "14px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
-                    flexWrap: "wrap",
-                    gap: "10px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600 }}>
-                    <span style={{ fontSize: "16px" }}>⚡</span>
-                    <span>
-                      <b>Active Workout In-Progress</b> ({activeWorkout?.exercises?.length || 0} exercises, {totalActiveSets} sets) · Auto-saved
+                <div className="active-workout-status-bar">
+                  <div className="status-text" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, minWidth: 0 }}>
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22c55e", display: "inline-block", flexShrink: 0 }} />
+                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <b>Active Workout</b> ({activeWorkout?.exercises?.length || 0} ex, {totalActiveSets} sets)
                     </span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setTab("log")}
+                    className="status-btn"
                     style={{
                       background: "#ffffff",
                       color: "#1d4ed8",
                       fontWeight: 700,
-                      fontSize: "12px",
-                      padding: "6px 14px",
+                      fontSize: "11px",
+                      padding: "4px 10px",
                       borderRadius: "6px",
                       border: "none",
                       cursor: "pointer",
                       boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                      flexShrink: 0,
                     }}
                   >
-                    Return to Workout Logger →
+                    Resume →
                   </button>
                 </div>
               )}

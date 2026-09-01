@@ -101,7 +101,7 @@ export function LiveWorkoutBanner({
 
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "14px", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span className="live-title" style={{ fontSize: "14px", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {workoutTitle}
             </span>
             {athleteName && isCoachView && (
@@ -119,20 +119,20 @@ export function LiveWorkoutBanner({
             )}
           </div>
 
-          <div style={{ fontSize: "12px", color: "#bfdbfe", display: "flex", alignItems: "center", gap: "10px", marginTop: "2px", flexWrap: "wrap" }}>
+          <div className="live-meta" style={{ fontSize: "12px", color: "#bfdbfe", display: "flex", alignItems: "center", gap: "8px", marginTop: "2px", flexWrap: "wrap" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <Clock size={13} style={{ color: "#93c5fd" }} />
+              <Clock size={12} style={{ color: "#93c5fd" }} />
               <b>{formatTimer(elapsedSeconds)}</b>
             </span>
             <span>•</span>
             <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-              <Dumbbell size={13} style={{ color: "#93c5fd" }} />
-              {exerciseCount} {exerciseCount === 1 ? "exercise" : "exercises"}
+              <Dumbbell size={12} style={{ color: "#93c5fd" }} />
+              {exerciseCount} {exerciseCount === 1 ? "ex" : "exercises"}
             </span>
             {startedByName && (
               <>
                 <span>•</span>
-                <span style={{ color: "#dbeafe" }}>Started by {startedByName}</span>
+                <span style={{ color: "#dbeafe" }}>By {startedByName}</span>
               </>
             )}
           </div>
