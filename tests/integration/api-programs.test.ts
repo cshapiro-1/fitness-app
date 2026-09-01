@@ -47,7 +47,7 @@ describe("Training Programs API & Assignment Integration", () => {
     vi.clearAllMocks();
   });
 
-  it("should create a training program with workout templates and periodization parameters", async () => {
+  it("should create a training program with any custom duration weeks and custom deload frequency", async () => {
     (getServerSession as any).mockResolvedValue({
       user: { id: "trainer-1", role: "TRAINER", name: "Coach Mike" },
     });
@@ -55,11 +55,11 @@ describe("Training Programs API & Assignment Integration", () => {
     const mockCreatedProgram = {
       id: "prog-123",
       trainerId: "trainer-1",
-      name: "6-Week Hypertrophy Surge",
-      durationWeeks: 6,
+      name: "10-Week Custom Prep Block",
+      durationWeeks: 10,
       status: "DRAFT",
-      progressionRate: 2.5,
-      deloadFrequency: 4,
+      progressionRate: 3.0,
+      deloadFrequency: 5,
       workoutTemplates: [
         {
           id: "wt-1",
@@ -86,10 +86,10 @@ describe("Training Programs API & Assignment Integration", () => {
     const req = new NextRequest("http://localhost:3000/api/programs", {
       method: "POST",
       body: JSON.stringify({
-        name: "6-Week Hypertrophy Surge",
-        durationWeeks: 6,
-        progressionRate: 2.5,
-        deloadFrequency: 4,
+        name: "10-Week Custom Prep Block",
+        durationWeeks: 10,
+        progressionRate: 3.0,
+        deloadFrequency: 5,
         workoutTemplates: [
           {
             name: "Push Day",
@@ -114,8 +114,52 @@ describe("Training Programs API & Assignment Integration", () => {
 
     const json = await res.json();
     expect(json.success).toBe(true);
-    expect(json.program.name).toBe("6-Week Hypertrophy Surge");
-    expect(json.program.workoutTemplates[0].exercises[0].supersetGroup).toBe("A1");
+    expect(json.program.name).toBe("10-Week Custom Prep Block");
+    expect(json.program.durationWeeks).toBe(10);
+    expect(json.program.deloadFrequency).toBe(5);
+  });
+
+  it("should return both master templates and client-assigned programs for trainer", async () => {
+    (getServerSession as any).mockResolvedValue({
+      user: { id: "trainer-1", role: "TRAINER", name: "Coach Mike" },
+    });
+
+    const mockPrograms = [
+      {
+        id: "p1",
+        name: "Master Template 1",
+        trainerId: "trainer-1",
+        clientId: null,
+        workoutTemplates: [],
+        workoutSessions: [],
+      },
+      {
+        id: "p2",
+        name: "Assigned Client Program",
+        trainerId: "trainer-1",
+        clientId: "client-1",
+        workoutTemplates: [],
+        workoutSessions: [],
+      },
+    ];
+
+    (prisma.trainingProgram.findMany as any).mockResolvedValue(mockPrograms);
+
+    const req = new NextRequest("http://localhost:3000/api/programs?clientId=client-1");
+    const res = await getPrograms(req);
+    expect(res.status).toBe(200);
+
+    const json = await res.json();
+    expect(json.success).toBe(true);
+    expect(json.programs.length).toBe(2);
+    expect(prisma.trainingProgram.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          trainerId: "trainer-1",
+          OR: [{ clientId: "client-1" }, { clientId: null }],
+        }),
+      })
+    );
   });
 
   it("should assign a program to a client and materialize planned workouts over the duration", async () => {

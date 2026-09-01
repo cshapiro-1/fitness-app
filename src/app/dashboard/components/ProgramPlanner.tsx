@@ -129,11 +129,16 @@ export function ProgramPlanner({
 
   // Schedule Preview Modal
   const [previewingProgram, setPreviewingProgram] = useState<TrainingProgramData | null>(null);
+  const [selectedClientFilter, setSelectedClientFilter] = useState<string>("ALL");
 
   const fetchPrograms = useCallback(async () => {
     setLoading(true);
     try {
-      const url = clientId ? `/api/programs?clientId=${clientId}` : "/api/programs";
+      const url = isTrainer
+        ? "/api/programs"
+        : clientId
+        ? `/api/programs?clientId=${clientId}`
+        : "/api/programs";
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -144,16 +149,25 @@ export function ProgramPlanner({
     } finally {
       setLoading(false);
     }
-  }, [clientId]);
+  }, [clientId, isTrainer]);
 
   useEffect(() => {
     fetchPrograms();
   }, [fetchPrograms]);
 
   const filteredPrograms = useMemo(() => {
-    if (filterStatus === "ALL") return programs;
-    return programs.filter((p) => p.status === filterStatus);
-  }, [programs, filterStatus]);
+    return programs.filter((p) => {
+      if (filterStatus !== "ALL" && p.status !== filterStatus) return false;
+      if (selectedClientFilter !== "ALL") {
+        if (selectedClientFilter === "TEMPLATES") {
+          if (p.clientId) return false;
+        } else if (p.clientId !== selectedClientFilter) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [programs, filterStatus, selectedClientFilter]);
 
   // Open Creator for a brand new program
   const handleOpenCreateNew = () => {
@@ -408,8 +422,18 @@ export function ProgramPlanner({
       }
 
       if (res.ok) {
+        const savedData = await res.json();
         setIsCreatingNew(false);
         setEditingProgram(null);
+        if (savedData?.program) {
+          setPrograms((prev) => {
+            const exists = prev.some((p) => p.id === savedData.program.id);
+            if (exists) {
+              return prev.map((p) => (p.id === savedData.program.id ? { ...p, ...savedData.program } : p));
+            }
+            return [savedData.program, ...prev];
+          });
+        }
         await fetchPrograms();
         alert(
           editingProgram?.status === "IN_PROGRESS"
@@ -582,41 +606,72 @@ export function ProgramPlanner({
         )}
       </div>
 
-      {/* Filter Tabs */}
+      {/* Filter Tabs & Athlete Selector */}
       <div
         style={{
           display: "flex",
-          gap: "8px",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "10px",
           borderBottom: "1px solid #e2e8f0",
           paddingBottom: "10px",
           marginBottom: "20px",
-          overflowX: "auto",
         }}
       >
-        {[
-          { id: "ALL", label: "All Programs" },
-          { id: "IN_PROGRESS", label: "⚡ In-Progress" },
-          { id: "DRAFT", label: "📝 Drafts" },
-          { id: "COMPLETED", label: "✓ Completed" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setFilterStatus(tab.id as any)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "20px",
-              fontSize: "13px",
-              fontWeight: filterStatus === tab.id ? 700 : 500,
-              background: filterStatus === tab.id ? "#0284c7" : "#f1f5f9",
-              color: filterStatus === tab.id ? "#ffffff" : "#475569",
-              border: "none",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div style={{ display: "flex", gap: "8px", overflowX: "auto", flexWrap: "wrap" }}>
+          {[
+            { id: "ALL", label: `All Programs (${programs.length})` },
+            { id: "IN_PROGRESS", label: `⚡ In-Progress (${programs.filter((p) => p.status === "IN_PROGRESS").length})` },
+            { id: "DRAFT", label: `📝 Templates (${programs.filter((p) => p.status === "DRAFT").length})` },
+            { id: "COMPLETED", label: `✓ Completed (${programs.filter((p) => p.status === "COMPLETED").length})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilterStatus(tab.id as any)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "20px",
+                fontSize: "13px",
+                fontWeight: filterStatus === tab.id ? 700 : 500,
+                background: filterStatus === tab.id ? "#0284c7" : "#f1f5f9",
+                color: filterStatus === tab.id ? "#ffffff" : "#475569",
+                border: "none",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {isTrainer && clientsList.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Athlete:</span>
+            <select
+              value={selectedClientFilter}
+              onChange={(e) => setSelectedClientFilter(e.target.value)}
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                padding: "4px 8px",
+                borderRadius: "8px",
+                border: "1px solid #cbd5e1",
+                background: "#ffffff",
+                color: "#334155",
+              }}
+            >
+              <option value="ALL">All Athletes &amp; Templates</option>
+              <option value="TEMPLATES">Templates Only (Unassigned)</option>
+              {clientsList.map((cl) => (
+                <option key={cl.id} value={cl.id}>
+                  {cl.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Program Cards Grid */}
@@ -966,26 +1021,52 @@ export function ProgramPlanner({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
-                    Duration (Weeks)
-                  </label>
-                  <select
-                    value={formDurationWeeks}
-                    onChange={(e) => setFormDurationWeeks(parseInt(e.target.value, 10))}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "14px",
-                    }}
-                  >
-                    <option value={4}>4 Weeks (1 Month Quick Cycle)</option>
-                    <option value={6}>6 Weeks (Standard Block)</option>
-                    <option value={8}>8 Weeks (2 Months Hypertrophy)</option>
-                    <option value={12}>12 Weeks (3 Months Periodization)</option>
-                    <option value={16}>16 Weeks (Extended Prep)</option>
-                  </select>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                      Duration (Weeks)
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7" }}>
+                      {formDurationWeeks} {formDurationWeeks === 1 ? "Week" : "Weeks"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={104}
+                      value={formDurationWeeks}
+                      onChange={(e) => setFormDurationWeeks(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                      style={{
+                        width: "80px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", flex: 1 }}>
+                      {[4, 6, 8, 12, 16, 24].map((w) => (
+                        <button
+                          key={w}
+                          type="button"
+                          onClick={() => setFormDurationWeeks(w)}
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            borderRadius: "6px",
+                            border: formDurationWeeks === w ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                            background: formDurationWeeks === w ? "#e0f2fe" : "#ffffff",
+                            color: formDurationWeeks === w ? "#0369a1" : "#64748b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {w}w
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -1012,24 +1093,59 @@ export function ProgramPlanner({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
-                    Deload Week Frequency
-                  </label>
-                  <select
-                    value={formDeloadFrequency}
-                    onChange={(e) => setFormDeloadFrequency(parseInt(e.target.value, 10))}
-                    style={{
-                      width: "100%",
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      fontSize: "14px",
-                    }}
-                  >
-                    <option value={0}>No Deload Weeks</option>
-                    <option value={4}>Every 4th Week (Recommended)</option>
-                    <option value={6}>Every 6th Week</option>
-                  </select>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                      Deload Frequency (Every N Weeks)
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: formDeloadFrequency > 0 ? "#d97706" : "#64748b" }}>
+                      {formDeloadFrequency > 0 ? `Every ${formDeloadFrequency} Weeks` : "No Deload"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={52}
+                      value={formDeloadFrequency}
+                      onChange={(e) => setFormDeloadFrequency(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                      style={{
+                        width: "80px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", flex: 1 }}>
+                      {[
+                        { val: 0, label: "None" },
+                        { val: 3, label: "3w" },
+                        { val: 4, label: "4w" },
+                        { val: 5, label: "5w" },
+                        { val: 6, label: "6w" },
+                        { val: 8, label: "8w" },
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setFormDeloadFrequency(item.val)}
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            borderRadius: "6px",
+                            border: formDeloadFrequency === item.val ? "1px solid #d97706" : "1px solid #e2e8f0",
+                            background: formDeloadFrequency === item.val ? "#fef3c7" : "#ffffff",
+                            color: formDeloadFrequency === item.val ? "#b45309" : "#64748b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 

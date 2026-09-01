@@ -24,23 +24,43 @@ export async function GET(req: NextRequest) {
     const whereClause: any = {};
 
     if (isClient) {
-      // Find client profile
+      // Find client profiles associated with this athlete by ID or email
       const user = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { clientProfileId: true },
+        select: { clientProfileId: true, email: true },
       });
-      if (!user?.clientProfileId) {
-        return NextResponse.json({ programs: [] });
+
+      const clientConditions: any[] = [];
+      if (user?.clientProfileId) {
+        clientConditions.push({ id: user.clientProfileId });
       }
-      whereClause.clientId = user.clientProfileId;
+      if (user?.email) {
+        clientConditions.push({ email: { equals: user.email, mode: "insensitive" } });
+      }
+
+      const clientProfiles = clientConditions.length > 0
+        ? await prisma.client.findMany({
+            where: { OR: clientConditions },
+            select: { id: true },
+          })
+        : [];
+
+      const clientIds = clientProfiles.map((c) => c.id);
+      if (clientIds.length === 0) {
+        return NextResponse.json({ success: true, programs: [] });
+      }
+      whereClause.clientId = { in: clientIds };
     } else {
       whereClause.trainerId = trainerId;
-      if (clientId) {
-        whereClause.clientId = clientId;
+      if (clientId && clientId !== "ALL" && clientId !== "all") {
+        whereClause.OR = [
+          { clientId: clientId },
+          { clientId: null },
+        ];
       }
     }
 
-    if (status) {
+    if (status && status !== "ALL") {
       whereClause.status = status;
     }
 
