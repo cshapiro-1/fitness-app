@@ -57,9 +57,11 @@ import { LiveWorkoutBanner } from "./components/LiveWorkoutBanner";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { SessionHeartbeatTracker } from "./components/SessionHeartbeatTracker";
+import { ProgramPlanner } from "./components/ProgramPlanner";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
-import { Compass, Menu } from "lucide-react";
+import { Compass, Menu, CalendarRange } from "lucide-react";
 
 export interface ExtendedSubscriptionInfo extends SubscriptionInfo {
   isAdmin?: boolean;
@@ -110,7 +112,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const [draftRestoredNotice, setDraftRestoredNotice] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<{
     type: "tab" | "client";
-    targetTab?: "log" | "history" | "analytics" | "mobility";
+    targetTab?: "log" | "programs" | "history" | "analytics" | "mobility";
     targetClient?: Client;
   } | null>(null);
 
@@ -129,7 +131,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     }
   }, [session, currentTrainerImage, currentTrainerName]);
 
-  const [tab, setTab] = useState<"log" | "history" | "analytics" | "mobility">("log");
+  const [tab, setTab] = useState<"log" | "programs" | "history" | "analytics" | "mobility">("log");
 
   const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
   const [assigningWorkout, setAssigningWorkout] = useState<WorkoutSession | null>(null);
@@ -462,7 +464,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   }, [hasUnsavedWorkout]);
 
   // Smooth in-app navigation with persistent draft auto-save
-  const handleRequestTab = (targetTab: "log" | "history" | "analytics" | "mobility") => {
+  const handleRequestTab = (targetTab: "log" | "programs" | "history" | "analytics" | "mobility") => {
     setTab(targetTab);
   };
 
@@ -1171,13 +1173,17 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
                   {/* Tabs */}
                   <div className="tabs">
-                    {(["log", "history", "analytics", "mobility"] as const).map((currentTab) => (
+                    {(["log", "programs", "history", "analytics", "mobility"] as const).map((currentTab) => (
                       <button
                         key={currentTab}
                         className={`tab${tab === currentTab ? " active" : ""}`}
                         onClick={() => handleRequestTab(currentTab)}
                       >
-                        {currentTab === "mobility" ? "Recovery" : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
+                        {currentTab === "mobility"
+                          ? "Recovery"
+                          : currentTab === "programs"
+                          ? "Programs"
+                          : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
                       </button>
                     ))}
                   </div>
@@ -1205,6 +1211,21 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onDiscardWorkout={discardActiveWorkout}
                   onDeleteWorkout={deleteWorkout}
                   onOpenTextImport={() => setIsTextImportOpen(true)}
+                />
+              )}
+
+              {tab === "programs" && (
+                <ProgramPlanner
+                  clientId={selected.id}
+                  clientsList={clients.map((c) => ({ id: c.id, name: c.name, image: c.image || undefined }))}
+                  isTrainer={true}
+                  onStartPlannedWorkout={(wId) => {
+                    const found = plannedWorkouts.find((pw) => pw.id === wId);
+                    if (found) {
+                      beginPlannedWorkout(found);
+                      setTab("log");
+                    }
+                  }}
                 />
               )}
 
@@ -1666,6 +1687,14 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenTextImport={() => setIsTextImportOpen(true)}
+      />
+
+      {/* Mobile Bottom Navigation Bar (Thumb Optimized) */}
+      <MobileBottomNav
+        currentTab={tab}
+        onSelectTab={(t) => handleRequestTab(t)}
+        role="TRAINER"
+        hasActiveWorkout={hasUnsavedWorkout}
       />
     </div>
   );

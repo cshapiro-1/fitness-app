@@ -101,6 +101,7 @@ model User {
   clients        Client[]
   clientProfile  Client?          @relation("ClientLogin", fields: [clientProfileId], references: [id], onDelete: SetNull)
   loggedWorkouts WorkoutSession[] @relation("LoggedWorkouts")
+  trainerPrograms TrainingProgram[] @relation("TrainerPrograms")
 
   @@index([email])
   @@index([role])
@@ -129,6 +130,7 @@ model Client {
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   workouts        Workout[]
   workoutSessions WorkoutSession[]
+  trainingPrograms TrainingProgram[]
   nutritionPlan   NutritionPlan?
   nutritionLogs   NutritionLog[]
   supplementLogs  SupplementLog[]
@@ -172,9 +174,13 @@ model WorkoutSession {
   deletedAt    DateTime?
   deletedByName String?
   deletedByRole String?
+  programId    String?
+  programWeek  Int?
+  programDay   Int?
   createdAt    DateTime             @default(now())
   client       Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
   loggedByUser User?                @relation("LoggedWorkouts", fields: [loggedById], references: [id], onDelete: SetNull)
+  program      TrainingProgram?     @relation(fields: [programId], references: [id], onDelete: SetNull)
   exercises    WorkoutExercise[]
 
   @@index([clientId])
@@ -182,6 +188,7 @@ model WorkoutSession {
   @@index([completedAt])
   @@index([loggedById])
   @@index([loggedByRole])
+  @@index([programId])
 }
 
 model WorkoutExercise {
@@ -190,6 +197,8 @@ model WorkoutExercise {
   name             String
   order            Int
   category         String?         @default("STRENGTH") // STRENGTH, BODYWEIGHT, CARDIO, STRETCHING, WELLNESS
+  supersetGroup    String?         // e.g. "A1", "A2", "B1", "B2"
+  restSeconds      Int?            @default(60) // Suggested rest interval in seconds
   workoutSession   WorkoutSession  @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
   sets             WorkoutSet[]
 
@@ -208,6 +217,65 @@ model WorkoutSet {
   workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
 
   @@index([workoutExerciseId])
+}
+
+model TrainingProgram {
+  id                String                    @id @default(cuid())
+  trainerId         String
+  clientId          String?
+  name              String
+  description       String?
+  durationWeeks     Int                       @default(6) // 4, 6, 8, 12 weeks, etc.
+  startDate         String?                   // YYYY-MM-DD
+  endDate           String?                   // YYYY-MM-DD
+  status            String                    @default("DRAFT") // DRAFT, IN_PROGRESS, COMPLETED, ARCHIVED
+  progressionType   String                    @default("LINEAR_OVERLOAD") // LINEAR_OVERLOAD, PERCENTAGE_BASED, WAVE_PERIODIZATION, STEP_LOADING, CUSTOM
+  progressionRate   Float?                    @default(2.5) // % weight increase per week or lbs
+  deloadFrequency   Int?                      @default(4) // Deload every Nth week
+  notes             String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  trainer           User                      @relation("TrainerPrograms", fields: [trainerId], references: [id], onDelete: Cascade)
+  client            Client?                   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  workoutTemplates  ProgramWorkoutTemplate[]
+  workoutSessions   WorkoutSession[]
+
+  @@index([trainerId])
+  @@index([clientId])
+  @@index([status])
+}
+
+model ProgramWorkoutTemplate {
+  id                String                    @id @default(cuid())
+  programId         String
+  name              String                    // e.g. "Day 1 - Upper Body Push", "Day 2 - Pull Power"
+  order             Int                       @default(0)
+  cadence           String                    @default("WEEKLY") // WEEKLY, MON, TUE, WED, THU, FRI, SAT, SUN, DAY_1, DAY_2, 3X_WEEK
+  dayOfWeek         Int?                      // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+  program           TrainingProgram           @relation(fields: [programId], references: [id], onDelete: Cascade)
+  exercises         ProgramExerciseTemplate[]
+
+  @@index([programId])
+}
+
+model ProgramExerciseTemplate {
+  id                       String                 @id @default(cuid())
+  programWorkoutTemplateId String
+  name                     String
+  order                    Int                    @default(0)
+  category                 String?                @default("STRENGTH")
+  targetSets               Int                    @default(3)
+  targetReps               String                 @default("8-10")
+  suggestedWeight          Float?                 @default(0)
+  rpe                      Float?
+  supersetGroup            String?                // e.g. "A1", "A2", "B1", "B2"
+  restSeconds              Int?                   @default(90) // Suggested rest time
+  coachingCue              String?
+  progressionNotes         String?
+  programWorkoutTemplate   ProgramWorkoutTemplate @relation(fields: [programWorkoutTemplateId], references: [id], onDelete: Cascade)
+
+  @@index([programWorkoutTemplateId])
 }
 
 model NutritionPlan {

@@ -42,10 +42,12 @@ import { EditWorkoutModal, EditAssignedWorkoutModal } from "./components/EditAss
 import { LiveWorkoutBanner } from "./components/LiveWorkoutBanner";
 import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
+import { ProgramPlanner } from "./components/ProgramPlanner";
 import { TextImportModal } from "./components/TextImportModal";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
-import { Compass, Menu, Activity } from "lucide-react";
+import { Compass, Menu, Activity, CalendarRange } from "lucide-react";
 
 const CLIENT_PRESETS = [
   "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
@@ -70,7 +72,7 @@ export function ClientDashboard({
   const { data: session } = useSession();
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"assigned" | "history" | "analytics" | "mobility">("assigned");
+  const [tab, setTab] = useState<"assigned" | "programs" | "history" | "analytics" | "mobility">("assigned");
 
   const [currentImage, setCurrentImage] = useState<string | null>(userImage);
   const [editingWorkout, setEditingWorkout] = useState<any | null>(null);
@@ -747,6 +749,9 @@ export function ClientDashboard({
           <button className={`tab${tab === "assigned" ? " active" : ""}`} onClick={() => setTab("assigned")}>
             Assigned ({planned.length})
           </button>
+          <button className={`tab${tab === "programs" ? " active" : ""}`} onClick={() => setTab("programs")}>
+            Programs
+          </button>
           <button className={`tab${tab === "history" ? " active" : ""}`} onClick={() => setTab("history")}>
             History ({completed.length})
           </button>
@@ -757,6 +762,19 @@ export function ClientDashboard({
             Recovery
           </button>
         </div>
+
+        {/* TAB: Program Planner View for Athlete */}
+        {tab === "programs" && (
+          <ProgramPlanner
+            isTrainer={false}
+            onStartPlannedWorkout={(wId) => {
+              const found = planned.find((pw: any) => pw.id === wId);
+              if (found) {
+                setEditingWorkout(found);
+              }
+            }}
+          />
+        )}
 
         {/* TAB 1: Assigned Workouts */}
         {tab === "assigned" && (
@@ -1505,6 +1523,14 @@ export function ClientDashboard({
         onOpenTour={() => setShowTourModal(true)}
         onOpenReleaseNotes={() => setShowReleaseModal(true)}
         onOpenTextImport={() => setShowTextImportModal(true)}
+      />
+
+      {/* Mobile Bottom Navigation Bar (Thumb Optimized) */}
+      <MobileBottomNav
+        currentTab={tab === "assigned" ? "log" : tab}
+        onSelectTab={(t) => setTab(t === "log" ? "assigned" : t)}
+        role="CLIENT"
+        hasActiveWorkout={!!inProgressWorkout}
       />
     </div>
   );

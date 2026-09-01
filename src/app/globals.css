@@ -1030,3 +1030,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   vertical-align: middle;
 }
 
+/* Mobile Bottom Navigation Styles */
+@media (min-width: 769px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+  .main {
+    padding-bottom: 84px !important;
+  }
+  .sidebar {
+    display: none !important;
+  }
+}
+

@@ -557,7 +557,7 @@ export function WorkoutHistory({
                 >
                   {/* Exercise Header */}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid #f1f5f9", paddingBottom: "8px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                       <Dumbbell size={16} style={{ color: "#2563eb" }} />
                       <span style={{ fontWeight: 800, fontSize: "14px", color: "#0f172a" }}>{exercise.name}</span>
                       {isBW && (
@@ -574,6 +574,36 @@ export function WorkoutHistory({
                           title="Bodyweight / Resistance Exercise"
                         >
                           Bodyweight
+                        </span>
+                      )}
+                      {(exercise as any).supersetGroup && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            background: "#f5f3ff",
+                            color: "#7c3aed",
+                            border: "1px solid #ddd6fe",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          Superset {(exercise as any).supersetGroup}
+                        </span>
+                      )}
+                      {(exercise as any).restSeconds && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            background: "#f8fafc",
+                            color: "#64748b",
+                            border: "1px solid #e2e8f0",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                          }}
+                        >
+                          ⏱️ {(exercise as any).restSeconds}s rest
                         </span>
                       )}
                     </div>
