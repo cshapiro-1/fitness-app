@@ -4,7 +4,7 @@ import { DashboardAnalytics } from "@/app/dashboard/utils/analytics";
 
 describe("AI Analytics Insights Engine", () => {
   it("should return sensible calibration defaults when analytics has no workouts", () => {
-    const emptyAnalytics: DashboardAnalytics = {
+    const emptyAnalytics = {
       workouts: [],
       overall: {
         totalWorkouts: 0,
@@ -19,7 +19,12 @@ describe("AI Analytics Insights Engine", () => {
       },
       muscleGroups: [],
       exercises: [],
-    };
+      acwr: { acuteLoad: 0, chronicLoad: 0, ratio: 1, zone: "optimal" as const, recommendation: "" },
+      symmetry: { pushVolume: 0, pullVolume: 0, pushToPullRatio: 1, quadVolume: 0, hamstringVolume: 0, quadToHamRatio: 1, anteriorVolume: 0, posteriorVolume: 0, coreVolume: 0, armsVolume: 0, radarPoints: [] },
+      intensity: { zone1Count: 0, zone1Volume: 0, zone1Percent: 0, zone2Count: 0, zone2Volume: 0, zone2Percent: 0, zone3Count: 0, zone3Volume: 0, zone3Percent: 0, totalTrackedSets: 0 },
+      multiLift: { availableLifts: [], timeline: [] },
+      plateaus: [],
+    } as unknown as DashboardAnalytics;
 
     const insights = generateAnalyticsInsights(emptyAnalytics);
     expect(insights).toBeDefined();
@@ -29,7 +34,7 @@ describe("AI Analytics Insights Engine", () => {
   });
 
   it("should identify progressive overload breakthroughs and muscular symmetry ratios", () => {
-    const sampleAnalytics: DashboardAnalytics = {
+    const sampleAnalytics = {
       workouts: [{ id: "w1" } as any, { id: "w2" } as any, { id: "w3" } as any],
       overall: {
         totalWorkouts: 5,
@@ -81,7 +86,12 @@ describe("AI Analytics Insights Engine", () => {
           ],
         },
       ],
-    };
+      acwr: { acuteLoad: 0, chronicLoad: 0, ratio: 1, zone: "optimal" as const, recommendation: "" },
+      symmetry: { pushVolume: 12000, pullVolume: 10000, pushToPullRatio: 1.2, quadVolume: 3000, hamstringVolume: 3000, quadToHamRatio: 1, anteriorVolume: 12000, posteriorVolume: 10000, coreVolume: 0, armsVolume: 0, radarPoints: [] },
+      intensity: { zone1Count: 0, zone1Volume: 0, zone1Percent: 0, zone2Count: 0, zone2Volume: 0, zone2Percent: 0, zone3Count: 0, zone3Volume: 0, zone3Percent: 0, totalTrackedSets: 0 },
+      multiLift: { availableLifts: [], timeline: [] },
+      plateaus: [],
+    } as unknown as DashboardAnalytics;
 
     const insights = generateAnalyticsInsights(sampleAnalytics);
     expect(insights).toBeDefined();
