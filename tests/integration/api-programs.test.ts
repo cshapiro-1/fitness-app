@@ -214,6 +214,7 @@ describe("Training Programs API & Assignment Integration", () => {
       body: JSON.stringify({
         clientId: "client-abc",
         startDate: "2026-09-01",
+        restDaysBetween: 1,
       }),
     });
 
@@ -224,6 +225,13 @@ describe("Training Programs API & Assignment Integration", () => {
     expect(json.success).toBe(true);
     expect(json.scheduledCount).toBe(6); // 6 weeks * 1 day/wk
     expect(prisma.workoutSession.create).toHaveBeenCalledTimes(6);
+    expect(prisma.trainingProgram.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          restDaysBetween: 1,
+        }),
+      })
+    );
   });
 
   it("should update in-progress program and sync changes to upcoming planned sessions", async () => {

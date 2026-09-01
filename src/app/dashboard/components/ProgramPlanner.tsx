@@ -28,6 +28,7 @@ import {
   Info,
 } from "lucide-react";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
+import { calculateWorkoutDate } from "@/lib/periodizationEngine";
 
 export interface ProgramExerciseItem {
   id?: string;
@@ -50,6 +51,7 @@ export interface ProgramWorkoutDay {
   order: number;
   cadence: string;
   dayOfWeek?: number | null;
+  restDaysAfter?: number | null;
   exercises: ProgramExerciseItem[];
 }
 
@@ -66,6 +68,7 @@ export interface TrainingProgramData {
   progressionType: string;
   progressionRate?: number | null;
   deloadFrequency?: number | null;
+  restDaysBetween?: number | null;
   notes?: string | null;
   client?: { id: string; name: string; email?: string; image?: string } | null;
   workoutTemplates: ProgramWorkoutDay[];
@@ -117,6 +120,7 @@ export function ProgramPlanner({
   const [formProgressionType, setFormProgressionType] = useState("LINEAR_OVERLOAD");
   const [formProgressionRate, setFormProgressionRate] = useState(2.5);
   const [formDeloadFrequency, setFormDeloadFrequency] = useState(4);
+  const [formRestDaysBetween, setFormRestDaysBetween] = useState(1);
   const [formDays, setFormDays] = useState<ProgramWorkoutDay[]>([]);
   const [selectedExerciseSuggestions, setSelectedExerciseSuggestions] = useState<string[]>([]);
 
@@ -124,6 +128,7 @@ export function ProgramPlanner({
   const [assigningProgram, setAssigningProgram] = useState<TrainingProgramData | null>(null);
   const [assignTargetClientId, setAssignTargetClientId] = useState<string>(clientId || (clientsList[0]?.id || ""));
   const [assignStartDate, setAssignStartDate] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [assignRestDaysBetween, setAssignRestDaysBetween] = useState<number>(1);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignSuccessMessage, setAssignSuccessMessage] = useState<string | null>(null);
 
@@ -357,6 +362,7 @@ export function ProgramPlanner({
     setFormProgressionType(program.progressionType || "LINEAR_OVERLOAD");
     setFormProgressionRate(program.progressionRate || 2.5);
     setFormDeloadFrequency(program.deloadFrequency || 4);
+    setFormRestDaysBetween(program.restDaysBetween !== undefined && program.restDaysBetween !== null ? program.restDaysBetween : 1);
     setFormDays(
       program.workoutTemplates.map((wt) => ({
         id: wt.id,
@@ -364,6 +370,7 @@ export function ProgramPlanner({
         order: wt.order,
         cadence: wt.cadence,
         dayOfWeek: wt.dayOfWeek,
+        restDaysAfter: wt.restDaysAfter,
         exercises: (wt.exercises || []).map((ex) => ({
           id: ex.id,
           name: ex.name,
@@ -403,6 +410,7 @@ export function ProgramPlanner({
         progressionType: formProgressionType,
         progressionRate: formProgressionRate,
         deloadFrequency: formDeloadFrequency,
+        restDaysBetween: formRestDaysBetween,
         workoutTemplates: formDays,
       };
 
@@ -478,6 +486,7 @@ export function ProgramPlanner({
         body: JSON.stringify({
           clientId: assignTargetClientId,
           startDate: assignStartDate,
+          restDaysBetween: assignRestDaysBetween,
         }),
       });
 
@@ -857,6 +866,7 @@ export function ProgramPlanner({
                       onClick={() => {
                         setAssigningProgram(program);
                         setAssignTargetClientId(clientId || (clientsList[0]?.id || ""));
+                        setAssignRestDaysBetween(program.restDaysBetween !== undefined && program.restDaysBetween !== null ? program.restDaysBetween : 1);
                       }}
                       style={{
                         flex: 1,
@@ -1024,12 +1034,45 @@ export function ProgramPlanner({
                 </div>
 
                 <div>
+                  <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "4px" }}>
+                    Program Description &amp; Goals
+                  </label>
+                  <input
+                    type="text"
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="e.g. Progressive overload focus targeting power and hypertrophy"
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "14px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Periodization Parameters */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                  gap: "14px",
+                  marginBottom: "20px",
+                  background: "#f8fafc",
+                  padding: "16px",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                     <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
-                      Duration (Weeks)
+                      Program Duration (Weeks)
                     </label>
                     <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7" }}>
-                      {formDurationWeeks} {formDurationWeeks === 1 ? "Week" : "Weeks"}
+                      {formDurationWeeks} Weeks
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -1040,7 +1083,7 @@ export function ProgramPlanner({
                       value={formDurationWeeks}
                       onChange={(e) => setFormDurationWeeks(Math.max(1, parseInt(e.target.value, 10) || 1))}
                       style={{
-                        width: "80px",
+                        width: "70px",
                         padding: "8px 10px",
                         borderRadius: "8px",
                         border: "1px solid #cbd5e1",
@@ -1049,7 +1092,7 @@ export function ProgramPlanner({
                       }}
                     />
                     <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", flex: 1 }}>
-                      {[4, 6, 8, 12, 16, 24].map((w) => (
+                      {[4, 6, 8, 12, 16].map((w) => (
                         <button
                           key={w}
                           type="button"
@@ -1087,21 +1130,21 @@ export function ProgramPlanner({
                       fontSize: "14px",
                     }}
                   >
-                    <option value={0}>0% (Maintain Static Weights)</option>
+                    <option value={0}>0% (Static Weights)</option>
                     <option value={2}>+2.0% / Week (Conservative)</option>
                     <option value={2.5}>+2.5% / Week (Recommended)</option>
                     <option value={3.5}>+3.5% / Week (Aggressive)</option>
-                    <option value={5}>+5.0% / Week (Novice Linear)</option>
+                    <option value={5}>+5.0% / Week (Linear)</option>
                   </select>
                 </div>
 
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                     <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
-                      Deload Frequency (Every N Weeks)
+                      Deload Frequency
                     </label>
                     <span style={{ fontSize: "11px", fontWeight: 700, color: formDeloadFrequency > 0 ? "#d97706" : "#64748b" }}>
-                      {formDeloadFrequency > 0 ? `Every ${formDeloadFrequency} Weeks` : "No Deload"}
+                      {formDeloadFrequency > 0 ? `Every ${formDeloadFrequency}w` : "No Deload"}
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -1112,7 +1155,7 @@ export function ProgramPlanner({
                       value={formDeloadFrequency}
                       onChange={(e) => setFormDeloadFrequency(Math.max(0, parseInt(e.target.value, 10) || 0))}
                       style={{
-                        width: "80px",
+                        width: "70px",
                         padding: "8px 10px",
                         borderRadius: "8px",
                         border: "1px solid #cbd5e1",
@@ -1125,9 +1168,7 @@ export function ProgramPlanner({
                         { val: 0, label: "None" },
                         { val: 3, label: "3w" },
                         { val: 4, label: "4w" },
-                        { val: 5, label: "5w" },
                         { val: 6, label: "6w" },
-                        { val: 8, label: "8w" },
                       ].map((item) => (
                         <button
                           key={item.val}
@@ -1141,6 +1182,59 @@ export function ProgramPlanner({
                             border: formDeloadFrequency === item.val ? "1px solid #d97706" : "1px solid #e2e8f0",
                             background: formDeloadFrequency === item.val ? "#fef3c7" : "#ffffff",
                             color: formDeloadFrequency === item.val ? "#b45309" : "#64748b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                      Rest Days Between Workouts
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: formRestDaysBetween === 0 ? "#0284c7" : "#059669" }}>
+                      {formRestDaysBetween === 0 ? "0d (Consecutive)" : `${formRestDaysBetween}d Rest`}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={6}
+                      value={formRestDaysBetween}
+                      onChange={(e) => setFormRestDaysBetween(Math.max(0, Math.min(6, parseInt(e.target.value, 10) || 0)))}
+                      style={{
+                        width: "70px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", flex: 1 }}>
+                      {[
+                        { val: 0, label: "0d" },
+                        { val: 1, label: "1d (Every other)" },
+                        { val: 2, label: "2d" },
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setFormRestDaysBetween(item.val)}
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            borderRadius: "6px",
+                            border: formRestDaysBetween === item.val ? "1px solid #059669" : "1px solid #e2e8f0",
+                            background: formRestDaysBetween === item.val ? "#ecfdf5" : "#ffffff",
+                            color: formRestDaysBetween === item.val ? "#047857" : "#64748b",
                             cursor: "pointer",
                           }}
                         >
@@ -1220,6 +1314,31 @@ export function ProgramPlanner({
                         <Trash2 size={16} />
                       </button>
                     </div>
+
+                    {/* Column Headers for Exercise Inputs */}
+                    {day.exercises.length > 0 && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "2fr 70px 90px 90px 90px 110px 30px",
+                          gap: "8px",
+                          padding: "0 12px 6px",
+                          fontSize: "11px",
+                          fontWeight: 800,
+                          color: "#64748b",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        <div>Exercise Name</div>
+                        <div style={{ textAlign: "center" }}>Sets</div>
+                        <div style={{ textAlign: "center" }}>Reps</div>
+                        <div style={{ textAlign: "center" }}>Weight</div>
+                        <div style={{ textAlign: "center" }}>Superset</div>
+                        <div style={{ textAlign: "center" }}>Rest</div>
+                        <div></div>
+                      </div>
+                    )}
 
                     {/* Exercise List */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1536,10 +1655,15 @@ export function ProgramPlanner({
                   </select>
                 </div>
 
-                <div style={{ marginBottom: "20px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "6px" }}>
-                    Program Start Date *
-                  </label>
+                <div style={{ marginBottom: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                      Program Start Date *
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7" }}>
+                      Begins Week 1
+                    </span>
+                  </div>
                   <input
                     type="date"
                     value={assignStartDate}
@@ -1550,9 +1674,88 @@ export function ProgramPlanner({
                       borderRadius: "8px",
                       border: "1px solid #cbd5e1",
                       fontSize: "14px",
+                      fontWeight: 600,
                     }}
                   />
                 </div>
+
+                <div style={{ marginBottom: "16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 700, color: "#334155" }}>
+                      Rest Days Between Workouts
+                    </label>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: assignRestDaysBetween === 0 ? "#0284c7" : "#059669" }}>
+                      {assignRestDaysBetween === 0 ? "Consecutive (0d Rest)" : `${assignRestDaysBetween} Day${assignRestDaysBetween > 1 ? "s" : ""} Rest`}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={6}
+                      value={assignRestDaysBetween}
+                      onChange={(e) => setAssignRestDaysBetween(Math.max(0, Math.min(6, parseInt(e.target.value, 10) || 0)))}
+                      style={{
+                        width: "70px",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "14px",
+                        fontWeight: 700,
+                      }}
+                    />
+                    <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", flex: 1 }}>
+                      {[
+                        { val: 0, label: "0d (Consecutive)" },
+                        { val: 1, label: "1d (Every Other)" },
+                        { val: 2, label: "2d Rest" },
+                      ].map((item) => (
+                        <button
+                          key={item.val}
+                          type="button"
+                          onClick={() => setAssignRestDaysBetween(item.val)}
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            borderRadius: "6px",
+                            border: assignRestDaysBetween === item.val ? "1px solid #059669" : "1px solid #e2e8f0",
+                            background: assignRestDaysBetween === item.val ? "#ecfdf5" : "#ffffff",
+                            color: assignRestDaysBetween === item.val ? "#047857" : "#64748b",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Calendar Schedule Preview */}
+                {assignStartDate && assigningProgram.workoutTemplates.length > 0 && (
+                  <div style={{ marginBottom: "16px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 800, color: "#0f172a", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <CalendarRange size={15} color="#0284c7" />
+                      <span>Week 1 Schedule Preview</span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      {assigningProgram.workoutTemplates.map((wt, wtIdx) => {
+                        const dStr = calculateWorkoutDate(assignStartDate, 0, wt.dayOfWeek, wtIdx, assignRestDaysBetween);
+                        const dateObj = new Date(dStr + "T00:00:00");
+                        const formattedDate = !isNaN(dateObj.getTime())
+                          ? dateObj.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })
+                          : dStr;
+                        return (
+                          <div key={wtIdx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "#ffffff", padding: "6px 10px", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
+                            <span style={{ fontWeight: 700, color: "#1e293b" }}>{wt.name}</span>
+                            <span style={{ fontWeight: 800, color: "#0284c7" }}>📅 {formattedDate}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 <div
                   style={{

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
     const body = await req.json();
-    const { clientId, startDate } = body;
+    const { clientId, startDate, restDaysBetween } = body;
 
     if (!clientId) {
       return NextResponse.json({ error: "Target clientId is required" }, { status: 400 });
@@ -61,6 +61,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const resolvedStartDate = startDate || new Date().toISOString().split("T")[0];
+    const effectiveRestDays = restDaysBetween !== undefined
+      ? Math.max(0, parseInt(restDaysBetween, 10))
+      : (program.restDaysBetween ?? 1);
 
     // Calculate end date based on durationWeeks
     const startObj = new Date(resolvedStartDate + "T00:00:00");
@@ -75,6 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         order: wt.order,
         cadence: wt.cadence,
         dayOfWeek: wt.dayOfWeek,
+        restDaysAfter: wt.restDaysAfter,
         exercises: wt.exercises.map((ex) => ({
           name: ex.name,
           order: ex.order,
@@ -95,6 +99,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         progressionType: (program.progressionType as any) || "LINEAR_OVERLOAD",
         progressionRate: program.progressionRate ?? 2.5,
         deloadFrequency: program.deloadFrequency ?? 4,
+        restDaysBetween: effectiveRestDays,
       }
     );
 
@@ -150,6 +155,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         status: "IN_PROGRESS",
         startDate: resolvedStartDate,
         endDate: resolvedEndDate,
+        restDaysBetween: effectiveRestDays,
       },
       include: {
         client: {

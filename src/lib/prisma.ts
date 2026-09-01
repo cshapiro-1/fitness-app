@@ -55,10 +55,12 @@ if (!globalForPrisma.pgPool) {
       "progressionType" TEXT NOT NULL DEFAULT 'LINEAR_OVERLOAD',
       "progressionRate" DOUBLE PRECISION DEFAULT 2.5,
       "deloadFrequency" INTEGER DEFAULT 4,
+      "restDaysBetween" INTEGER DEFAULT 1,
       "notes" TEXT,
       "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
+    ALTER TABLE "TrainingProgram" ADD COLUMN IF NOT EXISTS "restDaysBetween" INTEGER DEFAULT 1;
     CREATE INDEX IF NOT EXISTS "TrainingProgram_trainerId_idx" ON "TrainingProgram"("trainerId");
     CREATE INDEX IF NOT EXISTS "TrainingProgram_clientId_idx" ON "TrainingProgram"("clientId");
     CREATE INDEX IF NOT EXISTS "TrainingProgram_status_idx" ON "TrainingProgram"("status");
@@ -69,8 +71,10 @@ if (!globalForPrisma.pgPool) {
       "name" TEXT NOT NULL,
       "order" INTEGER NOT NULL DEFAULT 0,
       "cadence" TEXT NOT NULL DEFAULT 'WEEKLY',
-      "dayOfWeek" INTEGER
+      "dayOfWeek" INTEGER,
+      "restDaysAfter" INTEGER DEFAULT 1
     );
+    ALTER TABLE "ProgramWorkoutTemplate" ADD COLUMN IF NOT EXISTS "restDaysAfter" INTEGER DEFAULT 1;
     CREATE INDEX IF NOT EXISTS "ProgramWorkoutTemplate_programId_idx" ON "ProgramWorkoutTemplate"("programId");
 
     CREATE TABLE IF NOT EXISTS "ProgramExerciseTemplate" (

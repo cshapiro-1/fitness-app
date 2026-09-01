@@ -120,6 +120,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       progressionType,
       progressionRate,
       deloadFrequency,
+      restDaysBetween,
       notes,
       workoutTemplates,
     } = body;
@@ -130,11 +131,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data: {
         name: name ? sanitizeText(name, 120) : undefined,
         description: description !== undefined ? (description ? sanitizeText(description, 500) : null) : undefined,
-        durationWeeks: durationWeeks ? Math.max(1, Math.min(52, parseInt(durationWeeks, 10))) : undefined,
+        durationWeeks: durationWeeks ? Math.max(1, Math.min(104, parseInt(durationWeeks, 10))) : undefined,
         status: status || undefined,
         progressionType: progressionType || undefined,
         progressionRate: progressionRate !== undefined ? parseFloat(progressionRate) : undefined,
         deloadFrequency: deloadFrequency !== undefined ? parseInt(deloadFrequency, 10) : undefined,
+        restDaysBetween: restDaysBetween !== undefined ? Math.max(0, parseInt(restDaysBetween, 10)) : undefined,
         notes: notes !== undefined ? (notes ? sanitizeText(notes, 1000) : null) : undefined,
       },
     });
@@ -155,6 +157,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             order: i,
             cadence: wt.cadence || "WEEKLY",
             dayOfWeek: wt.dayOfWeek || null,
+            restDaysAfter: wt.restDaysAfter !== undefined ? parseInt(wt.restDaysAfter, 10) : 1,
             exercises: {
               create: (wt.exercises || []).map((ex: any, exIdx: number) => ({
                 name: sanitizeText(ex.name || "Exercise", 100),
@@ -203,6 +206,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             progressionType: (updatedProgram.progressionType as any) || "LINEAR_OVERLOAD",
             progressionRate: updatedProgram.progressionRate ?? 2.5,
             deloadFrequency: updatedProgram.deloadFrequency ?? 4,
+            restDaysBetween: updatedProgram.restDaysBetween ?? 1,
           }
         );
 

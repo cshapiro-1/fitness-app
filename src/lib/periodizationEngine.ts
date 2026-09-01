@@ -36,6 +36,7 @@ export interface ProgramProgressionConfig {
   progressionType: "LINEAR_OVERLOAD" | "PERCENTAGE_BASED" | "WAVE_PERIODIZATION" | "STEP_LOADING" | "CUSTOM";
   progressionRate?: number; // e.g. 2.5% per week or lbs
   deloadFrequency?: number; // e.g. every 4th week
+  restDaysBetween?: number; // # of rest days between workouts (e.g. 1 = every other day)
 }
 
 export interface WorkoutTemplateInput {
@@ -43,6 +44,7 @@ export interface WorkoutTemplateInput {
   order: number;
   cadence: string;
   dayOfWeek?: number | null; // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+  restDaysAfter?: number | null;
   exercises: {
     name: string;
     order: number;
@@ -59,13 +61,19 @@ export interface WorkoutTemplateInput {
 }
 
 /**
- * Calculates calendar date given a start date, week index (0-based), and day index (0-based)
+ * Calculates calendar date given a start date, week index (0-based), day index (0-based), and rest days between workouts
  */
-export function calculateWorkoutDate(startDateStr: string, weekIndex: number, dayOfWeek?: number | null, templateIndex: number = 0): string {
+export function calculateWorkoutDate(
+  startDateStr: string,
+  weekIndex: number,
+  dayOfWeek?: number | null,
+  templateIndex: number = 0,
+  restDaysBetween: number = 1
+): string {
   const start = new Date(startDateStr + "T00:00:00");
   if (isNaN(start.getTime())) {
     const today = new Date();
-    today.setDate(today.getDate() + weekIndex * 7 + (dayOfWeek ?? templateIndex * 2));
+    today.setDate(today.getDate() + weekIndex * 7 + templateIndex * (1 + Math.max(0, restDaysBetween)));
     return today.toISOString().split("T")[0];
   }
 
@@ -78,9 +86,11 @@ export function calculateWorkoutDate(startDateStr: string, weekIndex: number, da
     return targetDate.toISOString().split("T")[0];
   }
 
-  // Default cadence: Space days evenly (e.g. Day 0 = +0, Day 1 = +2, Day 2 = +4)
-  const defaultSpacing = [0, 2, 4, 1, 3, 5, 6];
-  const offsetDays = defaultSpacing[templateIndex % defaultSpacing.length] ?? (templateIndex * 2);
+  // Space days from program start date using restDaysBetween
+  // e.g. restDaysBetween=1: Day 0 = +0, Day 1 = +2, Day 2 = +4
+  // e.g. restDaysBetween=0: Day 0 = +0, Day 1 = +1, Day 2 = +2
+  // e.g. restDaysBetween=2: Day 0 = +0, Day 1 = +3, Day 2 = +6
+  const offsetDays = templateIndex * (1 + Math.max(0, restDaysBetween));
   const targetDate = new Date(start);
   targetDate.setDate(start.getDate() + weekIndex * 7 + offsetDays);
   return targetDate.toISOString().split("T")[0];
@@ -153,13 +163,19 @@ export function materializeProgramSchedule(
   config: ProgramProgressionConfig
 ): PeriodizedWorkout[] {
   const schedule: PeriodizedWorkout[] = [];
-  const { durationWeeks, startDate } = config;
+  const { durationWeeks, startDate, restDaysBetween = 1 } = config;
 
   for (let week = 1; week <= durationWeeks; week++) {
     const isDeloadWeek = config.deloadFrequency ? (week % config.deloadFrequency === 0) : false;
 
     templates.forEach((template, templateIdx) => {
-      const scheduledDate = calculateWorkoutDate(startDate, week - 1, template.dayOfWeek, templateIdx);
+      const scheduledDate = calculateWorkoutDate(
+        startDate,
+        week - 1,
+        template.dayOfWeek,
+        templateIdx,
+        template.restDaysAfter ?? restDaysBetween
+      );
 
       const periodizedExercises: PeriodizedExercise[] = template.exercises.map((ex) => {
         const { weight, isDeload, multiplier } = calculateProgressiveWeight(

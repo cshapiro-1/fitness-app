@@ -135,6 +135,7 @@ export async function POST(req: NextRequest) {
       progressionType = "LINEAR_OVERLOAD",
       progressionRate = 2.5,
       deloadFrequency = 4,
+      restDaysBetween = 1,
       notes,
       workoutTemplates = [],
     } = body;
@@ -153,11 +154,12 @@ export async function POST(req: NextRequest) {
         clientId: clientId || null,
         name: cleanName,
         description: cleanDesc,
-        durationWeeks: Math.max(1, Math.min(52, parseInt(durationWeeks, 10) || 6)),
+        durationWeeks: Math.max(1, Math.min(104, parseInt(durationWeeks, 10) || 6)),
         status: "DRAFT",
         progressionType,
         progressionRate: parseFloat(progressionRate) || 2.5,
         deloadFrequency: parseInt(deloadFrequency, 10) || 4,
+        restDaysBetween: restDaysBetween !== undefined ? Math.max(0, parseInt(restDaysBetween, 10)) : 1,
         notes: cleanNotes,
         workoutTemplates: {
           create: workoutTemplates.map((wt: any, idx: number) => ({
@@ -165,6 +167,7 @@ export async function POST(req: NextRequest) {
             order: idx,
             cadence: wt.cadence || "WEEKLY",
             dayOfWeek: wt.dayOfWeek || null,
+            restDaysAfter: wt.restDaysAfter !== undefined ? parseInt(wt.restDaysAfter, 10) : 1,
             exercises: {
               create: (wt.exercises || []).map((ex: any, exIdx: number) => ({
                 name: sanitizeText(ex.name || "Exercise", 100),

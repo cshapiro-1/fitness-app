@@ -66,16 +66,34 @@ describe("Periodization & Progressive Overload Engine", () => {
     expect(w4.isDeload).toBe(true);
   });
 
-  it("should calculate calendar dates for scheduled workouts based on cadence", () => {
+  it("should calculate calendar dates for scheduled workouts based on restDaysBetween parameter", () => {
     const startDate = "2026-09-01"; // Tuesday
-    const dateWeek1Day1 = calculateWorkoutDate(startDate, 0, null, 0);
-    expect(dateWeek1Day1).toBe("2026-09-01");
 
-    const dateWeek1Day2 = calculateWorkoutDate(startDate, 0, null, 1);
-    expect(dateWeek1Day2).toBe("2026-09-03"); // +2 days
+    // 1 rest day between workouts (default / every other day)
+    const w1d1_1rest = calculateWorkoutDate(startDate, 0, null, 0, 1);
+    expect(w1d1_1rest).toBe("2026-09-01"); // Tue
+    const w1d2_1rest = calculateWorkoutDate(startDate, 0, null, 1, 1);
+    expect(w1d2_1rest).toBe("2026-09-03"); // Thu (1 rest day Wed)
+    const w1d3_1rest = calculateWorkoutDate(startDate, 0, null, 2, 1);
+    expect(w1d3_1rest).toBe("2026-09-05"); // Sat (1 rest day Fri)
 
-    const dateWeek2Day1 = calculateWorkoutDate(startDate, 1, null, 0);
-    expect(dateWeek2Day1).toBe("2026-09-08"); // +7 days
+    // 0 rest days (consecutive days)
+    const w1d1_0rest = calculateWorkoutDate(startDate, 0, null, 0, 0);
+    expect(w1d1_0rest).toBe("2026-09-01"); // Tue
+    const w1d2_0rest = calculateWorkoutDate(startDate, 0, null, 1, 0);
+    expect(w1d2_0rest).toBe("2026-09-02"); // Wed
+    const w1d3_0rest = calculateWorkoutDate(startDate, 0, null, 2, 0);
+    expect(w1d3_0rest).toBe("2026-09-03"); // Thu
+
+    // 2 rest days between workouts
+    const w1d1_2rest = calculateWorkoutDate(startDate, 0, null, 0, 2);
+    expect(w1d1_2rest).toBe("2026-09-01"); // Tue
+    const w1d2_2rest = calculateWorkoutDate(startDate, 0, null, 1, 2);
+    expect(w1d2_2rest).toBe("2026-09-04"); // Fri (2 rest days Wed, Thu)
+
+    // Week 2 Day 1
+    const w2d1 = calculateWorkoutDate(startDate, 1, null, 0, 1);
+    expect(w2d1).toBe("2026-09-08"); // Next Tue (+7 days)
   });
 
   it("should materialize a complete multi-week schedule with supersets and rest times", () => {

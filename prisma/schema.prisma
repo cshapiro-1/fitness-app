@@ -232,6 +232,7 @@ model TrainingProgram {
   progressionType   String                    @default("LINEAR_OVERLOAD") // LINEAR_OVERLOAD, PERCENTAGE_BASED, WAVE_PERIODIZATION, STEP_LOADING, CUSTOM
   progressionRate   Float?                    @default(2.5) // % weight increase per week or lbs
   deloadFrequency   Int?                      @default(4) // Deload every Nth week
+  restDaysBetween   Int?                      @default(1) // # of rest days between workouts (e.g. 1 = every other day)
   notes             String?
   createdAt         DateTime                  @default(now())
   updatedAt         DateTime                  @updatedAt
@@ -253,6 +254,7 @@ model ProgramWorkoutTemplate {
   order             Int                       @default(0)
   cadence           String                    @default("WEEKLY") // WEEKLY, MON, TUE, WED, THU, FRI, SAT, SUN, DAY_1, DAY_2, 3X_WEEK
   dayOfWeek         Int?                      // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat, 7=Sun
+  restDaysAfter     Int?                      @default(1) // Rest days following this workout
   program           TrainingProgram           @relation(fields: [programId], references: [id], onDelete: Cascade)
   exercises         ProgramExerciseTemplate[]
 

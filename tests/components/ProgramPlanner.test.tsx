@@ -16,6 +16,7 @@ describe("ProgramPlanner Component Tests", () => {
             name: "Hypertrophy Master Template",
             durationWeeks: 8,
             deloadFrequency: 4,
+            restDaysBetween: 1,
             status: "DRAFT",
             progressionType: "LINEAR_OVERLOAD",
             progressionRate: 2.5,
@@ -64,9 +65,15 @@ describe("ProgramPlanner Component Tests", () => {
     fireEvent.click(screen.getByText("Create New Program"));
     expect(screen.getByText("Build New Training Program")).toBeInTheDocument();
     expect(screen.getByText(/Weekly Workout Splits & Exercises \(3 Days\)/)).toBeInTheDocument();
+
+    // Verify column headers per day
+    expect(screen.getAllByText("Exercise Name").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sets").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Reps").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Weight").length).toBeGreaterThan(0);
   });
 
-  it("should allow editing arbitrary duration weeks and deload frequency", async () => {
+  it("should allow editing arbitrary duration weeks, deload frequency, and rest days between workouts", async () => {
     const { container } = render(
       <ProgramPlanner
         clientId="client-1"
@@ -81,9 +88,9 @@ describe("ProgramPlanner Component Tests", () => {
 
     fireEvent.click(screen.getByText("Create New Program"));
 
-    // Find duration and deload number inputs
+    // Find duration, deload, and rest days number inputs
     const numberInputs = container.querySelectorAll<HTMLInputElement>('input[type="number"]');
-    expect(numberInputs.length).toBeGreaterThanOrEqual(2);
+    expect(numberInputs.length).toBeGreaterThanOrEqual(3);
 
     const durationInput = numberInputs[0];
     fireEvent.change(durationInput, { target: { value: "10" } });
@@ -92,5 +99,31 @@ describe("ProgramPlanner Component Tests", () => {
     const deloadInput = numberInputs[1];
     fireEvent.change(deloadInput, { target: { value: "5" } });
     expect(deloadInput.value).toBe("5");
+
+    const restDaysInput = numberInputs[2];
+    fireEvent.change(restDaysInput, { target: { value: "2" } });
+    expect(restDaysInput.value).toBe("2");
+  });
+
+  it("should render assign modal with rest days configuration and live schedule preview", async () => {
+    render(
+      <ProgramPlanner
+        clientId="client-1"
+        clientsList={[{ id: "client-1", name: "Alex Athlete" }]}
+        isTrainer={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Hypertrophy Master Template")).toBeInTheDocument();
+    });
+
+    // Click Assign to Client
+    fireEvent.click(screen.getByText("Assign to Client"));
+
+    expect(screen.getByText("Assign Program to Client")).toBeInTheDocument();
+    expect(screen.getByText("Rest Days Between Workouts")).toBeInTheDocument();
+    expect(screen.getByText("Week 1 Schedule Preview")).toBeInTheDocument();
+    expect(screen.getByText(/All 8 periodized workouts will immediately appear/)).toBeInTheDocument();
   });
 });
