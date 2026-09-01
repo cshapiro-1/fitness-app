@@ -32,6 +32,7 @@ export interface AppHeaderMenuProps {
   onOpenPlateCalculator?: () => void;
   onOpenTextImport?: () => void;
   onSwitchToClientView?: () => void;
+  onNavigateTab?: (tab: "log" | "programs" | "history" | "analytics" | "mobility") => void;
 }
 
 export function AppHeaderMenu({
@@ -46,6 +47,7 @@ export function AppHeaderMenu({
   onOpenPlateCalculator,
   onOpenTextImport,
   onSwitchToClientView,
+  onNavigateTab,
 }: AppHeaderMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -150,25 +152,54 @@ export function AppHeaderMenu({
               Studio Tools
             </div>
 
-            <Link
-              href="/recovery"
-              onClick={() => setIsOpen(false)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "8px 10px",
-                borderRadius: "8px",
-                textDecoration: "none",
-                color: "#334155",
-                fontSize: "13px",
-                fontWeight: 600,
-              }}
-              className="dropdown-item"
-            >
-              <Heart size={16} style={{ color: "#ec4899" }} />
-              <span>Recovery &amp; Mobility Hub</span>
-            </Link>
+            {onNavigateTab ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onNavigateTab("mobility");
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  border: "none",
+                  background: "transparent",
+                  color: "#334155",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left",
+                }}
+                className="dropdown-item"
+              >
+                <Heart size={16} style={{ color: "#ec4899" }} />
+                <span>Recovery &amp; Mobility Hub</span>
+              </button>
+            ) : (
+              <Link
+                href="/recovery"
+                onClick={() => setIsOpen(false)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "8px 10px",
+                  borderRadius: "8px",
+                  textDecoration: "none",
+                  color: "#334155",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                }}
+                className="dropdown-item"
+              >
+                <Heart size={16} style={{ color: "#ec4899" }} />
+                <span>Recovery &amp; Mobility Hub</span>
+              </Link>
+            )}
 
             <Link
               href="/nutrition"

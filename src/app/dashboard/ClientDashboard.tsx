@@ -552,6 +552,7 @@ export function ClientDashboard({
             onOpenProfile={() => setShowPhotoModal(true)}
             onOpenPlateCalculator={() => setShowPlateModal(true)}
             onOpenTextImport={() => setShowTextImportModal(true)}
+            onNavigateTab={(t) => setTab(t === "log" ? "assigned" : t)}
             onSwitchToClientView={isAdmin ? async () => {
               await fetch("/api/user/role", {
                 method: "PATCH",
@@ -1523,6 +1524,7 @@ export function ClientDashboard({
         onOpenTour={() => setShowTourModal(true)}
         onOpenReleaseNotes={() => setShowReleaseModal(true)}
         onOpenTextImport={() => setShowTextImportModal(true)}
+        onNavigateTab={(t) => setTab(t === "log" ? "assigned" : t)}
       />
 
       {/* Mobile Bottom Navigation Bar (Thumb Optimized) */}

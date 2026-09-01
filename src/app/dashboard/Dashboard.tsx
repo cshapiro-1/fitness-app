@@ -733,6 +733,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             onOpenProfile={() => setIsProfileModalOpen(true)}
             onOpenPlateCalculator={() => setIsPlateModalOpen(true)}
             onOpenTextImport={() => setIsTextImportOpen(true)}
+            onNavigateTab={(t) => handleRequestTab(t)}
             onSwitchToClientView={async () => {
               await fetch("/api/user/role", {
                 method: "PATCH",
@@ -1687,6 +1688,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenTextImport={() => setIsTextImportOpen(true)}
+        onNavigateTab={(t) => handleRequestTab(t)}
       />
 
       {/* Mobile Bottom Navigation Bar (Thumb Optimized) */}

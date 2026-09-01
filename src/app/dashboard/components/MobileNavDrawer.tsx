@@ -33,6 +33,7 @@ export interface MobileNavDrawerProps {
   onOpenReleaseNotes?: () => void;
   onOpenProfile?: () => void;
   onOpenTextImport?: () => void;
+  onNavigateTab?: (tab: "log" | "programs" | "history" | "analytics" | "mobility") => void;
 }
 
 export function MobileNavDrawer({
@@ -47,6 +48,7 @@ export function MobileNavDrawer({
   onOpenReleaseNotes,
   onOpenProfile,
   onOpenTextImport,
+  onNavigateTab,
 }: MobileNavDrawerProps) {
   if (!isOpen) return null;
 
@@ -134,24 +136,52 @@ export function MobileNavDrawer({
         {/* Navigation Links */}
         <div style={{ flex: 1, padding: "12px 8px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
           {/* Recovery */}
-          <Link
-            href="/recovery"
-            onClick={onClose}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              textDecoration: "none",
-              color: "#334155",
-              fontSize: "14px",
-              fontWeight: 600,
-            }}
-          >
-            <Heart size={18} style={{ color: "#ec4899" }} />
-            <span>Recovery &amp; Mobility</span>
-          </Link>
+          {onNavigateTab ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onNavigateTab("mobility");
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                border: "none",
+                background: "transparent",
+                color: "#334155",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+                textAlign: "left",
+                width: "100%",
+              }}
+            >
+              <Heart size={18} style={{ color: "#ec4899" }} />
+              <span>Recovery &amp; Mobility</span>
+            </button>
+          ) : (
+            <Link
+              href="/recovery"
+              onClick={onClose}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "8px",
+                textDecoration: "none",
+                color: "#334155",
+                fontSize: "14px",
+                fontWeight: 600,
+              }}
+            >
+              <Heart size={18} style={{ color: "#ec4899" }} />
+              <span>Recovery &amp; Mobility</span>
+            </Link>
+          )}
 
           {/* Nutrition */}
           <Link

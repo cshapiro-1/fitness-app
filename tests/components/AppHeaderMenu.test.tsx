@@ -50,4 +50,22 @@ describe("AppHeaderMenu Component", () => {
     fireEvent.click(screen.getByText("Interactive App Tour"));
     expect(onOpenTour).toHaveBeenCalled();
   });
+
+  it("calls onNavigateTab when Recovery & Mobility is clicked in dashboard context", () => {
+    const handleNavigate = vi.fn();
+    render(
+      <AppHeaderMenu
+        role="TRAINER"
+        userName="Collin"
+        userImage={null}
+        onOpenTour={vi.fn()}
+        onOpenReleaseNotes={vi.fn()}
+        onNavigateTab={handleNavigate}
+      />
+    );
+
+    fireEvent.click(screen.getByTitle("Open Studio Menu & Profile"));
+    fireEvent.click(screen.getByText("Recovery & Mobility Hub"));
+    expect(handleNavigate).toHaveBeenCalledWith("mobility");
+  });
 });

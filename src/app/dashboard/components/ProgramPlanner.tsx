@@ -853,6 +853,7 @@ export function ProgramPlanner({
                 >
                   {isTrainer && !isActive && (
                     <button
+                      type="button"
                       onClick={() => {
                         setAssigningProgram(program);
                         setAssignTargetClientId(clientId || (clientsList[0]?.id || ""));
@@ -880,6 +881,7 @@ export function ProgramPlanner({
 
                   {isTrainer && (
                     <button
+                      type="button"
                       onClick={() => handleOpenEdit(program)}
                       style={{
                         padding: "7px 12px",
@@ -903,6 +905,7 @@ export function ProgramPlanner({
 
                   {isTrainer && (
                     <button
+                      type="button"
                       onClick={() => handleDeleteProgram(program.id, program.name)}
                       style={{
                         padding: "7px 10px",

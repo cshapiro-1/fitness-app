@@ -50,4 +50,23 @@ describe("MobileNavDrawer Component Tests", () => {
     expect(screen.getByText("Sarah Connor")).toBeInTheDocument();
     expect(screen.getByText("Recovery & Mobility")).toBeInTheDocument();
   });
+
+  it("should trigger onNavigateTab when Recovery & Mobility is clicked", () => {
+    const handleClose = vi.fn();
+    const handleNavigate = vi.fn();
+
+    render(
+      <MobileNavDrawer
+        role="TRAINER"
+        isOpen={true}
+        onClose={handleClose}
+        userName="Coach Collin"
+        onNavigateTab={handleNavigate}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Recovery & Mobility"));
+    expect(handleNavigate).toHaveBeenCalledWith("mobility");
+    expect(handleClose).toHaveBeenCalled();
+  });
 });
