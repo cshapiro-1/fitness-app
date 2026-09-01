@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 import { calculateWorkoutDate } from "@/lib/periodizationEngine";
+import { RemoveAssignedWorkoutsModal } from "./RemoveAssignedWorkoutsModal";
 
 export interface ProgramExerciseItem {
   id?: string;
@@ -132,8 +133,9 @@ export function ProgramPlanner({
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignSuccessMessage, setAssignSuccessMessage] = useState<string | null>(null);
 
-  // Schedule Preview Modal
+  // Schedule Preview & Unassign Modal
   const [previewingProgram, setPreviewingProgram] = useState<TrainingProgramData | null>(null);
+  const [unassigningProgram, setUnassigningProgram] = useState<TrainingProgramData | null>(null);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>("ALL");
 
   const fetchPrograms = useCallback(async () => {
@@ -886,6 +888,30 @@ export function ProgramPlanner({
                     >
                       <Play size={14} />
                       <span>Assign to Client</span>
+                    </button>
+                  )}
+
+                  {isTrainer && isActive && (
+                    <button
+                      type="button"
+                      onClick={() => setUnassigningProgram(program)}
+                      style={{
+                        padding: "7px 12px",
+                        borderRadius: "8px",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#dc2626",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                      }}
+                      title="Unassign program and remove all uncompleted planned sessions"
+                    >
+                      <Trash2 size={13} />
+                      <span>Unassign / Clear</span>
                     </button>
                   )}
 
@@ -1811,6 +1837,22 @@ export function ProgramPlanner({
             )}
           </div>
         </div>
+      )}
+
+      {/* Remove Assigned Workouts Warning Modal */}
+      {unassigningProgram && (
+        <RemoveAssignedWorkoutsModal
+          isOpen={!!unassigningProgram}
+          onClose={() => setUnassigningProgram(null)}
+          clientId={unassigningProgram.clientId || ""}
+          clientName={unassigningProgram.client?.name || "Client"}
+          programId={unassigningProgram.id}
+          programName={unassigningProgram.name}
+          assignedCount={unassigningProgram.workoutTemplates.length * unassigningProgram.durationWeeks}
+          onSuccess={() => {
+            fetchPrograms();
+          }}
+        />
       )}
     </div>
   );

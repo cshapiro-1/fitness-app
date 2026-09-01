@@ -297,3 +297,81 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    let userId = (session?.user as any)?.id;
+    const userEmail = session?.user?.email?.toLowerCase().trim();
+
+    if (!userId && userEmail) {
+      const dbUser = await prisma.user.findFirst({
+        where: { email: { equals: userEmail, mode: "insensitive" } },
+      });
+      userId = dbUser?.id;
+    }
+    if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const url = new URL(req.url);
+    const clientId = url.searchParams.get("clientId");
+    const programId = url.searchParams.get("programId");
+
+    if (!clientId) {
+      return NextResponse.json({ error: "clientId is required" }, { status: 400 });
+    }
+
+    const targetClient = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { id: true, userId: true, email: true, name: true },
+    });
+
+    if (!targetClient) {
+      return NextResponse.json({ error: "Target client not found" }, { status: 404 });
+    }
+
+    const isCoach = userId && targetClient.userId === userId;
+    const isAthlete = userEmail && targetClient.email?.toLowerCase() === userEmail;
+    const isAdmin = (session?.user as any)?.isAdmin === true;
+
+    if (!isCoach && !isAthlete && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden: You cannot modify workouts for this client" }, { status: 403 });
+    }
+
+    // Delete all PLANNED / IN_PROGRESS workout sessions for this client (and optional programId)
+    const deleteWhere: any = {
+      clientId,
+      status: { in: ["PLANNED", "IN_PROGRESS"] },
+    };
+
+    if (programId) {
+      deleteWhere.programId = programId;
+    }
+
+    const deleted = await prisma.workoutSession.deleteMany({
+      where: deleteWhere,
+    });
+
+    // If programId was provided, reset program status to DRAFT and clear client assignment
+    if (programId) {
+      await prisma.trainingProgram.updateMany({
+        where: { id: programId },
+        data: { status: "DRAFT", clientId: null, startDate: null, endDate: null },
+      });
+    } else {
+      // If clearing all assigned workouts for this client, reset any in-progress programs
+      await prisma.trainingProgram.updateMany({
+        where: { clientId, status: "IN_PROGRESS" },
+        data: { status: "DRAFT", clientId: null, startDate: null, endDate: null },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      count: deleted.count,
+      message: `Successfully removed ${deleted.count} assigned workout${deleted.count === 1 ? "" : "s"}.`,
+    });
+  } catch (error: any) {
+    console.error("Error deleting assigned workouts:", error);
+    return NextResponse.json({ error: error.message || "Failed to remove assigned workouts" }, { status: 500 });
+  }
+}

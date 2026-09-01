@@ -58,6 +58,7 @@ import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { TextImportModal } from "./components/TextImportModal";
 import { SessionHeartbeatTracker } from "./components/SessionHeartbeatTracker";
 import { ProgramPlanner } from "./components/ProgramPlanner";
+import { StudioNavTabs } from "./components/StudioNavTabs";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
@@ -1128,68 +1129,60 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                       )}
                     </div>
                   )}
-
-                  {/* Active Workout Floating Status Bar */}
-                  {hasUnsavedWorkout && tab !== "log" && (
-                    <div
-                      style={{
-                        background: "linear-gradient(135deg, #1e3a8a, #2563eb)",
-                        color: "#ffffff",
-                        padding: "10px 16px",
-                        borderRadius: "10px",
-                        marginBottom: "12px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                      }}
-                    >
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600 }}>
-                        <span style={{ fontSize: "16px" }}>⚡</span>
-                        <span>
-                          <b>Active Workout In-Progress</b> ({activeWorkout?.exercises?.length || 0} exercises, {totalActiveSets} sets) · Auto-saved
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setTab("log")}
-                        style={{
-                          background: "#ffffff",
-                          color: "#1d4ed8",
-                          fontWeight: 700,
-                          fontSize: "12px",
-                          padding: "6px 14px",
-                          borderRadius: "6px",
-                          border: "none",
-                          cursor: "pointer",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
-                        }}
-                      >
-                        Return to Workout Logger →
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Tabs */}
-                  <div className="tabs">
-                    {(["log", "programs", "history", "analytics", "mobility"] as const).map((currentTab) => (
-                      <button
-                        key={currentTab}
-                        className={`tab${tab === currentTab ? " active" : ""}`}
-                        onClick={() => handleRequestTab(currentTab)}
-                      >
-                        {currentTab === "mobility"
-                          ? "Recovery"
-                          : currentTab === "programs"
-                          ? "Programs"
-                          : currentTab.charAt(0).toUpperCase() + currentTab.slice(1)}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
+
+              {/* Active Workout Floating Status Bar */}
+              {hasUnsavedWorkout && tab !== "log" && (
+                <div
+                  style={{
+                    background: "linear-gradient(135deg, #1e3a8a, #2563eb)",
+                    color: "#ffffff",
+                    padding: "10px 16px",
+                    borderRadius: "10px",
+                    marginBottom: "14px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", fontWeight: 600 }}>
+                    <span style={{ fontSize: "16px" }}>⚡</span>
+                    <span>
+                      <b>Active Workout In-Progress</b> ({activeWorkout?.exercises?.length || 0} exercises, {totalActiveSets} sets) · Auto-saved
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTab("log")}
+                    style={{
+                      background: "#ffffff",
+                      color: "#1d4ed8",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      padding: "6px 14px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                    }}
+                  >
+                    Return to Workout Logger →
+                  </button>
+                </div>
+              )}
+
+              {/* Elevated Studio Navigation Tabs Flow */}
+              <StudioNavTabs
+                activeTab={tab}
+                onSelectTab={handleRequestTab}
+                plannedCount={plannedWorkouts.length}
+                completedCount={completedWorkouts.length}
+                hasActiveWorkout={hasUnsavedWorkout}
+              />
 
               {/* Tab Content */}
               {tab === "log" && (
@@ -1212,6 +1205,9 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onDiscardWorkout={discardActiveWorkout}
                   onDeleteWorkout={deleteWorkout}
                   onOpenTextImport={() => setIsTextImportOpen(true)}
+                  clientId={selected.id}
+                  clientName={selected.name}
+                  onClearAllPlanned={() => fetchWorkouts(selected.id)}
                 />
               )}
 

@@ -44,6 +44,8 @@ import { RepeatWorkoutModal } from "./components/RepeatWorkoutModal";
 import { AnatomyGuideModal } from "./components/AnatomyGuideModal";
 import { ProgramPlanner } from "./components/ProgramPlanner";
 import { TextImportModal } from "./components/TextImportModal";
+import { StudioNavTabs, StudioTabType } from "./components/StudioNavTabs";
+import { RemoveAssignedWorkoutsModal } from "./components/RemoveAssignedWorkoutsModal";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
@@ -266,6 +268,7 @@ export function ClientDashboard({
 
   const [repeatingWorkoutId, setRepeatingWorkoutId] = useState<string | null>(null);
   const [repeatingWorkoutForModal, setRepeatingWorkoutForModal] = useState<any | null>(null);
+  const [showRemoveAllModal, setShowRemoveAllModal] = useState(false);
 
   const handleDeleteWorkout = async (workoutId: string) => {
     const targetWorkout = workouts.find((w) => w.id === workoutId);
@@ -745,24 +748,14 @@ export function ClientDashboard({
           />
         )}
 
-        {/* Clean Responsive Tab Switcher */}
-        <div className="tabs" style={{ marginBottom: "16px" }}>
-          <button className={`tab${tab === "assigned" ? " active" : ""}`} onClick={() => setTab("assigned")}>
-            Assigned ({planned.length})
-          </button>
-          <button className={`tab${tab === "programs" ? " active" : ""}`} onClick={() => setTab("programs")}>
-            Programs
-          </button>
-          <button className={`tab${tab === "history" ? " active" : ""}`} onClick={() => setTab("history")}>
-            History ({completed.length})
-          </button>
-          <button className={`tab${tab === "analytics" ? " active" : ""}`} onClick={() => setTab("analytics")}>
-            Progress &amp; PRs
-          </button>
-          <button className={`tab${tab === "mobility" ? " active" : ""}`} onClick={() => setTab("mobility")}>
-            Recovery
-          </button>
-        </div>
+        {/* Elevated Studio Navigation Tabs Flow */}
+        <StudioNavTabs
+          activeTab={tab === "assigned" ? "log" : (tab as any)}
+          onSelectTab={(t) => setTab(t === "log" ? "assigned" : t)}
+          plannedCount={planned.length}
+          completedCount={completed.length}
+          hasActiveWorkout={!!inProgressWorkout}
+        />
 
         {/* TAB: Program Planner View for Athlete */}
         {tab === "programs" && (
@@ -780,11 +773,38 @@ export function ClientDashboard({
         {/* TAB 1: Assigned Workouts */}
         {tab === "assigned" && (
           <div className="card" style={{ padding: "16px 18px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Assigned Routines from Coach</h3>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: "10px" }}>
-                {planned.length} Active
-              </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Assigned Routines from Coach</h3>
+                <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: "10px" }}>
+                  {planned.length} Active
+                </span>
+              </div>
+
+              {planned.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveAllModal(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#dc2626",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  title="Remove all assigned workouts from your schedule"
+                >
+                  <Trash2 size={13} />
+                  <span>Remove All Assigned ({planned.length})</span>
+                </button>
+              )}
             </div>
 
             {loading && (
@@ -1533,6 +1553,18 @@ export function ClientDashboard({
         onSelectTab={(t) => setTab(t === "log" ? "assigned" : t)}
         role="CLIENT"
         hasActiveWorkout={!!inProgressWorkout}
+      />
+
+      {/* Remove All Assigned Workouts Warning Modal */}
+      <RemoveAssignedWorkoutsModal
+        isOpen={showRemoveAllModal}
+        onClose={() => setShowRemoveAllModal(false)}
+        clientId={planned[0]?.clientId || (workouts[0] as any)?.clientId || ""}
+        clientName={userName || "You"}
+        assignedCount={planned.length}
+        onSuccess={() => {
+          fetchWorkouts();
+        }}
       />
     </div>
   );

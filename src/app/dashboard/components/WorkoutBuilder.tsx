@@ -9,6 +9,7 @@ import { AnatomyGuideModal } from "./AnatomyGuideModal";
 import { EXERCISE_LIBRARY, isDefaultBodyweight, searchExercises } from "../utils/exerciseLibrary";
 import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
 import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
+import { RemoveAssignedWorkoutsModal } from "./RemoveAssignedWorkoutsModal";
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
@@ -29,6 +30,9 @@ interface WorkoutBuilderProps {
   onDiscardWorkout?: () => void;
   onDeleteWorkout?: (id: string) => void;
   onOpenTextImport?: () => void;
+  clientId?: string;
+  clientName?: string;
+  onClearAllPlanned?: () => void;
 }
 
 export function WorkoutBuilder({
@@ -50,9 +54,13 @@ export function WorkoutBuilder({
   onDiscardWorkout,
   onDeleteWorkout,
   onOpenTextImport,
+  clientId = "",
+  clientName = "",
+  onClearAllPlanned,
 }: WorkoutBuilderProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [showRemoveAllModal, setShowRemoveAllModal] = useState(false);
   const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
 
   // Anatomy Guide Modal State
@@ -394,7 +402,38 @@ export function WorkoutBuilder({
 
           {!!plannedWorkouts.length && (
             <div className="planned-list" style={{ marginTop: "24px" }}>
-              <h4 className="planned-list-title">Planned Workouts</h4>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <h4 className="planned-list-title" style={{ margin: 0 }}>Planned Workouts</h4>
+                  <span style={{ fontSize: "11px", fontWeight: 700, background: "#eff6ff", color: "#2563eb", padding: "2px 8px", borderRadius: "10px", border: "1px solid #bfdbfe" }}>
+                    {plannedWorkouts.length} Assigned
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowRemoveAllModal(true)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#dc2626",
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    padding: "5px 10px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                  title="Remove all assigned planned workouts for this client"
+                >
+                  <Trash2 size={13} />
+                  <span>Remove All Assigned ({plannedWorkouts.length})</span>
+                </button>
+              </div>
+
               {plannedWorkouts.map((plannedWorkout) => (
                 <div key={plannedWorkout.id} className="planned-row">
                   <div>
@@ -924,6 +963,18 @@ export function WorkoutBuilder({
         exerciseName={selectedAnatomyExercise || ""}
         chartData={anatomyChartData}
         loading={loadingAnatomy}
+      />
+
+      {/* Remove All Assigned Workouts Warning Modal */}
+      <RemoveAssignedWorkoutsModal
+        isOpen={showRemoveAllModal}
+        onClose={() => setShowRemoveAllModal(false)}
+        clientId={clientId}
+        clientName={clientName}
+        assignedCount={plannedWorkouts.length}
+        onSuccess={() => {
+          if (onClearAllPlanned) onClearAllPlanned();
+        }}
       />
     </div>
   );
