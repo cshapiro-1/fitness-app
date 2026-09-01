@@ -111,6 +111,34 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
         },
         include: { exercises: { include: { sets: true } } }
       });
+
+      // Synchronize parent TrainingProgram status if workout belongs to a program
+      if (sessionToUpdate.programId && isCompleting) {
+        try {
+          const remainingUnfinished = await prisma.workoutSession.count({
+            where: {
+              programId: sessionToUpdate.programId,
+              deletedAt: null,
+              status: { in: ["PLANNED", "IN_PROGRESS"] },
+              id: { not: params.id },
+            },
+          });
+          if (remainingUnfinished === 0) {
+            await prisma.trainingProgram.update({
+              where: { id: sessionToUpdate.programId },
+              data: { status: "COMPLETED" },
+            });
+          } else {
+            await prisma.trainingProgram.update({
+              where: { id: sessionToUpdate.programId },
+              data: { status: "IN_PROGRESS" },
+            });
+          }
+        } catch (syncErr) {
+          console.warn("Program status sync warning:", syncErr);
+        }
+      }
+
       return NextResponse.json(updated);
     }
 
@@ -124,6 +152,34 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       },
       include: { exercises: { include: { sets: true } } }
     });
+
+    // Synchronize parent TrainingProgram status if workout belongs to a program
+    if (sessionToUpdate.programId && isCompleting) {
+      try {
+        const remainingUnfinished = await prisma.workoutSession.count({
+          where: {
+            programId: sessionToUpdate.programId,
+            deletedAt: null,
+            status: { in: ["PLANNED", "IN_PROGRESS"] },
+            id: { not: params.id },
+          },
+        });
+        if (remainingUnfinished === 0) {
+          await prisma.trainingProgram.update({
+            where: { id: sessionToUpdate.programId },
+            data: { status: "COMPLETED" },
+          });
+        } else {
+          await prisma.trainingProgram.update({
+            where: { id: sessionToUpdate.programId },
+            data: { status: "IN_PROGRESS" },
+          });
+        }
+      } catch (syncErr) {
+        console.warn("Program status sync warning:", syncErr);
+      }
+    }
+
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

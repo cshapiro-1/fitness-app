@@ -26,6 +26,9 @@ import {
   Check,
   Flame,
   Info,
+  Trophy,
+  RotateCcw,
+  Award,
 } from "lucide-react";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 import { calculateWorkoutDate } from "@/lib/periodizationEngine";
@@ -73,6 +76,14 @@ export interface TrainingProgramData {
   notes?: string | null;
   client?: { id: string; name: string; email?: string; image?: string } | null;
   workoutTemplates: ProgramWorkoutDay[];
+  workoutSessions?: Array<{
+    id: string;
+    status: string;
+    startedAt?: string | null;
+    completedAt?: string | null;
+    programWeek?: number | null;
+    programDay?: number | null;
+  }>;
   stats?: {
     totalWorkouts: number;
     completedWorkouts: number;
@@ -137,6 +148,7 @@ export function ProgramPlanner({
   const [previewingProgram, setPreviewingProgram] = useState<TrainingProgramData | null>(null);
   const [unassigningProgram, setUnassigningProgram] = useState<TrainingProgramData | null>(null);
   const [selectedClientFilter, setSelectedClientFilter] = useState<string>("ALL");
+  const [expandedBreakdownId, setExpandedBreakdownId] = useState<string | null>(null);
 
   const fetchPrograms = useCallback(async () => {
     setLoading(true);
@@ -852,6 +864,30 @@ export function ProgramPlanner({
                     </span>
                   </div>
 
+                  {/* Completed Program Celebration Banner */}
+                  {program.status === "COMPLETED" && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#16a34a", fontSize: "12px", fontWeight: 800 }}>
+                        <Trophy size={15} color="#16a34a" />
+                        <span>Program Completed (100% Finished)</span>
+                      </div>
+                      <span style={{ fontSize: "11px", color: "#15803d", fontWeight: 700 }}>
+                        {stats?.completedWorkouts || stats?.totalWorkouts || 0} Sessions
+                      </span>
+                    </div>
+                  )}
+
                   {/* Progress Bar for Active Program */}
                   {isActive && stats && stats.totalWorkouts > 0 && (
                     <div style={{ marginBottom: "14px" }}>
@@ -872,6 +908,58 @@ export function ProgramPlanner({
                           }}
                         />
                       </div>
+
+                      {/* Toggle Schedule Breakdown */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedBreakdownId(expandedBreakdownId === program.id ? null : program.id)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#0284c7",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          padding: "4px 0 0 0",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                      >
+                        {expandedBreakdownId === program.id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        <span>{expandedBreakdownId === program.id ? "Hide Schedule Breakdown" : "View Schedule Breakdown"}</span>
+                      </button>
+
+                      {expandedBreakdownId === program.id && program.workoutSessions && (
+                        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "4px", maxHeight: "180px", overflowY: "auto", background: "#f8fafc", padding: "8px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                          {[...program.workoutSessions]
+                            .sort((a: any, b: any) => {
+                              const tA = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+                              const tB = b.startedAt ? new Date(b.startedAt).getTime() : 0;
+                              if (tA !== tB) return tA - tB;
+                              return (a.programWeek ?? 0) - (b.programWeek ?? 0);
+                            })
+                            .map((s: any, idx: number) => {
+                              const isDone = s.status === "COMPLETED";
+                              return (
+                                <div key={s.id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", padding: "3px 6px", background: "#ffffff", borderRadius: "4px", border: "1px solid #f1f5f9" }}>
+                                  <span style={{ color: "#334155", fontWeight: 600 }}>
+                                    Week {s.programWeek || 1} · Day {s.programDay || 1}
+                                  </span>
+                                  {isDone ? (
+                                    <span style={{ color: "#16a34a", fontWeight: 700, display: "flex", alignItems: "center", gap: "3px" }}>
+                                      <CheckCircle2 size={11} /> Completed
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: "#0284c7", fontWeight: 600 }}>
+                                      📅 {s.startedAt ? new Date(s.startedAt).toLocaleDateString(undefined, { month: "numeric", day: "numeric" }) : "Scheduled"}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -885,6 +973,7 @@ export function ProgramPlanner({
                     borderTop: "1px solid #f1f5f9",
                     paddingTop: "12px",
                     marginTop: "8px",
+                    flexWrap: "wrap",
                   }}
                 >
                   {isTrainer && !isActive && (
@@ -911,33 +1000,61 @@ export function ProgramPlanner({
                         gap: "6px",
                       }}
                     >
-                      <Play size={14} />
-                      <span>Assign to Client</span>
+                      {program.status === "COMPLETED" ? <RotateCcw size={14} /> : <Play size={14} />}
+                      <span>{program.status === "COMPLETED" ? "Reassign Program" : "Assign to Client"}</span>
                     </button>
                   )}
 
                   {isTrainer && isActive && (
-                    <button
-                      type="button"
-                      onClick={() => setUnassigningProgram(program)}
-                      style={{
-                        padding: "7px 12px",
-                        borderRadius: "8px",
-                        fontWeight: 600,
-                        fontSize: "13px",
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        color: "#dc2626",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                      title="Unassign program and remove all uncompleted planned sessions"
-                    >
-                      <Trash2 size={13} />
-                      <span>Unassign / Clear</span>
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAssigningProgram(program);
+                          setAssignTargetClientId(program.clientId || clientId || (clientsList[0]?.id || ""));
+                          setAssignRestDaysBetween(program.restDaysBetween !== undefined && program.restDaysBetween !== null ? program.restDaysBetween : 1);
+                        }}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: "8px",
+                          fontWeight: 700,
+                          fontSize: "12px",
+                          background: "#eff6ff",
+                          border: "1px solid #bfdbfe",
+                          color: "#1d4ed8",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                        title="Reassign or restart this program"
+                      >
+                        <RotateCcw size={13} />
+                        <span>Reassign</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setUnassigningProgram(program)}
+                        style={{
+                          padding: "7px 10px",
+                          borderRadius: "8px",
+                          fontWeight: 600,
+                          fontSize: "12px",
+                          background: "#fef2f2",
+                          border: "1px solid #fecaca",
+                          color: "#dc2626",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                        }}
+                        title="Unassign program and remove all uncompleted planned sessions"
+                      >
+                        <Trash2 size={13} />
+                        <span>Unassign</span>
+                      </button>
+                    </>
                   )}
 
                   {isTrainer && (

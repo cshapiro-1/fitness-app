@@ -226,35 +226,104 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanNotes = sanitizeText(notes, 1000);
+    let created: any;
+    let parentProgramId: string | null = null;
 
-    const created = await prisma.workoutSession.create({
-      data: {
-        clientId,
-        status: status || "COMPLETED",
-        startedAt: startedAt ? new Date(startedAt) : null,
-        completedAt: completedAt ? new Date(completedAt) : null,
-        notes: cleanNotes || null,
-        loggedByRole: userRole,
-        loggedById: userId,
-        loggedByName: sanitizeText(trainerName, 100),
-        exercises: {
-          create: exercises.map((ex: any, i: number) => ({
-            name: sanitizeText(ex.name, 150),
-            order: i,
-            category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
-            sets: {
-              create: (ex.sets || []).map((s: any, j: number) => ({
-                order: j,
-                weight: validateNumericBounds(s.weight, 0, 2500, 0),
-                reps: validateNumericBounds(s.reps, 0, 1000, 0),
-                notes: sanitizeText(s.notes, 250) || null,
+    if (body.plannedWorkoutId) {
+      const existingPlanned = await prisma.workoutSession.findUnique({
+        where: { id: body.plannedWorkoutId },
+      });
+      if (existingPlanned) {
+        parentProgramId = existingPlanned.programId || null;
+        await prisma.workoutExercise.deleteMany({ where: { workoutSessionId: existingPlanned.id } });
+        created = await prisma.workoutSession.update({
+          where: { id: existingPlanned.id },
+          data: {
+            status: status || "COMPLETED",
+            startedAt: startedAt ? new Date(startedAt) : existingPlanned.startedAt,
+            completedAt: completedAt ? new Date(completedAt) : new Date(),
+            notes: cleanNotes || existingPlanned.notes,
+            loggedByRole: userRole,
+            loggedById: userId,
+            loggedByName: sanitizeText(trainerName, 100),
+            exercises: {
+              create: exercises.map((ex: any, i: number) => ({
+                name: sanitizeText(ex.name, 150),
+                order: i,
+                category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
+                sets: {
+                  create: (ex.sets || []).map((s: any, j: number) => ({
+                    order: j,
+                    weight: validateNumericBounds(s.weight, 0, 2500, 0),
+                    reps: validateNumericBounds(s.reps, 0, 1000, 0),
+                    notes: sanitizeText(s.notes, 250) || null,
+                  })),
+                },
               })),
             },
-          })),
+          },
+          include: { exercises: { include: { sets: true } } },
+        });
+      }
+    }
+
+    if (!created) {
+      created = await prisma.workoutSession.create({
+        data: {
+          clientId,
+          status: status || "COMPLETED",
+          startedAt: startedAt ? new Date(startedAt) : null,
+          completedAt: completedAt ? new Date(completedAt) : null,
+          notes: cleanNotes || null,
+          loggedByRole: userRole,
+          loggedById: userId,
+          loggedByName: sanitizeText(trainerName, 100),
+          exercises: {
+            create: exercises.map((ex: any, i: number) => ({
+              name: sanitizeText(ex.name, 150),
+              order: i,
+              category: ex.isBodyweight || ex.category === "BODYWEIGHT" ? "BODYWEIGHT" : "STRENGTH",
+              sets: {
+                create: (ex.sets || []).map((s: any, j: number) => ({
+                  order: j,
+                  weight: validateNumericBounds(s.weight, 0, 2500, 0),
+                  reps: validateNumericBounds(s.reps, 0, 1000, 0),
+                  notes: sanitizeText(s.notes, 250) || null,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: { exercises: { include: { sets: true } } }
-    });
+        include: { exercises: { include: { sets: true } } }
+      });
+    }
+
+    // Synchronize parent TrainingProgram status if workout belongs to a program
+    if (parentProgramId && (status === "COMPLETED" || !status)) {
+      try {
+        const remainingUnfinished = await prisma.workoutSession.count({
+          where: {
+            programId: parentProgramId,
+            deletedAt: null,
+            status: { in: ["PLANNED", "IN_PROGRESS"] },
+            id: { not: created.id },
+          },
+        });
+        if (remainingUnfinished === 0) {
+          await prisma.trainingProgram.update({
+            where: { id: parentProgramId },
+            data: { status: "COMPLETED" },
+          });
+        } else {
+          await prisma.trainingProgram.update({
+            where: { id: parentProgramId },
+            data: { status: "IN_PROGRESS" },
+          });
+        }
+      } catch (syncErr) {
+        console.warn("Program status sync warning:", syncErr);
+      }
+    }
 
     // Trigger Email Notification for Client if they have an email & notifications enabled
     try {

@@ -82,6 +82,10 @@ interface AdminStats {
   totalWorkouts: number;
   totalCompletedWorkouts?: number;
   inProgressSessions?: number;
+  totalPrograms?: number;
+  activeAssignedPrograms?: number;
+  completedPrograms?: number;
+  totalProgramAssignments?: number;
   totalSetsCount?: number;
   dau?: number;
   wau?: number;
@@ -777,6 +781,20 @@ export function AdminPortal({ userName }: { userName: string }) {
             </div>
             <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "2px", fontWeight: 600 }}>
               {currentDau} DAU
+            </div>
+          </div>
+
+          {/* Periodized Training Programs */}
+          <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
+              <span>TRAINING PROGRAMS</span>
+              <Calendar size={16} style={{ color: "#d97706" }} />
+            </div>
+            <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
+              {stats?.totalPrograms ?? 0}
+            </div>
+            <div style={{ fontSize: "11px", color: "#d97706", marginTop: "2px", fontWeight: 600 }}>
+              {stats?.activeAssignedPrograms ?? 0} active · {stats?.completedPrograms ?? 0} finished
             </div>
           </div>
         </div>

@@ -126,4 +126,104 @@ describe("ProgramPlanner Component Tests", () => {
     expect(screen.getByText("Week 1 Schedule Preview")).toBeInTheDocument();
     expect(screen.getByText(/All 8 periodized workouts will immediately appear/)).toBeInTheDocument();
   });
+
+  it("should render completed programs with celebration badge and Reassign button", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        programs: [
+          {
+            id: "prog-completed",
+            name: "Powerlifting Peak 12W",
+            durationWeeks: 12,
+            status: "COMPLETED",
+            progressionType: "LINEAR_OVERLOAD",
+            workoutTemplates: [],
+            workoutSessions: [
+              { id: "ws-1", status: "COMPLETED", programWeek: 1, programDay: 1 },
+              { id: "ws-2", status: "COMPLETED", programWeek: 1, programDay: 2 },
+            ],
+            stats: {
+              totalWorkouts: 2,
+              completedWorkouts: 2,
+              remainingWorkouts: 0,
+              completionPercentage: 100,
+            },
+          },
+        ],
+      }),
+    } as any);
+
+    render(
+      <ProgramPlanner
+        clientId="client-1"
+        clientsList={[{ id: "client-1", name: "Alex Athlete" }]}
+        isTrainer={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Powerlifting Peak 12W")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Program Completed (100% Finished)")).toBeInTheDocument();
+    expect(screen.getByText("Reassign Program")).toBeInTheDocument();
+
+    // Click Reassign Program opens the assignment modal
+    fireEvent.click(screen.getByText("Reassign Program"));
+    expect(screen.getByText("Assign Program to Client")).toBeInTheDocument();
+  });
+
+  it("should render active program progress bar and expand schedule breakdown", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        programs: [
+          {
+            id: "prog-active",
+            name: "Active 6W Hypertrophy",
+            durationWeeks: 6,
+            status: "IN_PROGRESS",
+            progressionType: "LINEAR_OVERLOAD",
+            workoutTemplates: [],
+            workoutSessions: [
+              { id: "ws-1", status: "COMPLETED", programWeek: 1, programDay: 1, startedAt: "2026-09-01T09:00:00Z" },
+              { id: "ws-2", status: "PLANNED", programWeek: 1, programDay: 2, startedAt: "2026-09-03T09:00:00Z" },
+            ],
+            stats: {
+              totalWorkouts: 2,
+              completedWorkouts: 1,
+              remainingWorkouts: 1,
+              completionPercentage: 50,
+            },
+          },
+        ],
+      }),
+    } as any);
+
+    render(
+      <ProgramPlanner
+        clientId="client-1"
+        clientsList={[{ id: "client-1", name: "Alex Athlete" }]}
+        isTrainer={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Active 6W Hypertrophy")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText("Program Progress")).toBeInTheDocument();
+    expect(screen.getByText("1 / 2 (50%)")).toBeInTheDocument();
+    expect(screen.getByText("View Schedule Breakdown")).toBeInTheDocument();
+
+    // Expand schedule breakdown
+    fireEvent.click(screen.getByText("View Schedule Breakdown"));
+    expect(screen.getByText("Hide Schedule Breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Week 1 · Day 1")).toBeInTheDocument();
+    expect(screen.getByText("Week 1 · Day 2")).toBeInTheDocument();
+    expect(screen.getByText("Completed")).toBeInTheDocument();
+  });
 });

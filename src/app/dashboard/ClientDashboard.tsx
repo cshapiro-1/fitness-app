@@ -347,7 +347,7 @@ export function ClientDashboard({
       .filter((w) => {
         if (w.deletedAt) return false;
         const s = (w.status || "").toUpperCase();
-        return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
+        return s === "COMPLETED" || (!w.status && !!w.completedAt);
       })
       .sort((a, b) => {
         const timeA = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
@@ -374,7 +374,7 @@ export function ClientDashboard({
 
   const inProgressWorkout = useMemo(() => {
     return workouts.find(
-      (w) => !w.deletedAt && (w.status === "IN_PROGRESS" || (w.status === "PLANNED" && w.startedAt))
+      (w) => !w.deletedAt && w.status === "IN_PROGRESS"
     );
   }, [workouts]);
 
