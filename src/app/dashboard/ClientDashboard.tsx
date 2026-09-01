@@ -343,19 +343,33 @@ export function ClientDashboard({
   };
 
   const completed = useMemo(() => {
-    return workouts.filter((w) => {
-      if (w.deletedAt) return false;
-      const s = (w.status || "").toUpperCase();
-      return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
-    });
+    return workouts
+      .filter((w) => {
+        if (w.deletedAt) return false;
+        const s = (w.status || "").toUpperCase();
+        return s === "COMPLETED" || s === "" || (!w.status && (w.completedAt || (w.exercises && w.exercises.length > 0)));
+      })
+      .sort((a, b) => {
+        const timeA = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
+        const timeB = b.completedAt ? new Date(b.completedAt).getTime() : new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
   }, [workouts]);
 
   const planned = useMemo(() => {
-    return workouts.filter((w) => {
-      if (w.deletedAt) return false;
-      const s = (w.status || "").toUpperCase();
-      return s === "PLANNED" || s === "IN_PROGRESS";
-    });
+    return workouts
+      .filter((w) => {
+        if (w.deletedAt) return false;
+        const s = (w.status || "").toUpperCase();
+        return s === "PLANNED" || s === "IN_PROGRESS";
+      })
+      .sort((a, b) => {
+        const timeA = a.startedAt ? new Date(a.startedAt).getTime() : new Date(a.createdAt).getTime();
+        const timeB = b.startedAt ? new Date(b.startedAt).getTime() : new Date(b.createdAt).getTime();
+        if (timeA !== timeB) return timeA - timeB;
+        if ((a.programWeek ?? 0) !== (b.programWeek ?? 0)) return (a.programWeek ?? 0) - (b.programWeek ?? 0);
+        return (a.programDay ?? 0) - (b.programDay ?? 0);
+      });
   }, [workouts]);
 
   const inProgressWorkout = useMemo(() => {

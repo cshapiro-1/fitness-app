@@ -45,6 +45,9 @@ export interface WorkoutSession {
   deletedAt?: string | null;
   deletedByName?: string | null;
   deletedByRole?: string | null;
+  programId?: string | null;
+  programWeek?: number | null;
+  programDay?: number | null;
   createdAt: string;
   exercises: WorkoutExercise[];
 }

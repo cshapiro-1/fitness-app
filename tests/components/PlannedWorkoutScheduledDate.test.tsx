@@ -53,4 +53,69 @@ describe("Planned Workout Scheduled Date Display Tests", () => {
     expect(screen.getByText(/Assigned for/i)).toBeInTheDocument();
     expect(screen.getByText(/Sep 15, 2026/i)).toBeInTheDocument();
   });
+
+  it("should sort planned workouts in ascending chronological order with the next assigned workout first", () => {
+    const plannedWorkouts = [
+      {
+        id: "planned-week-3",
+        clientId: "client-1",
+        status: "PLANNED" as const,
+        notes: "Week 3 — Day 1 — Legs & Core",
+        startedAt: "2026-09-22T09:00:00.000Z",
+        createdAt: "2026-09-01T10:02:00.000Z",
+        programWeek: 3,
+        programDay: 1,
+        exercises: [],
+      },
+      {
+        id: "planned-week-1",
+        clientId: "client-1",
+        status: "PLANNED" as const,
+        notes: "Week 1 — Day 1 — Chest & Triceps",
+        startedAt: "2026-09-08T09:00:00.000Z",
+        createdAt: "2026-09-01T10:00:00.000Z",
+        programWeek: 1,
+        programDay: 1,
+        exercises: [],
+      },
+      {
+        id: "planned-week-2",
+        clientId: "client-1",
+        status: "PLANNED" as const,
+        notes: "Week 2 — Day 1 — Back & Biceps",
+        startedAt: "2026-09-15T09:00:00.000Z",
+        createdAt: "2026-09-01T10:01:00.000Z",
+        programWeek: 2,
+        programDay: 1,
+        exercises: [],
+      },
+    ];
+
+    render(
+      <WorkoutBuilder
+        activeWorkout={null}
+        setActiveWorkout={vi.fn()}
+        exercisePicker=""
+        setExercisePicker={vi.fn()}
+        plannedWorkouts={plannedWorkouts as any}
+        historyWorkouts={[]}
+        savingPlan={false}
+        savingWorkout={false}
+        draftRestored={false}
+        onClearDraftNotice={vi.fn()}
+        onStartWorkout={vi.fn()}
+        onBeginPlannedWorkout={vi.fn()}
+        onSaveWorkoutPlan={vi.fn()}
+        onCompleteWorkout={vi.fn()}
+        clientName="Collin Shapiro"
+      />
+    );
+
+    const rows = screen.getAllByText(/Week \d — Day 1/i);
+    expect(rows).toHaveLength(3);
+    // Next assigned workout (Week 1 / Sep 8) must be first!
+    expect(rows[0]).toHaveTextContent("Week 1 — Day 1 — Chest & Triceps");
+    expect(rows[1]).toHaveTextContent("Week 2 — Day 1 — Back & Biceps");
+    expect(rows[2]).toHaveTextContent("Week 3 — Day 1 — Legs & Core");
+  });
 });

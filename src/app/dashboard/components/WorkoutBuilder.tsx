@@ -63,6 +63,17 @@ export function WorkoutBuilder({
   const [showRemoveAllModal, setShowRemoveAllModal] = useState(false);
   const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
 
+  // Ensure planned workouts are always displayed chronologically: next assigned workout first
+  const sortedPlannedWorkouts = useMemo(() => {
+    return [...plannedWorkouts].sort((a, b) => {
+      const timeA = a.startedAt ? new Date(a.startedAt).getTime() : new Date(a.createdAt).getTime();
+      const timeB = b.startedAt ? new Date(b.startedAt).getTime() : new Date(b.createdAt).getTime();
+      if (timeA !== timeB) return timeA - timeB;
+      if ((a.programWeek ?? 0) !== (b.programWeek ?? 0)) return (a.programWeek ?? 0) - (b.programWeek ?? 0);
+      return (a.programDay ?? 0) - (b.programDay ?? 0);
+    });
+  }, [plannedWorkouts]);
+
   // Anatomy Guide Modal State
   const [selectedAnatomyExercise, setSelectedAnatomyExercise] = useState<string | null>(null);
   const [anatomyChartData, setAnatomyChartData] = useState<any | null>(null);
@@ -434,7 +445,7 @@ export function WorkoutBuilder({
                 </button>
               </div>
 
-              {plannedWorkouts.map((plannedWorkout) => (
+              {sortedPlannedWorkouts.map((plannedWorkout) => (
                 <div key={plannedWorkout.id} className="planned-row">
                   <div>
                     <div className="planned-row-title" style={{ fontWeight: 800, color: "#0f172a", marginBottom: "2px" }}>
