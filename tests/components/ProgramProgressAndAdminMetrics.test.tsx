@@ -98,7 +98,7 @@ describe("Program Progress, Status Integrity & Admin Metrics", () => {
       }),
     } as any);
 
-    render(<AdminPortal />);
+    render(<AdminPortal userName="Collin" />);
 
     expect(await screen.findByText("TRAINING PROGRAMS")).toBeInTheDocument();
     expect(screen.getByText("5 active · 3 finished")).toBeInTheDocument();

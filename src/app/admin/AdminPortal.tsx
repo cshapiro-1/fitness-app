@@ -193,7 +193,7 @@ function formatRelativeTime(dateStr?: string | null, seconds?: number | null): {
   return { text: date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }), full, isRecent: false };
 }
 
-export function AdminPortal({ userName }: { userName: string }) {
+export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [stripeBilling, setStripeBilling] = useState<StripeBillingData | null>(null);
   const [trainers, setTrainers] = useState<AdminTrainer[]>([]);
