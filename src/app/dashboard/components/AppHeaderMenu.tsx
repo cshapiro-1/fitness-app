@@ -202,6 +202,26 @@ export function AppHeaderMenu({
             )}
 
             <Link
+              href="/anatomy"
+              onClick={() => setIsOpen(false)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "8px 10px",
+                borderRadius: "8px",
+                textDecoration: "none",
+                color: "#334155",
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+              className="dropdown-item"
+            >
+              <Sparkles size={16} style={{ color: "#00f5ff" }} />
+              <span>Anatomy &amp; Body Map Explorer</span>
+            </Link>
+
+            <Link
               href="/nutrition"
               onClick={() => setIsOpen(false)}
               style={{

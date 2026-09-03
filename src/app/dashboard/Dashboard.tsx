@@ -212,6 +212,48 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   }, []);
 
   useEffect(() => {
+    try {
+      const draftMuscle = localStorage.getItem("strkyr_draft_muscle_workout");
+      if (draftMuscle) {
+        const parsed = JSON.parse(draftMuscle);
+        localStorage.removeItem("strkyr_draft_muscle_workout");
+        if (parsed.exercises && parsed.exercises.length > 0) {
+          setActiveWorkout({
+            startedAt: new Date().toISOString(),
+            notes: parsed.name || "Targeted Muscle Workout",
+            exercises: parsed.exercises.map((exName: string) => ({
+              name: exName,
+              sets: [{ weight: "0", reps: "10", notes: "" }],
+            })),
+          });
+          setTab("log");
+        }
+      }
+
+      const directPick = localStorage.getItem("strkyr_direct_exercise_pick");
+      if (directPick) {
+        const parsed = JSON.parse(directPick);
+        localStorage.removeItem("strkyr_direct_exercise_pick");
+        if (parsed.name) {
+          setActiveWorkout((prev) => {
+            const base = prev || { startedAt: new Date().toISOString(), notes: "", exercises: [] };
+            return {
+              ...base,
+              exercises: [
+                ...base.exercises,
+                { name: parsed.name, sets: [{ weight: "0", reps: "10", notes: "" }] },
+              ],
+            };
+          });
+          setTab("log");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
     fetchSubscription();
     fetchTrainerProfile();
     fetchClients();

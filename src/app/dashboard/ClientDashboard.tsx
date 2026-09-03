@@ -147,6 +147,65 @@ export function ClientDashboard({
     } catch {}
   }, []);
 
+  // Listen for direct muscle workout from Anatomy Explorer
+  useEffect(() => {
+    try {
+      const draftMuscle = localStorage.getItem("strkyr_draft_muscle_workout");
+      if (draftMuscle) {
+        const parsed = JSON.parse(draftMuscle);
+        localStorage.removeItem("strkyr_draft_muscle_workout");
+        if (parsed.exercises && parsed.exercises.length > 0) {
+          setEditingWorkout({
+            id: undefined,
+            title: parsed.name || "Targeted Muscle Workout",
+            status: "IN_PROGRESS",
+            startedAt: new Date().toISOString(),
+            notes: parsed.name || "Targeted Muscle Workout",
+            exercises: parsed.exercises.map((exName: string, i: number) => ({
+              id: `temp-${i}`,
+              name: exName,
+              orderIndex: i,
+              sets: [{ id: `set-${i}-0`, setNumber: 1, weight: 0, reps: 10, notes: "" }],
+            })),
+          });
+        }
+      }
+
+      const directPick = localStorage.getItem("strkyr_direct_exercise_pick");
+      if (directPick) {
+        const parsed = JSON.parse(directPick);
+        localStorage.removeItem("strkyr_direct_exercise_pick");
+        if (parsed.name) {
+          setEditingWorkout((prev: any) => {
+            const base = prev || {
+              id: undefined,
+              title: "Active Workout Session",
+              status: "IN_PROGRESS",
+              startedAt: new Date().toISOString(),
+              notes: "",
+              exercises: [],
+            };
+            const nextIdx = base.exercises ? base.exercises.length : 0;
+            return {
+              ...base,
+              exercises: [
+                ...(base.exercises || []),
+                {
+                  id: `temp-${nextIdx}`,
+                  name: parsed.name,
+                  orderIndex: nextIdx,
+                  sets: [{ id: `set-${nextIdx}-0`, setNumber: 1, weight: 0, reps: 10, notes: "" }],
+                },
+              ],
+            };
+          });
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   // History Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExercise, setSelectedExercise] = useState("ALL");

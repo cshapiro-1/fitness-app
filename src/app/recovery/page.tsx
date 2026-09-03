@@ -45,6 +45,15 @@ export default function RecoveryPage() {
 
         <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Link
+            href="/anatomy"
+            className="nav-btn"
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600 }}
+          >
+            <Sparkles size={14} style={{ color: "#00f5ff" }} />
+            <span className="hide-mobile">Anatomy &amp; Body Map</span>
+          </Link>
+
+          <Link
             href="/nutrition"
             className="nav-btn"
             style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600 }}
