@@ -226,4 +226,61 @@ describe("ProgramPlanner Component Tests", () => {
     expect(screen.getByText("Week 1 · Day 2")).toBeInTheDocument();
     expect(screen.getByText("Completed")).toBeInTheDocument();
   });
+
+  it("should provide full access to the 120+ exercise library and autocomplete in the program builder", async () => {
+    render(
+      <ProgramPlanner
+        clientId="client-1"
+        clientsList={[{ id: "client-1", name: "Alex Athlete" }]}
+        isTrainer={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Hypertrophy Master Template")).toBeInTheDocument();
+    });
+
+    // Open Program Creator
+    fireEvent.click(screen.getByText("Create New Program"));
+    expect(screen.getByText("Build New Training Program")).toBeInTheDocument();
+
+    // Verify "Browse Exercise Library" button is present on training days
+    const browseButtons = screen.getAllByText(/Browse Exercise Library \(120\+\)/i);
+    expect(browseButtons.length).toBeGreaterThan(0);
+
+    // Open Exercise Library Modal for Day 1
+    fireEvent.click(browseButtons[0]);
+    expect(screen.getByText("120+ Exercise Library")).toBeInTheDocument();
+    expect(screen.getByText(/Adding to:/i)).toBeInTheDocument();
+
+    // Verify category filter tabs
+    expect(screen.getByRole("button", { name: "Chest" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Legs" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+
+    // Filter by Chest exercises
+    fireEvent.click(screen.getByRole("button", { name: "Chest" }));
+    expect(screen.getByText(/Showing \d+ Chest Exercises/i)).toBeInTheDocument();
+
+    // Search for a specific exercise (e.g. "Incline Dumbbell Press")
+    const searchInput = screen.getByPlaceholderText(/Search exercise by name, equipment/i);
+    fireEvent.change(searchInput, { target: { value: "Incline Dumbbell Press" } });
+    expect(screen.getByText("Incline Dumbbell Press")).toBeInTheDocument();
+
+    // Click "Add to Day"
+    const addButtons = screen.getAllByText(/Add to Day/i);
+    fireEvent.click(addButtons[0]);
+
+    // Verify button switches to "Added" feedback
+    expect(screen.getByText(/Added/i)).toBeInTheDocument();
+
+    // Close Exercise Library Modal
+    fireEvent.click(screen.getByText("Done Adding"));
+    expect(screen.queryByText("120+ Exercise Library")).not.toBeInTheDocument();
+
+    // Verify the exercise was appended to Day 1 with weight clarification badge
+    expect(screen.getAllByDisplayValue("Incline Dumbbell Press").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Per Dumbbell/i).length).toBeGreaterThan(0);
+  });
 });
+

@@ -29,11 +29,14 @@ import {
   Trophy,
   RotateCcw,
   Award,
+  Search,
 } from "lucide-react";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 import { calculateWorkoutDate } from "@/lib/periodizationEngine";
 import { RemoveAssignedWorkoutsModal } from "./RemoveAssignedWorkoutsModal";
 import { getWeightClarification } from "./WorkoutBuilder";
+import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
+import { EXERCISE_LIBRARY, ExerciseDefinition, isDefaultBodyweight } from "../utils/exerciseLibrary";
 
 export interface ProgramExerciseItem {
   id?: string;
@@ -144,6 +147,12 @@ export function ProgramPlanner({
   const [assignRestDaysBetween, setAssignRestDaysBetween] = useState<number>(1);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignSuccessMessage, setAssignSuccessMessage] = useState<string | null>(null);
+
+  // Exercise Library Modal State
+  const [libraryTargetDayIdx, setLibraryTargetDayIdx] = useState<number | null>(null);
+  const [libraryCategory, setLibraryCategory] = useState<string>("ALL");
+  const [librarySearchQuery, setLibrarySearchQuery] = useState<string>("");
+  const [libraryRecentlyAdded, setLibraryRecentlyAdded] = useState<Record<string, boolean>>({});
 
   // Schedule Preview & Unassign Modal
   const [previewingProgram, setPreviewingProgram] = useState<TrainingProgramData | null>(null);
@@ -556,23 +565,71 @@ export function ProgramPlanner({
     setFormDays(formDays.filter((_, idx) => idx !== dayIdx));
   };
 
+  const LIBRARY_CATEGORIES = ["ALL", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Bodyweight", "Stretching"];
+
+  const filteredLibraryExercises = useMemo(() => {
+    const q = librarySearchQuery.toLowerCase().trim();
+    return EXERCISE_LIBRARY.filter((ex) => {
+      const matchCat =
+        libraryCategory === "ALL" ||
+        ex.muscleGroup.toLowerCase() === libraryCategory.toLowerCase() ||
+        (libraryCategory === "Bodyweight" && (ex.equipment === "Bodyweight" || ex.muscleGroup === "Bodyweight"));
+
+      const matchQuery =
+        !q ||
+        ex.name.toLowerCase().includes(q) ||
+        ex.muscleGroup.toLowerCase().includes(q) ||
+        ex.equipment.toLowerCase().includes(q);
+
+      return matchCat && matchQuery;
+    });
+  }, [libraryCategory, librarySearchQuery]);
+
   // Helper to add exercise to day
-  const handleAddExerciseToDay = (dayIdx: number) => {
+  const handleAddExerciseToDay = (dayIdx: number, exerciseName?: string, isBodyweight?: boolean, category?: string) => {
     const updated = [...formDays];
     const targetDay = updated[dayIdx];
+    const name = exerciseName || "";
+    const isBW = isBodyweight ?? isDefaultBodyweight(name);
+    const cat = category || (isBW ? "BODYWEIGHT" : "STRENGTH");
     targetDay.exercises.push({
-      name: "Exercise Name",
+      name,
       order: targetDay.exercises.length,
-      category: "STRENGTH",
+      category: cat,
       targetSets: 3,
-      targetReps: "8-10",
-      suggestedWeight: 50,
+      targetReps: isBW ? "10-15" : "8-10",
+      suggestedWeight: isBW ? 0 : 50,
       rpe: 8,
       supersetGroup: null,
       restSeconds: 90,
       coachingCue: "",
     });
     setFormDays(updated);
+  };
+
+  // Helper to add exercise directly from the 120+ Exercise Library
+  const handleAddExerciseFromLibrary = (dayIdx: number, ex: ExerciseDefinition) => {
+    const isBW = ex.equipment === "Bodyweight" || isDefaultBodyweight(ex.name);
+    const cat = isBW ? "BODYWEIGHT" : "STRENGTH";
+    const updated = [...formDays];
+    const targetDay = updated[dayIdx];
+    targetDay.exercises.push({
+      name: ex.name,
+      order: targetDay.exercises.length,
+      category: cat,
+      targetSets: 3,
+      targetReps: isBW ? "10-15" : "8-10",
+      suggestedWeight: isBW ? 0 : 50,
+      rpe: 8,
+      supersetGroup: null,
+      restSeconds: 90,
+      coachingCue: "",
+    });
+    setFormDays(updated);
+    setLibraryRecentlyAdded((prev) => ({ ...prev, [ex.name]: true }));
+    setTimeout(() => {
+      setLibraryRecentlyAdded((prev) => ({ ...prev, [ex.name]: false }));
+    }, 2000);
   };
 
   // Helper to remove exercise
@@ -1489,7 +1546,7 @@ export function ProgramPlanner({
                       <div
                         style={{
                           display: "grid",
-                          gridTemplateColumns: "2fr 70px 90px 90px 90px 110px 30px",
+                          gridTemplateColumns: "minmax(220px, 2fr) 70px 90px 90px 90px 110px 30px",
                           gap: "8px",
                           padding: "0 12px 6px",
                           fontSize: "11px",
@@ -1513,6 +1570,7 @@ export function ProgramPlanner({
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       {day.exercises.map((ex, exIdx) => {
                         const isSuperset = !!ex.supersetGroup && ex.supersetGroup !== "None";
+                        const clarification = getWeightClarification(ex.name, false, ex.category);
 
                         return (
                           <div
@@ -1523,29 +1581,46 @@ export function ProgramPlanner({
                               borderRadius: "8px",
                               padding: "10px 12px",
                               display: "grid",
-                              gridTemplateColumns: "2fr 70px 90px 90px 90px 110px 30px",
+                              gridTemplateColumns: "minmax(220px, 2fr) 70px 90px 90px 90px 110px 30px",
                               gap: "8px",
                               alignItems: "center",
                             }}
                           >
-                            {/* Exercise Name */}
-                            <input
-                              type="text"
-                              value={ex.name}
-                              onChange={(e) => {
-                                const updated = [...formDays];
-                                updated[dayIdx].exercises[exIdx].name = e.target.value;
-                                setFormDays(updated);
-                              }}
-                              placeholder="Exercise Name"
-                              style={{
-                                border: "1px solid #e2e8f0",
-                                borderRadius: "6px",
-                                padding: "6px 8px",
-                                fontSize: "13px",
-                                fontWeight: 600,
-                              }}
-                            />
+                            {/* Exercise Name with Dropdown Autocomplete */}
+                            <div style={{ position: "relative", minWidth: 0 }}>
+                              <ExercisePickerDropdown
+                                value={ex.name}
+                                onSelectExercise={(name, isBW, cat) => {
+                                  const updated = [...formDays];
+                                  updated[dayIdx].exercises[exIdx].name = name;
+                                  updated[dayIdx].exercises[exIdx].category = cat;
+                                  if (isBW && (!updated[dayIdx].exercises[exIdx].suggestedWeight || updated[dayIdx].exercises[exIdx].suggestedWeight === 50)) {
+                                    updated[dayIdx].exercises[exIdx].suggestedWeight = 0;
+                                  }
+                                  setFormDays(updated);
+                                }}
+                                placeholder="Search 120+ exercise library..."
+                                style={{ width: "100%" }}
+                              />
+                              {ex.name && (
+                                <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                  <span
+                                    style={{
+                                      fontSize: "10px",
+                                      fontWeight: 700,
+                                      color: clarification.badgeColor,
+                                      background: clarification.bg,
+                                      padding: "1px 5px",
+                                      borderRadius: "4px",
+                                      border: "1px solid #e2e8f0",
+                                    }}
+                                    title={clarification.hint}
+                                  >
+                                    {clarification.badge}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
 
                             {/* Sets */}
                             <div>
@@ -1603,7 +1678,7 @@ export function ProgramPlanner({
                                   setFormDays(updated);
                                 }}
                                 placeholder="Weight"
-                                title={getWeightClarification(ex.name, false, ex.category).hint}
+                                title={clarification.hint}
                                 style={{
                                   width: "100%",
                                   border: "1px solid #e2e8f0",
@@ -1677,27 +1752,50 @@ export function ProgramPlanner({
                         );
                       })}
 
-                      <button
-                        onClick={() => handleAddExerciseToDay(dayIdx)}
-                        type="button"
-                        style={{
-                          background: "#ffffff",
-                          border: "1px dashed #cbd5e1",
-                          color: "#0284c7",
-                          padding: "6px 10px",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "4px",
-                          marginTop: "4px",
-                        }}
-                      >
-                        <Plus size={14} /> Add Exercise to {day.name}
-                      </button>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => handleAddExerciseToDay(dayIdx)}
+                          type="button"
+                          style={{
+                            background: "#ffffff",
+                            border: "1px dashed #cbd5e1",
+                            color: "#0284c7",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          <Plus size={14} /> Add Exercise
+                        </button>
+                        <button
+                          onClick={() => {
+                            setLibraryTargetDayIdx(dayIdx);
+                            setLibrarySearchQuery("");
+                            setLibraryCategory("ALL");
+                          }}
+                          type="button"
+                          style={{
+                            background: "#f0f9ff",
+                            border: "1px solid #bae6fd",
+                            color: "#0369a1",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <Dumbbell size={14} /> Browse Exercise Library (120+)
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1749,6 +1847,253 @@ export function ProgramPlanner({
               >
                 {savingProgram ? <RefreshCw className="spin-inline" size={16} /> : <Save size={16} />}
                 <span>{editingProgram ? "Save & Sync Program" : "Create Program"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exercise Library Modal for Program Planner */}
+      {libraryTargetDayIdx !== null && formDays[libraryTargetDayIdx] && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(15, 23, 42, 0.75)",
+            backdropFilter: "blur(4px)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "720px",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+              border: "1px solid #e2e8f0",
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ background: "#e0f2fe", padding: "8px", borderRadius: "10px", color: "#0284c7" }}>
+                  <Dumbbell size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#0f172a", margin: 0 }}>
+                    120+ Exercise Library
+                  </h3>
+                  <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                    Adding to: <span style={{ fontWeight: 700, color: "#0284c7" }}>{formDays[libraryTargetDayIdx].name}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLibraryTargetDayIdx(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  padding: "4px",
+                  borderRadius: "6px",
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Search and Category Filters */}
+            <div style={{ padding: "16px 20px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ position: "relative" }}>
+                <Search size={16} color="#94a3b8" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                <input
+                  type="text"
+                  value={librarySearchQuery}
+                  onChange={(e) => setLibrarySearchQuery(e.target.value)}
+                  placeholder="Search exercise by name, equipment (Barbell, Cable, Dumbbell), or target muscle..."
+                  style={{
+                    width: "100%",
+                    padding: "9px 36px 9px 36px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                  }}
+                  autoFocus
+                />
+                {librarySearchQuery && (
+                  <button
+                    onClick={() => setLibrarySearchQuery("")}
+                    style={{ position: "absolute", right: "10px", top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer" }}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Pills */}
+              <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px" }}>
+                {LIBRARY_CATEGORIES.map((cat) => {
+                  const isSelected = libraryCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      onClick={() => setLibraryCategory(cat)}
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        border: isSelected ? "1px solid #0284c7" : "1px solid #e2e8f0",
+                        background: isSelected ? "#0284c7" : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#475569",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Exercise List */}
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 20px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
+                Showing {filteredLibraryExercises.length} {libraryCategory === "ALL" ? "" : libraryCategory} Exercises
+              </div>
+
+              {filteredLibraryExercises.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 20px", color: "#64748b" }}>
+                  <Dumbbell size={32} color="#cbd5e1" style={{ margin: "0 auto 8px" }} />
+                  <p style={{ fontWeight: 600, fontSize: "14px", margin: "0 0 4px" }}>No matching exercises found</p>
+                  <p style={{ fontSize: "12px", color: "#94a3b8" }}>Try searching with a different term or clear the filter.</p>
+                </div>
+              ) : (
+                filteredLibraryExercises.map((ex) => {
+                  const isBW = ex.equipment === "Bodyweight" || isDefaultBodyweight(ex.name);
+                  const cat = isBW ? "BODYWEIGHT" : "STRENGTH";
+                  const clarification = getWeightClarification(ex.name, false, cat);
+                  const isRecentlyAdded = !!libraryRecentlyAdded[ex.name];
+
+                  return (
+                    <div
+                      key={ex.name}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "10px 14px",
+                        borderRadius: "10px",
+                        border: "1px solid #e2e8f0",
+                        background: "#ffffff",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <div style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span>{ex.name}</span>
+                          {ex.isCompound && (
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "#7c3aed", background: "#f5f3ff", padding: "1px 6px", borderRadius: "4px", border: "1px solid #e9d5ff" }}>
+                              Compound
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontSize: "11px", color: "#64748b" }}>
+                          <span style={{ fontWeight: 600, color: "#0369a1", background: "#f0f9ff", padding: "1px 6px", borderRadius: "4px" }}>
+                            {ex.muscleGroup}
+                          </span>
+                          <span style={{ fontWeight: 600, color: "#475569", background: "#f1f5f9", padding: "1px 6px", borderRadius: "4px" }}>
+                            {ex.equipment}
+                          </span>
+                          <span style={{ fontWeight: 600, color: clarification.badgeColor, background: clarification.bg, padding: "1px 6px", borderRadius: "4px" }}>
+                            {clarification.badge}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleAddExerciseFromLibrary(libraryTargetDayIdx, ex)}
+                        style={{
+                          background: isRecentlyAdded ? "#16a34a" : "#0284c7",
+                          color: "#ffffff",
+                          border: "none",
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          whiteSpace: "nowrap",
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        {isRecentlyAdded ? (
+                          <>
+                            <Check size={14} /> Added
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={14} /> Add to Day
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div
+              style={{
+                padding: "12px 20px",
+                borderTop: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "#f8fafc",
+              }}
+            >
+              <div style={{ fontSize: "12px", color: "#64748b" }}>
+                Current exercises in {formDays[libraryTargetDayIdx].name}: <strong style={{ color: "#0f172a" }}>{formDays[libraryTargetDayIdx].exercises.length}</strong>
+              </div>
+              <button
+                onClick={() => setLibraryTargetDayIdx(null)}
+                style={{
+                  background: "#0284c7",
+                  border: "none",
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                Done Adding
               </button>
             </div>
           </div>
