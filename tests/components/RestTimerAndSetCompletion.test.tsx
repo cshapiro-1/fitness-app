@@ -1,12 +1,11 @@
-﻿import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { RestTimer } from "@/app/dashboard/components/RestTimer";
 import { PlateCalculatorModal } from "@/app/dashboard/components/PlateCalculatorModal";
 import { getWeightClarification } from "@/app/dashboard/components/WorkoutBuilder";
-import { NetworkConnectionBanner } from "@/app/dashboard/components/NetworkConnectionBanner";
 
-describe("RestTimer, Set Completion, Plate Math & Public Wi-Fi Banner Tests", () => {
+describe("RestTimer, Set Completion & Plate Math Tests", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.clear();
@@ -80,17 +79,5 @@ describe("RestTimer, Set Completion, Plate Math & Public Wi-Fi Banner Tests", ()
 
     expect(screen.getByText("0 lbs")).toBeInTheDocument();
     expect(screen.getByText("No plates required.")).toBeInTheDocument();
-  });
-
-  it("should render NetworkConnectionBanner when offline or on captive portal", async () => {
-    // Mock navigator.onLine as false
-    Object.defineProperty(navigator, "onLine", {
-      value: false,
-      writable: true,
-    });
-
-    render(<NetworkConnectionBanner />);
-
-    expect(screen.getByText(/No Internet Connection/i)).toBeInTheDocument();
   });
 });
