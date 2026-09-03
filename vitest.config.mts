@@ -9,7 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
-    pool: "threads",
+    fileParallelism: false,
     testTimeout: 15000,
   },
   resolve: {
