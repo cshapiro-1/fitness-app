@@ -60,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Program must have at least one workout template before assignment" }, { status: 400 });
     }
 
-    const resolvedStartDate = startDate || new Date().toISOString().split("T")[0];
+    const resolvedStartDate = (startDate ? String(startDate).split("T")[0] : null) || new Date().toISOString().split("T")[0];
     const effectiveRestDays = restDaysBetween !== undefined
       ? Math.max(0, parseInt(restDaysBetween, 10))
       : (program.restDaysBetween ?? 1);
