@@ -24,3 +24,46 @@ Object.defineProperty(navigator, "clipboard", {
   },
   writable: true,
 });
+
+// Mock Notification API
+class MockNotification {
+  static permission = "granted";
+  static requestPermission = vi.fn().mockResolvedValue("granted");
+  constructor(public title: string, public options?: any) {}
+}
+(global as any).Notification = MockNotification;
+(window as any).Notification = MockNotification;
+
+// Mock Web Audio API
+class MockAudioContext {
+  createOscillator() {
+    return {
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn(),
+      frequency: { setValueAtTime: vi.fn() },
+      type: "sine",
+    };
+  }
+  createGain() {
+    return {
+      connect: vi.fn(),
+      gain: {
+        setValueAtTime: vi.fn(),
+        exponentialRampToValueAtTime: vi.fn(),
+        linearRampToValueAtTime: vi.fn(),
+      },
+    };
+  }
+  get destination() {
+    return {};
+  }
+  get currentTime() {
+    return 0;
+  }
+  close = vi.fn().mockResolvedValue(undefined);
+}
+(global as any).AudioContext = MockAudioContext;
+(window as any).AudioContext = MockAudioContext;
+(global as any).webkitAudioContext = MockAudioContext;
+(window as any).webkitAudioContext = MockAudioContext;

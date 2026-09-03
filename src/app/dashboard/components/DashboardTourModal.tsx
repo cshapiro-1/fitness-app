@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Sparkles,
   Dumbbell,
@@ -177,16 +177,20 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
     },
   ];
 
-  const steps = role === "TRAINER" ? trainerSteps : clientSteps;
+  const steps = useMemo(() => (role === "TRAINER" ? trainerSteps : clientSteps), [role]);
   const current = steps[currentStep] || steps[0];
 
   // Update element bounding box and position popover
   const updatePosition = useCallback(() => {
     if (!isOpen) return;
 
-    let el = document.querySelector(current.targetSelector) as HTMLElement | null;
-    if (!el && current.fallbackSelector) {
-      el = document.querySelector(current.fallbackSelector) as HTMLElement | null;
+    const activeSteps = role === "TRAINER" ? trainerSteps : clientSteps;
+    const activeCurrent = activeSteps[currentStep] || activeSteps[0];
+    if (!activeCurrent) return;
+
+    let el = document.querySelector(activeCurrent.targetSelector) as HTMLElement | null;
+    if (!el && activeCurrent.fallbackSelector) {
+      el = document.querySelector(activeCurrent.fallbackSelector) as HTMLElement | null;
     }
 
     if (el) {
@@ -213,7 +217,7 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
 
       let top = 0;
       let left = 0;
-      let pos = current.preferredPosition || "bottom";
+      let pos = activeCurrent.preferredPosition || "bottom";
 
       if (pos === "bottom") {
         top = updatedRect.bottom + margin;
@@ -253,7 +257,7 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
         position: "center",
       });
     }
-  }, [isOpen, current]);
+  }, [isOpen, role, currentStep]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -265,11 +269,9 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
     window.addEventListener("resize", handleResize);
     window.addEventListener("scroll", handleScroll, true);
 
-    const timer = setTimeout(updatePosition, 100);
     return () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("scroll", handleScroll, true);
-      clearTimeout(timer);
     };
   }, [isOpen, currentStep, updatePosition]);
 
