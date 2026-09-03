@@ -122,4 +122,55 @@ describe("Anatomy & Kinesiology Visual Guide API", () => {
     expect(json.chart.title).toContain("Face Pull");
     expect(json.chart.primaryMuscles.some((m: string) => m.includes("Posterior Deltoids"))).toBe(true);
   });
+
+  it("should accurately match Front Squat and Goblet Squat to anterior quad dominant anatomy charts", async () => {
+    const frontReq = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Barbell Front Squat 4x6" }),
+    });
+
+    const frontRes = await POST(frontReq);
+    expect(frontRes.status).toBe(200);
+    const frontJson = await frontRes.json();
+    expect(frontJson.success).toBe(true);
+    expect(frontJson.chart.primaryMuscles.some((m: string) => m.includes("Quadriceps"))).toBe(true);
+    expect(frontJson.chart.biomechanicsCue.toLowerCase()).toContain("elbows high");
+
+    const gobletReq = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Dumbbell Goblet Squat" }),
+    });
+
+    const gobletRes = await POST(gobletReq);
+    expect(gobletRes.status).toBe(200);
+    const gobletJson = await gobletRes.json();
+    expect(gobletJson.success).toBe(true);
+    expect(gobletJson.chart.primaryMuscles.some((m: string) => m.includes("Quadriceps"))).toBe(true);
+  });
+
+  it("should accurately match Sumo Deadlift and Romanian Deadlift variations", async () => {
+    const sumoReq = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Sumo Deadlift Heavy Single" }),
+    });
+
+    const sumoRes = await POST(sumoReq);
+    expect(sumoRes.status).toBe(200);
+    const sumoJson = await sumoRes.json();
+    expect(sumoJson.success).toBe(true);
+    expect(sumoJson.chart.primaryMuscles.some((m: string) => m.includes("Adductor") || m.includes("Gluteus"))).toBe(true);
+
+    const rdlReq = new NextRequest("http://localhost:3000/api/ai/anatomy-guide", {
+      method: "POST",
+      body: JSON.stringify({ exerciseName: "Romanian Deadlift (RDL) 3x10" }),
+    });
+
+    const rdlRes = await POST(rdlReq);
+    expect(rdlRes.status).toBe(200);
+    const rdlJson = await rdlRes.json();
+    expect(rdlJson.success).toBe(true);
+    expect(rdlJson.chart.primaryMuscles.some((m: string) => m.includes("Hamstrings"))).toBe(true);
+    expect(rdlJson.chart.biomechanicsCue).toContain("hips backward");
+  });
 });
+
