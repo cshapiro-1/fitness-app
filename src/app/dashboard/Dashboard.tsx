@@ -720,33 +720,36 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
               borderRadius: "8px",
             }}
             title="Ask AI about Athlete Logs, History & Analytics"
+            data-tour="ai-copilot"
           >
             <Sparkles size={15} style={{ color: "#2563eb" }} />
             <span>Ask AI</span>
           </button>
 
           {/* Unified Studio Menu & Profile */}
-          <AppHeaderMenu
-            role="TRAINER"
-            userName={currentTrainerName || userName || "Trainer"}
-            userImage={currentTrainerImage || userImage || session?.user?.image}
-            isAdmin={isAdmin || subInfo?.isAdmin}
-            onOpenTour={() => setIsTourOpen(true)}
-            onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}
-            onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
-            onOpenProfile={() => setIsProfileModalOpen(true)}
-            onOpenPlateCalculator={() => setIsPlateModalOpen(true)}
-            onOpenTextImport={() => setIsTextImportOpen(true)}
-            onNavigateTab={(t) => handleRequestTab(t)}
-            onSwitchToClientView={async () => {
-              await fetch("/api/user/role", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: "CLIENT" }),
-              });
-              window.location.href = "/dashboard";
-            }}
-          />
+          <div data-tour="header-menu">
+            <AppHeaderMenu
+              role="TRAINER"
+              userName={currentTrainerName || userName || "Trainer"}
+              userImage={currentTrainerImage || userImage || session?.user?.image}
+              isAdmin={isAdmin || subInfo?.isAdmin}
+              onOpenTour={() => setIsTourOpen(true)}
+              onOpenCoachGuide={() => setIsCoachWalkthroughOpen(true)}
+              onOpenReleaseNotes={() => setIsReleaseNotesOpen(true)}
+              onOpenProfile={() => setIsProfileModalOpen(true)}
+              onOpenPlateCalculator={() => setIsPlateModalOpen(true)}
+              onOpenTextImport={() => setIsTextImportOpen(true)}
+              onNavigateTab={(t) => handleRequestTab(t)}
+              onSwitchToClientView={async () => {
+                await fetch("/api/user/role", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role: "CLIENT" }),
+                });
+                window.location.href = "/dashboard";
+              }}
+            />
+          </div>
         </div>
       </header>
 

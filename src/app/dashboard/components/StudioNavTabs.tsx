@@ -104,6 +104,7 @@ export function StudioNavTabs({
         marginBottom: "16px",
       }}
       className="studio-nav-ribbon"
+      data-tour="studio-tabs"
     >
       {tabsConfig.map((t) => {
         const isActive = activeTab === t.id;

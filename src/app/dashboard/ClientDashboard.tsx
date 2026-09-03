@@ -553,32 +553,35 @@ export function ClientDashboard({
               borderRadius: "8px",
             }}
             title="Ask AI about Your Workout Logs, PRs & Science"
+            data-tour="ai-copilot"
           >
             <Sparkles size={15} style={{ color: "#2563eb" }} />
             <span>Ask AI</span>
           </button>
 
           {/* Unified Athlete Studio Menu & Profile */}
-          <AppHeaderMenu
-            role="CLIENT"
-            userName={userName || "Athlete"}
-            userImage={currentImage || userImage || session?.user?.image}
-            isAdmin={isAdmin}
-            onOpenTour={() => setShowTourModal(true)}
-            onOpenReleaseNotes={() => setShowReleaseModal(true)}
-            onOpenProfile={() => setShowPhotoModal(true)}
-            onOpenPlateCalculator={() => setShowPlateModal(true)}
-            onOpenTextImport={() => setShowTextImportModal(true)}
-            onNavigateTab={(t) => setTab(t === "log" ? "assigned" : t)}
-            onSwitchToClientView={isAdmin ? async () => {
-              await fetch("/api/user/role", {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ role: "TRAINER" }),
-              });
-              window.location.href = "/dashboard";
-            } : undefined}
-          />
+          <div data-tour="header-menu">
+            <AppHeaderMenu
+              role="CLIENT"
+              userName={userName || "Athlete"}
+              userImage={currentImage || userImage || session?.user?.image}
+              isAdmin={isAdmin}
+              onOpenTour={() => setShowTourModal(true)}
+              onOpenReleaseNotes={() => setShowReleaseModal(true)}
+              onOpenProfile={() => setShowPhotoModal(true)}
+              onOpenPlateCalculator={() => setShowPlateModal(true)}
+              onOpenTextImport={() => setShowTextImportModal(true)}
+              onNavigateTab={(t) => setTab(t === "log" ? "assigned" : t)}
+              onSwitchToClientView={isAdmin ? async () => {
+                await fetch("/api/user/role", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ role: "TRAINER" }),
+                });
+                window.location.href = "/dashboard";
+              } : undefined}
+            />
+          </div>
         </div>
       </header>
 
@@ -635,6 +638,7 @@ export function ClientDashboard({
 
         {/* Gym Floor Rest Timer Bar */}
         <div
+          data-tour="client-timer-bar"
           style={{
             background: restSeconds !== null && restSeconds > 0 ? "#eff6ff" : "#f8fafc",
             border: "1px solid",
@@ -786,7 +790,7 @@ export function ClientDashboard({
 
         {/* TAB 1: Assigned Workouts */}
         {tab === "assigned" && (
-          <div className="card" style={{ padding: "16px 18px" }}>
+          <div className="card" data-tour="client-workouts" style={{ padding: "16px 18px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Assigned Routines from Coach</h3>

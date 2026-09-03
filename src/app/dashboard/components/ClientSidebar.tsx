@@ -26,7 +26,7 @@ export function ClientSidebar({
   onQuickInvite,
 }: ClientSidebarProps) {
   return (
-    <aside className="sidebar hide-mobile-sidebar">
+    <aside className="sidebar hide-mobile-sidebar" data-tour="client-sidebar">
       {/* Sidebar Header */}
       <div className="sidebar-header">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
