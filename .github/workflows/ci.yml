@@ -36,7 +36,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: 2. Automated Vitest Unit & Integration Security Test Suite
-        run: npm run test -- --pool=forks --poolOptions.forks.maxForks=2
+        run: npm run test
 
       - name: 3. Next.js Production Compilation (Turbopack)
         run: npx next build
