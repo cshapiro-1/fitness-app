@@ -205,7 +205,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Stance too wide causing knees to collapse inside ankles.",
     ],
     breathingPattern: "Inhale deeply into belt at bottom → Hold intra-abdominal pressure → Exhale at lockout.",
-    diagramUrl: "/anatomy/deadlift.jpg",
+    diagramUrl: "/anatomy/sumo_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -230,7 +230,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rounding the lower back to fake deeper range of motion.",
     ],
     breathingPattern: "Inhale and brace core at top → Lower bar under 3-second eccentric stretch → Exhale as hips drive forward.",
-    diagramUrl: "/anatomy/deadlift.jpg",
+    diagramUrl: "/anatomy/romanian_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -253,7 +253,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Dropping hips down instead of pushing hips back.",
     ],
     breathingPattern: "Inhale on descent → Exhale on hip extension.",
-    diagramUrl: "/anatomy/deadlift.jpg",
+    diagramUrl: "/anatomy/dumbbell_romanian_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -276,7 +276,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Losing balance by rushing repetitions.",
     ],
     breathingPattern: "Inhale during hinge descent → Exhale as you drive through standing foot.",
-    diagramUrl: "/anatomy/deadlift.jpg",
+    diagramUrl: "/anatomy/single_leg_romanian_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -300,7 +300,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Hyperextending spine at top.",
     ],
     breathingPattern: "Inhale at bottom → Brace core → Exhale at top lockout.",
-    diagramUrl: "/anatomy/deadlift.jpg",
+    diagramUrl: "/anatomy/trap_bar_deadlift.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -448,7 +448,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Collapsing heels or knees inward.",
     ],
     breathingPattern: "Deep diaphragmatic inhale into core at top → Maintain brace through bottom → Exhale past sticking point.",
-    diagramUrl: "/anatomy/squat.jpg",
+    diagramUrl: "/anatomy/front_squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -472,7 +472,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Rounding thoracic spine at bottom.",
     ],
     breathingPattern: "Inhale on descent → Exhale as you press up through heels and mid-foot.",
-    diagramUrl: "/anatomy/squat.jpg",
+    diagramUrl: "/anatomy/goblet_squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -496,7 +496,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Relaxing spinal erectors while seated.",
     ],
     breathingPattern: "Inhale at top → Hold intra-abdominal pressure seated on box → Exhale as you explode up.",
-    diagramUrl: "/anatomy/squat.jpg",
+    diagramUrl: "/anatomy/box_squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -519,7 +519,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Feet placed too high (shifts load entirely to glutes away from quads).",
     ],
     breathingPattern: "Inhale on controlled carriage descent → Exhale forcefully as you press upward.",
-    diagramUrl: "/anatomy/squat.jpg",
+    diagramUrl: "/anatomy/hack_squat.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -542,7 +542,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Hyperextending knees aggressively at top of press.",
     ],
     breathingPattern: "Inhale as sled lowers toward chest → Exhale as you drive through mid-foot.",
-    diagramUrl: "/anatomy/squat.jpg",
+    diagramUrl: "/anatomy/leg_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -664,31 +664,6 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
     diagramUrl: "/anatomy/hip_thrust.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
-  {
-    name: "Romanian Deadlift (RDL)",
-    normalizedName: "romanian_deadlift_rdl",
-    type: "EXERCISE",
-    muscleGroup: "Legs",
-    equipment: "Barbell",
-    category: "STRENGTH",
-    primaryMuscles: ["Hamstrings (Biceps Femoris)", "Gluteus Maximus"],
-    secondaryMuscles: ["Erector Spinae", "Adductor Magnus", "Latissimus Dorsi"],
-    biomechanicsCue: "Keep soft bend in knees, push hips back to wall behind you, and keep bar scraping down thighs.",
-    steps: [
-      "Stand tall holding barbell with overhand grip at hips.",
-      "With slight knee bend, push hips straight back while lowering bar along thighs.",
-      "Stop when hips cannot travel further back (mid-shin level) and hamstrings are fully stretched.",
-      "Drive hips forward to stand tall, squeezing glutes.",
-    ],
-    commonMistakes: [
-      "Bending knees excessively turning it into a squat.",
-      "Allowing bar to drift away from legs.",
-      "Rounding lumbar spine.",
-    ],
-    breathingPattern: "Inhale on hip hinge descent → Exhale as hips drive through to top.",
-    diagramUrl: "/anatomy/romanian_deadlift.jpg",
-    diagramStatus: "PENDING_APPROVAL",
-  },
 
   // ==========================================
   // SHOULDERS & ARMS
@@ -738,7 +713,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Arching lower back off the bench pad.",
     ],
     breathingPattern: "Inhale at bottom → Exhale forcefully as dumbbells press overhead.",
-    diagramUrl: "/anatomy/overhead_press.jpg",
+    diagramUrl: "/anatomy/seated_dumbbell_shoulder_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -762,7 +737,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Using excessive weight that compromises rotator cuff control.",
     ],
     breathingPattern: "Inhale at chest → Exhale as you rotate and press overhead.",
-    diagramUrl: "/anatomy/overhead_press.jpg",
+    diagramUrl: "/anatomy/arnold_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -809,7 +784,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Leading with the hand rather than the lateral elbow.",
     ],
     breathingPattern: "Inhale at stretch → Exhale as arm raises outward.",
-    diagramUrl: "/anatomy/lateral_raise.jpg",
+    diagramUrl: "/anatomy/cable_lateral_raise.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -857,7 +832,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Dropping weight rapidly into terminal elbow hyperextension.",
     ],
     breathingPattern: "Inhale on descent → Exhale as you curl to chin.",
-    diagramUrl: "/anatomy/bicep_curl.jpg",
+    diagramUrl: "/anatomy/ez_bar_preacher_curl.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -881,7 +856,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Lifting head or shoulders off the incline bench.",
     ],
     breathingPattern: "Inhale on stretch → Exhale as you curl and supinate.",
-    diagramUrl: "/anatomy/bicep_curl.jpg",
+    diagramUrl: "/anatomy/incline_dumbbell_curl.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -952,7 +927,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Moving shoulder joint back and forth like a pullover.",
     ],
     breathingPattern: "Inhale as bar lowers to forehead → Exhale as triceps extend.",
-    diagramUrl: "/anatomy/tricep_pushdown.jpg",
+    diagramUrl: "/anatomy/skull_crusher.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -975,7 +950,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Hyperextending lumbar spine (brace abs tightly).",
     ],
     breathingPattern: "Inhale down behind head → Exhale as dumbbell presses to lockout.",
-    diagramUrl: "/anatomy/tricep_pushdown.jpg",
+    diagramUrl: "/anatomy/overhead_dumbbell_tricep_extension.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -998,7 +973,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Flaring elbows outward.",
     ],
     breathingPattern: "Inhale on descent → Exhale on pressing to lockout.",
-    diagramUrl: "/anatomy/tricep_pushdown.jpg",
+    diagramUrl: "/anatomy/close_grip_barbell_bench_press.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
@@ -1097,7 +1072,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Holding breath.",
     ],
     breathingPattern: "Maintain steady diaphragmatic breaths while bracing lateral core.",
-    diagramUrl: "/anatomy/ql_extension.jpg",
+    diagramUrl: "/anatomy/side_plank.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1121,7 +1096,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Failing to posterior tilt pelvis (only uses hip flexors without abs).",
     ],
     breathingPattern: "Inhale at bottom hang → Exhale forcefully as legs raise to 90°.",
-    diagramUrl: "/anatomy/plank.jpg",
+    diagramUrl: "/anatomy/hanging_leg_raise.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1145,7 +1120,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Sitting hips back first instead of pulling with abs.",
     ],
     breathingPattern: "Inhale on forward rollout reach → Exhale as abdominals pull wheel back.",
-    diagramUrl: "/anatomy/plank.jpg",
+    diagramUrl: "/anatomy/ab_wheel_rollout.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1169,7 +1144,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Pulling rope with arms instead of crunching with abdominals.",
     ],
     breathingPattern: "Inhale at top extension → Exhale completely as you crunch down.",
-    diagramUrl: "/anatomy/plank.jpg",
+    diagramUrl: "/anatomy/cable_crunch.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1193,7 +1168,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Excessive lumbar twisting without pivoting feet.",
     ],
     breathingPattern: "Inhale at starting reach → Exhale forcefully on rotational chop.",
-    diagramUrl: "/anatomy/ql_extension.jpg",
+    diagramUrl: "/anatomy/cable_woodchopper.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1216,7 +1191,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Slouching into excessive lumbar flexion.",
     ],
     breathingPattern: "Exhale on each lateral rotation → Inhale as you cross center.",
-    diagramUrl: "/anatomy/ql_extension.jpg",
+    diagramUrl: "/anatomy/russian_twist.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
   {
@@ -1240,7 +1215,7 @@ export const INITIAL_UNIFIED_EXERCISES: UnifiedExerciseItem[] = [
       "Moving too fast and losing core stabilization.",
     ],
     breathingPattern: "Inhale as limbs extend outward → Exhale as limbs return to center.",
-    diagramUrl: "/anatomy/plank.jpg",
+    diagramUrl: "/anatomy/dead_bug.jpg",
     diagramStatus: "PENDING_APPROVAL",
   },
 
