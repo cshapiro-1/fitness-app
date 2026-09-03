@@ -198,7 +198,7 @@ export function DashboardTourModal({ role, isOpen, onClose }: DashboardTourModal
         rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
         rect.right <= (window.innerWidth || document.documentElement.clientWidth);
 
-      if (!inView) {
+      if (!inView && typeof el.scrollIntoView === "function") {
         el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
       }
 

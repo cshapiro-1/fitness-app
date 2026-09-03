@@ -17,6 +17,16 @@ describe("DashboardTourModal Component Tests", () => {
       <div data-tour="client-timer-bar" style="width: 400px; height: 40px;"></div>
       <div data-tour="client-workouts" style="width: 400px; height: 300px;"></div>
     `;
+
+    Element.prototype.getBoundingClientRect = vi.fn().mockReturnValue({
+      top: 100,
+      left: 100,
+      bottom: 200,
+      right: 300,
+      width: 200,
+      height: 100,
+    });
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it("should render trainer interactive UI tour and allow step-by-step navigation", () => {
