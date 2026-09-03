@@ -22,23 +22,36 @@ export interface RestTimerProps {
   onClose?: () => void;
 }
 
-export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
+export interface RestTimerProps {
+  initialSeconds?: number;
+  onClose?: () => void;
+}
+
+export function RestTimer({ initialSeconds = 30, onClose }: RestTimerProps) {
   const [totalSeconds, setTotalSeconds] = useState(initialSeconds);
   const [secondsRemaining, setSecondsRemaining] = useState(initialSeconds);
+  const [targetEndTime, setTargetEndTime] = useState<number>(() => Date.now() + initialSeconds * 1000);
   const [isRunning, setIsRunning] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isAlarmRinging, setIsAlarmRinging] = useState(false);
 
-  // Custom Time Input State
+  // Custom Time Input State (Defaults to 0 mins 30 secs)
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [customMinutes, setCustomMinutes] = useState(Math.floor(initialSeconds / 60) || 1);
+  const [customMinutes, setCustomMinutes] = useState(Math.floor(initialSeconds / 60));
   const [customSeconds, setCustomSeconds] = useState(initialSeconds % 60 || 30);
 
   // Sound Picker State
   const [showSoundPicker, setShowSoundPicker] = useState(false);
   const [selectedSound, setSelectedSound] = useState<TimerSoundId>("air_horn");
   const [playingPreview, setPlayingPreview] = useState<string | null>(null);
+
+  // Request Web Notification permission on initial mount or timer start
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
 
   // Stop alarm loop on unmount
   useEffect(() => {
@@ -57,6 +70,21 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
       const savedMute = localStorage.getItem("strkyr_timer_muted");
       if (savedMute === "true") {
         setSoundEnabled(false);
+      }
+    }
+  }, []);
+
+  const triggerCompletionNotification = useCallback(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      try {
+        new Notification("STRKYR Rest Timer Finished! 🔔", {
+          body: "Rest time is up! Get ready for your next set.",
+          icon: "/favicon.ico",
+          tag: "strkyr-rest-timer",
+          requireInteraction: true,
+        });
+      } catch (err) {
+        console.warn("Notification trigger warning:", err);
       }
     }
   }, []);
@@ -86,35 +114,75 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
     }
     if (next) {
       prewarmAudio();
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
     } else {
       dismissAlarm();
     }
   };
 
+  // Wall-Clock Background Timer Execution (Survives tab switching and background throttling)
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (isRunning && secondsRemaining > 0) {
+
+    if (isRunning) {
       interval = setInterval(() => {
-        setSecondsRemaining((prev) => prev - 1);
-      }, 1000);
-    } else if (secondsRemaining === 0 && isRunning) {
-      setIsRunning(false);
-      setIsAlarmRinging(true);
-      if (soundEnabled) {
-        // Start repeating alarm loop every 1.5s until dismissed
-        startAlarmLoop(selectedSound, 1500);
-      }
+        const now = Date.now();
+        const diff = Math.max(0, Math.ceil((targetEndTime - now) / 1000));
+        setSecondsRemaining(diff);
+
+        if (diff === 0) {
+          setIsRunning(false);
+          setIsAlarmRinging(true);
+          triggerCompletionNotification();
+          if (soundEnabled) {
+            startAlarmLoop(selectedSound, 1500);
+          }
+        }
+      }, 500);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isRunning, secondsRemaining, soundEnabled, selectedSound]);
+  }, [isRunning, targetEndTime, soundEnabled, selectedSound, triggerCompletionNotification]);
+
+  // Sync timer immediately when tab or app visibility changes (e.g. coming back from another app)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && isRunning) {
+        const now = Date.now();
+        const diff = Math.max(0, Math.ceil((targetEndTime - now) / 1000));
+        setSecondsRemaining(diff);
+        if (diff === 0) {
+          setIsRunning(false);
+          setIsAlarmRinging(true);
+          triggerCompletionNotification();
+          if (soundEnabled) {
+            startAlarmLoop(selectedSound, 1500);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleVisibilityChange);
+    };
+  }, [isRunning, targetEndTime, soundEnabled, selectedSound, triggerCompletionNotification]);
 
   const startPreset = (secs: number) => {
     prewarmAudio();
     dismissAlarm();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
     setTotalSeconds(secs);
     setSecondsRemaining(secs);
+    setTargetEndTime(Date.now() + secs * 1000);
     setIsRunning(true);
     setShowCustomModal(false);
   };
@@ -143,13 +211,26 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
     dismissAlarm();
     setTotalSeconds((prev) => prev + 30);
     setSecondsRemaining((prev) => prev + 30);
+    setTargetEndTime((prev) => (isRunning ? prev + 30 * 1000 : Date.now() + (secondsRemaining + 30) * 1000));
     setIsRunning(true);
+  };
+
+  const togglePlayPause = () => {
+    prewarmAudio();
+    dismissAlarm();
+    if (isRunning) {
+      setIsRunning(false);
+    } else {
+      setTargetEndTime(Date.now() + secondsRemaining * 1000);
+      setIsRunning(true);
+    }
   };
 
   const resetTimer = () => {
     prewarmAudio();
     dismissAlarm();
     setSecondsRemaining(totalSeconds);
+    setTargetEndTime(Date.now() + totalSeconds * 1000);
     setIsRunning(false);
   };
 
@@ -610,11 +691,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
           <div style={{ display: "flex", gap: "8px", justifyContent: "center", marginBottom: "14px" }}>
             <button
               type="button"
-              onClick={() => {
-                prewarmAudio();
-                dismissAlarm();
-                setIsRunning(!isRunning);
-              }}
+              onClick={togglePlayPause}
               className="btn-primary"
               style={{
                 display: "inline-flex",
@@ -675,7 +752,7 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
 
           {/* Presets Row + Custom Button */}
           <div style={{ display: "flex", gap: "5px", justifyContent: "center", flexWrap: "wrap" }}>
-            {[30, 60, 90, 120, 180].map((secs) => (
+            {[15, 30, 45, 60, 90, 120].map((secs) => (
               <button
                 key={secs}
                 type="button"
@@ -685,9 +762,9 @@ export function RestTimer({ initialSeconds = 90, onClose }: RestTimerProps) {
                   border: totalSeconds === secs && secondsRemaining > 0 ? "1px solid #2563eb" : "1px solid #e2e8f0",
                   color: totalSeconds === secs && secondsRemaining > 0 ? "#2563eb" : "#475569",
                   borderRadius: "6px",
-                  padding: "4px 7px",
+                  padding: "4px 8px",
                   fontSize: "11px",
-                  fontWeight: 600,
+                  fontWeight: totalSeconds === secs ? 800 : 600,
                   cursor: "pointer",
                 }}
               >

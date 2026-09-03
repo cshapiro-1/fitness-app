@@ -21,6 +21,7 @@ export interface WorkoutSet {
   weight: number;
   reps: number;
   notes?: string | null;
+  completed?: boolean;
 }
 
 export interface WorkoutExercise {
@@ -52,7 +53,7 @@ export interface WorkoutSession {
   exercises: WorkoutExercise[];
 }
 
-export type DraftSet = { weight: string; reps: string; notes: string };
+export type DraftSet = { weight: string; reps: string; notes: string; completed?: boolean };
 export type DraftExercise = {
   name: string;
   category?: string | null;

@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
+import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar, Check, Timer } from "lucide-react";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
+import { getWeightClarification } from "./WorkoutBuilder";
+import { RestTimer } from "./RestTimer";
 
 export interface EditAssignedWorkoutModalProps {
   isOpen: boolean;
@@ -21,6 +23,7 @@ export function EditAssignedWorkoutModal({
   const [sessionDate, setSessionDate] = useState("");
   const [notes, setNotes] = useState("");
   const [exercises, setExercises] = useState<any[]>([]);
+  const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +50,7 @@ export function EditAssignedWorkoutModal({
             weight: s.weight !== undefined && s.weight !== null ? s.weight.toString() : "0",
             reps: s.reps !== undefined && s.reps !== null ? s.reps.toString() : "10",
             notes: s.notes || "",
+            completed: !!s.completed,
           })),
         }))
       );
@@ -136,6 +140,28 @@ export function EditAssignedWorkoutModal({
       })
     );
   };
+
+  const handleToggleCompleteSet = (exIdx: number, setIdx: number) => {
+    let willBeCompleted = false;
+    setExercises((prev) =>
+      prev.map((ex, i) => {
+        if (i !== exIdx) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((s: any, sI: number) => {
+            if (sI === setIdx) {
+              willBeCompleted = !s.completed;
+              return { ...s, completed: willBeCompleted };
+            }
+            return s;
+          }),
+        };
+      })
+     );
+     if (willBeCompleted) {
+       setActiveRestSeconds(30);
+     }
+   };
 
   const handleSave = async (markAsCompleted = false) => {
     if (!workout) return;
@@ -363,18 +389,48 @@ export function EditAssignedWorkoutModal({
                   </button>
                 </div>
 
+                {/* Weight Mode & Equipment Guidance Badge */}
+                {(() => {
+                  const weightInfo = getWeightClarification(ex.name, ex.isBodyweight, ex.category);
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", padding: "0 2px" }}>
+                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "5px", background: weightInfo.bg, color: weightInfo.badgeColor, border: `1px solid ${weightInfo.badgeColor}33` }}>
+                        {weightInfo.badge}
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        {weightInfo.hint}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {/* Sets Header & Rows */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr 1.5fr auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
                     <span>Set</span>
-                    <span>Weight</span>
+                    <span>{getWeightClarification(ex.name, ex.isBodyweight, ex.category).header.split("•")[0].trim()}</span>
                     <span>Reps</span>
-                    <span>Notes / Superset</span>
-                    <span></span>
+                    <span>Notes</span>
+                    <span style={{ textAlign: "center" }}>Done</span>
+                    <span style={{ textAlign: "center" }}>Rest</span>
+                    <span />
                   </div>
 
                   {ex.sets.map((s: any, sIdx: number) => (
-                    <div key={sIdx} style={{ display: "grid", gridTemplateColumns: "36px 1fr 1fr 1.5fr auto", gap: "6px", alignItems: "center" }}>
+                    <div
+                      key={sIdx}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto",
+                        gap: "6px",
+                        alignItems: "center",
+                        background: s.completed ? "#f0fdf4" : undefined,
+                        border: s.completed ? "1px solid #86efac" : "1px solid transparent",
+                        borderRadius: "8px",
+                        padding: "2px 4px",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
                       <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", textAlign: "center" }}>
                         {sIdx + 1}
                       </span>
@@ -402,6 +458,41 @@ export function EditAssignedWorkoutModal({
                         placeholder="e.g. Superset..."
                         style={{ padding: "4px 8px", fontSize: "11px" }}
                       />
+
+                      {/* Complete Set Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCompleteSet(exIdx, sIdx)}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          borderRadius: "6px",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          cursor: "pointer",
+                          border: "1px solid",
+                          borderColor: s.completed ? "#16a34a" : "#cbd5e1",
+                          background: s.completed ? "#16a34a" : "#ffffff",
+                          color: s.completed ? "#ffffff" : "#475569",
+                        }}
+                        title={s.completed ? "Mark set incomplete" : "Complete set & start 30s rest timer"}
+                      >
+                        <Check size={12} strokeWidth={s.completed ? 3 : 2} />
+                        <span>{s.completed ? "Done" : "Log"}</span>
+                      </button>
+
+                      {/* 30s Rest Trigger */}
+                      <button
+                        type="button"
+                        onClick={() => setActiveRestSeconds(30)}
+                        style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", cursor: "pointer", padding: "5px 7px" }}
+                        title="Start 30s rest timer"
+                      >
+                        <Timer size={12} />
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => handleRemoveSet(exIdx, sIdx)}
@@ -435,6 +526,11 @@ export function EditAssignedWorkoutModal({
             ))}
           </div>
         </div>
+
+        {/* Rest Timer Widget */}
+        {activeRestSeconds !== null && (
+          <RestTimer initialSeconds={activeRestSeconds} onClose={() => setActiveRestSeconds(null)} />
+        )}
 
         {/* Modal Footer */}
         <div

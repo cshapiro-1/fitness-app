@@ -46,6 +46,7 @@ import { ProgramPlanner } from "./components/ProgramPlanner";
 import { TextImportModal } from "./components/TextImportModal";
 import { StudioNavTabs, StudioTabType } from "./components/StudioNavTabs";
 import { RemoveAssignedWorkoutsModal } from "./components/RemoveAssignedWorkoutsModal";
+import { NetworkConnectionBanner } from "./components/NetworkConnectionBanner";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
@@ -582,6 +583,9 @@ export function ClientDashboard({
         </div>
       </header>
 
+      {/* Public Wi-Fi & Connection Resilience Alert Banner */}
+      <NetworkConnectionBanner />
+
       {/* Main Content */}
       <main className="main" style={{ maxWidth: "860px", margin: "16px auto", padding: "0 14px 60px" }}>
         {/* Dismissible Free Portal Access Banner */}
@@ -664,7 +668,7 @@ export function ClientDashboard({
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap" }}>
-            {[60, 90, 120, 180].map((sec) => (
+            {[30, 60, 90, 120, 180].map((sec) => (
               <button
                 key={sec}
                 type="button"

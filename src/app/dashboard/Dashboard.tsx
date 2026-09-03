@@ -59,6 +59,7 @@ import { TextImportModal } from "./components/TextImportModal";
 import { SessionHeartbeatTracker } from "./components/SessionHeartbeatTracker";
 import { ProgramPlanner } from "./components/ProgramPlanner";
 import { StudioNavTabs } from "./components/StudioNavTabs";
+import { NetworkConnectionBanner } from "./components/NetworkConnectionBanner";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { GeneratedRoutine } from "../api/ai/generate-routine/route";
@@ -749,6 +750,9 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           />
         </div>
       </header>
+
+      {/* Public Wi-Fi & Connection Resilience Alert Banner */}
+      <NetworkConnectionBanner />
 
       {/* Layout: Sidebar + Main Content */}
       <div className="layout">

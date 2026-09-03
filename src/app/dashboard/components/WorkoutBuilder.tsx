@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame, Edit3 } from "lucide-react";
+import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame, Edit3, Check, Info } from "lucide-react";
 import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
@@ -10,6 +10,44 @@ import { EXERCISE_LIBRARY, isDefaultBodyweight, searchExercises } from "../utils
 import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
 import { generateWorkoutSummary } from "../utils/aiWorkoutSummary";
 import { RemoveAssignedWorkoutsModal } from "./RemoveAssignedWorkoutsModal";
+
+export function getWeightClarification(name: string, isBodyweight?: boolean, category?: string | null): { header: string; hint: string; badge: string; badgeColor: string; bg: string } {
+  const lower = (name || "").toLowerCase();
+  if (isBodyweight || category === "BODYWEIGHT" || lower.includes("pull-up") || lower.includes("chin-up") || lower.includes("dip") || lower.includes("push-up") || lower.includes("crunch") || lower.includes("bodyweight")) {
+    return {
+      header: "Added Wt (+lbs / 0 for BW)",
+      hint: "🤸 Extra added weight (belt/vest). Enter 0 for bodyweight only.",
+      badge: "Bodyweight (+lbs)",
+      badgeColor: "#16a34a",
+      bg: "#f0fdf4",
+    };
+  }
+  if (lower.includes("dumbbell") || lower.includes(" db") || lower.startsWith("db ") || lower.includes("lateral raise") || lower.includes("hammer curl") || lower.includes("goblet") || lower.includes("split squat")) {
+    return {
+      header: "Weight (lbs) • Each Hand / Per DB",
+      hint: "🥊 Weight of ONE dumbbell in each hand (e.g. 50 lbs = holding two 50lb dumbbells).",
+      badge: "Per Dumbbell (Each Hand)",
+      badgeColor: "#9333ea",
+      bg: "#faf5ff",
+    };
+  }
+  if (lower.includes("cable") || lower.includes("machine") || lower.includes("lat pulldown") || lower.includes("leg extension") || lower.includes("leg curl") || lower.includes("seated row") || lower.includes("tricep pushdown") || lower.includes("smith")) {
+    return {
+      header: "Weight (lbs) • Pin / Stack Weight",
+      hint: "🧱 Total selector pin weight or machine plate stack.",
+      badge: "Cable / Machine Stack",
+      badgeColor: "#0284c7",
+      bg: "#f0f9ff",
+    };
+  }
+  return {
+    header: "Weight (lbs) • Total Barbell (Bar + Plates)",
+    hint: "🏋️ Total barbell load including 45lb bar (e.g. 135 lbs = 45lb bar + 45s on each side).",
+    badge: "Total Barbell (Bar + Plates)",
+    badgeColor: "#2563eb",
+    bg: "#eff6ff",
+  };
+}
 
 interface WorkoutBuilderProps {
   activeWorkout: DraftWorkout | null;
@@ -266,7 +304,7 @@ export function WorkoutBuilder({
     });
   };
 
-  const updateSet = (exerciseIndex: number, setIndex: number, field: keyof DraftSet, value: string) => {
+  const updateSet = (exerciseIndex: number, setIndex: number, field: keyof DraftSet, value: any) => {
     setActiveWorkout((current) => {
       if (!current) return current;
       return {
@@ -281,6 +319,34 @@ export function WorkoutBuilder({
           };
         }),
       };
+    });
+  };
+
+  const toggleCompleteSet = (exerciseIndex: number, setIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      let willBeCompleted = false;
+      const updated = {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          return {
+            ...exercise,
+            sets: exercise.sets.map((setEntry, currentSetIndex) => {
+              if (currentSetIndex === setIndex) {
+                willBeCompleted = !setEntry.completed;
+                return { ...setEntry, completed: willBeCompleted };
+              }
+              return setEntry;
+            }),
+          };
+        }),
+      };
+      if (willBeCompleted) {
+        // Auto-suggest 30s rest timer on completing a set
+        setActiveRestSeconds(30);
+      }
+      return updated;
     });
   };
 
@@ -791,11 +857,26 @@ export function WorkoutBuilder({
                     </div>
                   )}
 
+                  {/* Weight Mode & Equipment Guidance Badge */}
+                  {(() => {
+                    const weightInfo = getWeightClarification(exercise.name, exercise.isBodyweight, exercise.category);
+                    return (
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", background: weightInfo.bg, color: weightInfo.badgeColor, border: `1px solid ${weightInfo.badgeColor}33` }}>
+                          {weightInfo.badge}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>
+                          {weightInfo.hint}
+                        </span>
+                      </div>
+                    );
+                  })()}
+
                   {/* Set Header */}
                   <div className="set-row set-row-header">
                     <span className="set-header-cell">Set</span>
                     <span className="set-header-cell">
-                      {exercise.isBodyweight ? "Added Wt (+lbs / 0 for BW)" : "Weight (lbs)"}
+                      {getWeightClarification(exercise.name, exercise.isBodyweight, exercise.category).header}
                     </span>
                     <span className="set-header-cell">Reps</span>
                     <span className="set-header-cell">Notes / Effort</span>
@@ -811,7 +892,15 @@ export function WorkoutBuilder({
                       const isNewPR = curWeight > 0 && (allTimePR === 0 ? curWeight > 0 : est1RM > allTimePR);
 
                       return (
-                        <div className="set-row" key={`set-${setIndex}`}>
+                        <div
+                          className="set-row"
+                          key={`set-${setIndex}`}
+                          style={{
+                            background: set.completed ? "#f0fdf4" : undefined,
+                            borderColor: set.completed ? "#86efac" : undefined,
+                            transition: "background 0.2s ease, border-color 0.2s ease",
+                          }}
+                        >
                           <span className="set-index">
                             Set {setIndex + 1}
                             {isNewPR && (
@@ -859,13 +948,38 @@ export function WorkoutBuilder({
                             onChange={(event) => updateSet(exerciseIndex, setIndex, "notes", event.target.value)}
                           />
 
+                          {/* 1-Click Complete Set Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => toggleCompleteSet(exerciseIndex, setIndex)}
+                            style={{
+                              padding: "5px 8px",
+                              fontSize: "11px",
+                              borderRadius: "6px",
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              cursor: "pointer",
+                              border: "1px solid",
+                              borderColor: set.completed ? "#16a34a" : "#cbd5e1",
+                              background: set.completed ? "#16a34a" : "#ffffff",
+                              color: set.completed ? "#ffffff" : "#475569",
+                              transition: "all 0.15s ease",
+                            }}
+                            title={set.completed ? "Mark set incomplete" : "Complete set & start 30s rest timer"}
+                          >
+                            <Check size={12} strokeWidth={set.completed ? 3 : 2} />
+                            <span>{set.completed ? "Done" : "Log"}</span>
+                          </button>
+
                           {/* 1-Click Rest Trigger */}
                           <button
                             type="button"
-                            onClick={() => setActiveRestSeconds(90)}
+                            onClick={() => setActiveRestSeconds(30)}
                             className="btn-secondary"
                             style={{ padding: "6px 8px", fontSize: "11px", borderRadius: "6px" }}
-                            title="Start 90s Rest Timer"
+                            title="Start 30s Rest Timer"
                           >
                             <Timer size={13} />
                           </button>

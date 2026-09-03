@@ -14,12 +14,41 @@ export function PlateCalculatorModal({
   onClose,
 }: PlateCalculatorModalProps) {
   const [targetWeight, setTargetWeight] = useState<number>(initialWeight);
+  const [inputStr, setInputStr] = useState<string>(String(initialWeight));
   const [barWeight, setBarWeight] = useState<number>(45);
 
   const breakdown = calculatePlates(targetWeight, barWeight);
 
   const handleAdjust = (delta: number) => {
-    setTargetWeight((prev) => Math.max(barWeight, prev + delta));
+    setTargetWeight((prev) => {
+      const next = Math.max(barWeight, prev + delta);
+      setInputStr(String(next));
+      return next;
+    });
+  };
+
+  const handleSelectBar = (wt: number) => {
+    setBarWeight(wt);
+    if (targetWeight < wt) {
+      setTargetWeight(wt);
+      setInputStr(String(wt));
+    }
+  };
+
+  const handleInputChange = (val: string) => {
+    setInputStr(val);
+    if (val.trim() === "") {
+      setTargetWeight(0);
+      return;
+    }
+    const parsed = parseFloat(val);
+    if (!isNaN(parsed)) {
+      setTargetWeight(Math.max(0, parsed));
+    }
+  };
+
+  const handleInputBlur = () => {
+    setInputStr(String(targetWeight));
   };
 
   return (
@@ -33,10 +62,10 @@ export function PlateCalculatorModal({
           <div className="client-modal-header-info">
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Dumbbell size={20} style={{ color: "#2563eb" }} />
-              <h2 className="client-modal-title">Barbell Plate Calculator</h2>
+              <h2 className="client-modal-title">Barbell & Plate Calculator</h2>
             </div>
             <p className="client-modal-subtitle">
-              Interactive plate math & barbell loading visualizer.
+              Interactive plate math, dumbbell loading & visual bar calculator.
             </p>
           </div>
           <button className="client-modal-close" onClick={onClose}>
@@ -54,13 +83,13 @@ export function PlateCalculatorModal({
               <button className="btn-secondary" onClick={() => handleAdjust(-10)}>-10</button>
               <button className="btn-secondary" onClick={() => handleAdjust(-5)}>-5</button>
               <input
-                type="number"
-                value={targetWeight || ""}
-                onChange={(e) => setTargetWeight(Number(e.target.value) || barWeight)}
+                type="text"
+                inputMode="decimal"
+                value={inputStr}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onBlur={handleInputBlur}
                 className="input-field"
                 style={{ textAlign: "center", fontSize: "22px", fontWeight: 800, color: "#2563eb", width: "130px" }}
-                min={barWeight}
-                step={2.5}
               />
               <button className="btn-secondary" onClick={() => handleAdjust(+5)}>+5</button>
               <button className="btn-secondary" onClick={() => handleAdjust(+10)}>+10</button>
@@ -69,21 +98,22 @@ export function PlateCalculatorModal({
           </div>
 
           {/* Bar Type Selector */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", marginBottom: "20px" }}>
             <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>Bar Weight:</span>
             {[
               { label: "Standard (45 lbs)", wt: 45 },
               { label: "Women's / Tech (35 lbs)", wt: 35 },
               { label: "EZ Bar (15 lbs)", wt: 15 },
+              { label: "No Bar (0 lbs)", wt: 0 },
             ].map((b) => (
               <button
                 key={b.wt}
                 type="button"
-                onClick={() => setBarWeight(b.wt)}
+                onClick={() => handleSelectBar(b.wt)}
                 style={{
                   fontSize: "11px",
                   fontWeight: 600,
-                  padding: "4px 10px",
+                  padding: "5px 10px",
                   borderRadius: "6px",
                   border: "1px solid",
                   borderColor: barWeight === b.wt ? "#2563eb" : "#cbd5e1",

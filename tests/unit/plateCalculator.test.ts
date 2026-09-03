@@ -43,4 +43,18 @@ describe("Barbell Plate Calculator Algorithm", () => {
     expect(res.totalAchieved).toBe(135);
     expect(res.remainder).toBe(2);
   });
+
+  it("should handle 0 lbs bar (e.g. dumbbells or machine loading)", () => {
+    const res = calculatePlates(50, 0);
+    expect(res.weightPerSide).toBe(25);
+    expect(res.platesPerSide).toEqual([{ weight: 25, count: 1 }]);
+    expect(res.totalAchieved).toBe(50);
+    expect(res.remainder).toBe(0);
+
+    const zeroRes = calculatePlates(0, 0);
+    expect(zeroRes.weightPerSide).toBe(0);
+    expect(zeroRes.platesPerSide).toEqual([]);
+    expect(zeroRes.totalAchieved).toBe(0);
+    expect(zeroRes.remainder).toBe(0);
+  });
 });

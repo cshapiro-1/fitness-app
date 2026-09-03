@@ -33,6 +33,7 @@ import {
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
 import { calculateWorkoutDate } from "@/lib/periodizationEngine";
 import { RemoveAssignedWorkoutsModal } from "./RemoveAssignedWorkoutsModal";
+import { getWeightClarification } from "./WorkoutBuilder";
 
 export interface ProgramExerciseItem {
   id?: string;
@@ -1602,7 +1603,7 @@ export function ProgramPlanner({
                                   setFormDays(updated);
                                 }}
                                 placeholder="Weight"
-                                title="Starting Weight (lbs/kg)"
+                                title={getWeightClarification(ex.name, false, ex.category).hint}
                                 style={{
                                   width: "100%",
                                   border: "1px solid #e2e8f0",
