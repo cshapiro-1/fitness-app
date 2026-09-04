@@ -199,4 +199,20 @@ describe("InteractiveBodyMap Component", () => {
 
     fireEvent.touchEnd(window);
   });
+
+  it("verifies the Z-Anatomy 3D musculature GLB asset and Draco decoders exist in public directory", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+
+    const glbPath = path.resolve(process.cwd(), "public/models/anatomy_musculature.glb");
+    expect(fs.existsSync(glbPath)).toBe(true);
+
+    const stats = fs.statSync(glbPath);
+    // Must be around 1.45MB - 1.6MB
+    expect(stats.size).toBeGreaterThan(1000000);
+    expect(stats.size).toBeLessThan(5000000);
+
+    const dracoWasmPath = path.resolve(process.cwd(), "public/draco/draco_decoder.wasm");
+    expect(fs.existsSync(dracoWasmPath)).toBe(true);
+  });
 });

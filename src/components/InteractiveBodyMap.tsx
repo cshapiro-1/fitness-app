@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js";
 import {
   Scene,
   PerspectiveCamera,
@@ -14,19 +16,13 @@ import {
   Vector2,
   Vector3,
   Raycaster,
-  SphereGeometry,
-  CylinderGeometry,
-  BoxGeometry,
-  ConeGeometry,
   CircleGeometry,
-  LatheGeometry,
-  Shape,
-  ExtrudeGeometry,
-  CanvasTexture,
-  RepeatWrapping,
   ACESFilmicToneMapping,
   BufferGeometry,
   Material,
+  Box3,
+  DoubleSide,
+  Object3D,
 } from "three";
 import {
   Rotate3d,
@@ -312,38 +308,26 @@ const PILL_ORDER: MuscleGroupId[] = [
   "quads", "hamstrings", "glutes", "adductors", "calves", "tibialis",
 ];
 
-// Helper to generate a procedural muscular striation texture
-function createMuscleTexture(): CanvasTexture | null {
-  if (typeof document === "undefined") return null;
-  try {
-    const canvas = document.createElement("canvas");
-    canvas.width = 128;
-    canvas.height = 128;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-
-    ctx.fillStyle = "#933830";
-    ctx.fillRect(0, 0, 128, 128);
-
-    for (let y = 0; y < 128; y += 2) {
-      const alpha = 0.12 + Math.random() * 0.16;
-      ctx.strokeStyle = `rgba(235, 120, 110, ${alpha})`;
-      ctx.lineWidth = 1 + Math.random() * 1.2;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(128, y + (Math.random() - 0.5) * 3);
-      ctx.stroke();
-    }
-
-    const tex = new CanvasTexture(canvas);
-    tex.wrapS = RepeatWrapping;
-    tex.wrapT = RepeatWrapping;
-    tex.repeat.set(2, 2);
-    return tex;
-  } catch {
-    return null;
-  }
-}
+// Mapping table from 3D anatomical GLTF node tags to STRKYR muscle IDs
+const RAW_TO_MUSCLE_ID: Record<string, MuscleGroupId> = {
+  chest: "chest",
+  deltoids: "shoulders",
+  biceps: "biceps",
+  triceps: "triceps",
+  forearm: "forearms",
+  forearms: "forearms",
+  traps: "traps",
+  lats: "lats",
+  lower_back: "lower_back",
+  abs: "abs",
+  obliques: "obliques",
+  glutes: "glutes",
+  quads: "quads",
+  hamstrings: "hamstrings",
+  adductors: "adductors",
+  calves: "calves",
+  tibialis: "tibialis",
+};
 
 interface InteractiveBodyMapProps {
   selectedMuscle: MuscleGroupId | null;
@@ -368,6 +352,7 @@ export function InteractiveBodyMap({
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [cursor3dMuscle, setCursor3dMuscle] = useState<MuscleGroupId | null>(null);
+  const [isModelLoading, setIsModelLoading] = useState<boolean>(true);
 
   const sceneRef = useRef<Scene | null>(null);
   const rendererRef = useRef<WebGLRenderer | null>(null);
@@ -413,25 +398,26 @@ export function InteractiveBodyMap({
 
       meshes.forEach((mesh) => {
         const mat = mesh.material as MeshStandardMaterial;
+        if (!mat || !mat.color) return;
         if (isSelected) {
           mat.color.setHex(0x00f5ff);
-          mat.emissive.setHex(0x00f5ff);
-          mat.emissiveIntensity = 1.1;
-          mat.roughness = 0.15;
-          mat.metalness = 0.65;
+          mat.emissive.setHex(0x00d8f0);
+          mat.emissiveIntensity = 0.95;
+          mat.roughness = 0.2;
+          mat.metalness = 0.15;
         } else if (isHovered) {
           mat.color.setHex(0x38bdf8);
-          mat.emissive.setHex(0x38bdf8);
-          mat.emissiveIntensity = 0.65;
-          mat.roughness = 0.25;
-          mat.metalness = 0.4;
+          mat.emissive.setHex(0x0284c7);
+          mat.emissiveIntensity = 0.5;
+          mat.roughness = 0.3;
+          mat.metalness = 0.1;
         } else {
-          // Medical deep terracotta athletic muscle fiber
-          mat.color.setHex(0x993730);
+          // Rich anatomical muscle crimson
+          mat.color.setHex(0x9b4844);
           mat.emissive.setHex(0x220a08);
           mat.emissiveIntensity = 0.12;
           mat.roughness = 0.55;
-          mat.metalness = 0.2;
+          mat.metalness = 0.05;
         }
       });
     });
@@ -451,10 +437,10 @@ export function InteractiveBodyMap({
     const w = container.clientWidth || 300;
     const h = container.clientHeight || 400;
     const aspect = w / h;
-    const camera = new PerspectiveCamera(34, aspect, 0.1, 100);
-    const targetZ = aspect < 0.65 ? 10.0 : aspect < 0.85 ? 9.2 : 8.5;
-    camera.position.set(0, 0.7, targetZ);
-    camera.lookAt(0, 0.7, 0);
+    const camera = new PerspectiveCamera(34, aspect, 0.1, 50);
+    const targetZ = aspect < 0.65 ? 10.2 : aspect < 0.85 ? 9.5 : 8.8;
+    camera.position.set(0, 0, targetZ);
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     let renderer: WebGLRenderer | null = null;
@@ -471,29 +457,25 @@ export function InteractiveBodyMap({
       renderer = null;
     }
 
-    // ── High-Contrast Medical Lighting ──
+    // ── High-Contrast Anatomical Lighting ──
     scene.add(new AmbientLight(0xffffff, 0.85));
 
     // Key front light
-    const keyLight = new DirectionalLight(0xfff5ea, 1.7);
-    keyLight.position.set(4, 7, 6);
+    const keyLight = new DirectionalLight(0xffffff, 1.4);
+    keyLight.position.set(3, 4, 4);
     scene.add(keyLight);
 
-    // Cyan rim backlights (reproduces the signature glowing cyan halo in our anatomy renders)
-    const rimCyan1 = new DirectionalLight(0x00f5ff, 2.2);
-    rimCyan1.position.set(-6, 3, -7);
-    scene.add(rimCyan1);
+    // Cyan rim backlight halo (signature STRKYR medical contour glow)
+    const rimCyan = new DirectionalLight(0x00f5ff, 1.8);
+    rimCyan.position.set(0, 2, -3);
+    scene.add(rimCyan);
 
-    const rimCyan2 = new DirectionalLight(0x00f5ff, 2.2);
-    rimCyan2.position.set(6, 3, -7);
-    scene.add(rimCyan2);
-
-    const fillSky = new DirectionalLight(0x38bdf8, 0.7);
-    fillSky.position.set(0, -4, 4);
+    const fillSky = new DirectionalLight(0x8cb0d0, 0.7);
+    fillSky.position.set(-3, 2, 2);
     scene.add(fillSky);
 
     // Medical pedestal ground
-    const groundGeom = new CircleGeometry(2.6, 64);
+    const groundGeom = new CircleGeometry(2.4, 64);
     const groundMat = new MeshStandardMaterial({
       color: 0x091122,
       roughness: 0.95,
@@ -501,267 +483,121 @@ export function InteractiveBodyMap({
     });
     const ground = new Mesh(groundGeom, groundMat);
     ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -2.95;
+    ground.position.y = -2.55;
     scene.add(ground);
 
-    // Body Group
+    // Body Group (centered at origin for 360° rotation)
     const bodyGroup = new Group();
-    bodyGroup.position.y = 0;
+    bodyGroup.position.set(0, 0, 0);
     scene.add(bodyGroup);
     bodyGroupRef.current = bodyGroup;
 
     const muscleMap = new Map<MuscleGroupId, Mesh[]>();
-    const muscleTex = createMuscleTexture();
+    muscleMeshesRef.current = muscleMap;
 
-    const addMuscle = (
-      id: MuscleGroupId,
-      geom: BufferGeometry,
-      pos: [number, number, number],
-      rot: [number, number, number] = [0, 0, 0],
-      scale: [number, number, number] = [1, 1, 1]
-    ) => {
-      const mat = new MeshStandardMaterial({
-        color: 0x993730,
-        roughness: 0.55,
-        metalness: 0.2,
-        emissive: 0x220a08,
-        emissiveIntensity: 0.12,
-        ...(muscleTex ? { bumpMap: muscleTex, bumpScale: 0.015 } : {}),
-      });
-      const mesh = new Mesh(geom, mat);
-      mesh.position.set(...pos);
-      mesh.rotation.set(...rot);
-      mesh.scale.set(...scale);
-      mesh.userData = { muscleId: id };
-      bodyGroup.add(mesh);
-
-      const arr = muscleMap.get(id) || [];
-      arr.push(mesh);
-      muscleMap.set(id, arr);
-      return mesh;
+    const findFlag = (obj: Object3D, key: string): any => {
+      for (let p: Object3D | null = obj; p; p = p.parent) {
+        if (p.userData && p.userData[key] != null) return p.userData[key];
+      }
+      return null;
     };
 
-    // Pearl / Ivory Fascia & Bone Material
-    const fasciaMat = new MeshStandardMaterial({
-      color: 0xd6cdc3,
-      roughness: 0.45,
-      metalness: 0.1,
-    });
+    const applyMaterialToMesh = (mesh: Mesh, muscleId: MuscleGroupId | null) => {
+      const isSelected = selectedMuscle === muscleId;
+      const isHovered = hoveredMuscle === muscleId;
+      if (isSelected) {
+        mesh.material = new MeshStandardMaterial({
+          color: 0x00f5ff,
+          emissive: 0x00d8f0,
+          emissiveIntensity: 0.95,
+          roughness: 0.2,
+          metalness: 0.15,
+          side: DoubleSide,
+        });
+      } else if (isHovered) {
+        mesh.material = new MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.5,
+          roughness: 0.3,
+          metalness: 0.1,
+          side: DoubleSide,
+        });
+      } else if (muscleId) {
+        mesh.material = new MeshStandardMaterial({
+          color: 0x9b4844,
+          roughness: 0.55,
+          metalness: 0.05,
+          emissive: 0x220a08,
+          emissiveIntensity: 0.12,
+          side: DoubleSide,
+        });
+      } else {
+        mesh.material = new MeshStandardMaterial({
+          color: 0xded8c8,
+          roughness: 0.85,
+          metalness: 0.0,
+          side: DoubleSide,
+        });
+      }
+    };
 
-    // ── 1. Sculpted Head & Neck Anatomy ──
-    const headGeom = new SphereGeometry(0.46, 32, 32);
-    const head = new Mesh(headGeom, fasciaMat);
-    head.position.set(0, 3.25, 0);
-    head.scale.set(0.9, 1.15, 1.0);
-    bodyGroup.add(head);
+    // Load Z-Anatomy Real 3D Human Musculature Model
+    setIsModelLoading(true);
+    try {
+      const loader = new GLTFLoader();
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath("/draco/gltf/");
+      loader.setDRACOLoader(dracoLoader);
 
-    // Jaw / Cranial taper
-    const jawGeom = new CylinderGeometry(0.24, 0.36, 0.35, 16);
-    const jaw = new Mesh(jawGeom, fasciaMat);
-    jaw.position.set(0, 2.9, 0.04);
-    bodyGroup.add(jaw);
+      loader.load(
+        "/models/anatomy_musculature.glb",
+        (gltf) => {
+          const model = gltf.scene;
 
-    // Neck Column
-    const neck = new Mesh(new CylinderGeometry(0.22, 0.28, 0.45, 20), fasciaMat);
-    neck.position.set(0, 2.65, 0);
-    bodyGroup.add(neck);
+          model.traverse((child) => {
+            if ((child as Mesh).isMesh) {
+              const mesh = child as Mesh;
+              const rawMuscle = findFlag(mesh, "muscle");
+              const muscleId = rawMuscle ? RAW_TO_MUSCLE_ID[rawMuscle] : null;
 
-    // Clavicle bone arches (ivory anatomical markers)
-    const clavicleGeom = new BoxGeometry(0.7, 0.05, 0.08);
-    const clavicleL = new Mesh(clavicleGeom, fasciaMat);
-    clavicleL.position.set(-0.4, 2.44, 0.2);
-    clavicleL.rotation.z = -0.06;
-    bodyGroup.add(clavicleL);
-    const clavicleR = new Mesh(clavicleGeom, fasciaMat);
-    clavicleR.position.set(0.4, 2.44, 0.2);
-    clavicleR.rotation.z = 0.06;
-    bodyGroup.add(clavicleR);
+              if (muscleId) {
+                mesh.userData.muscleId = muscleId;
+                applyMaterialToMesh(mesh, muscleId);
+                const arr = muscleMap.get(muscleId) || [];
+                arr.push(mesh);
+                muscleMap.set(muscleId, arr);
+              } else {
+                applyMaterialToMesh(mesh, null);
+              }
+            }
+          });
 
-    // Thoracic Core / Spine Support
-    const spine = new Mesh(new CylinderGeometry(0.18, 0.22, 1.85, 16), fasciaMat);
-    spine.position.set(0, 1.7, 0);
-    bodyGroup.add(spine);
+          // Scale and center model
+          const scaleFactor = 0.032;
+          model.scale.setScalar(scaleFactor);
 
-    // Linea Alba (central pearl abdominal tendon)
-    const lineaAlba = new Mesh(new BoxGeometry(0.04, 1.25, 0.08), fasciaMat);
-    lineaAlba.position.set(0, 1.55, 0.28);
-    bodyGroup.add(lineaAlba);
+          const box = new Box3().setFromObject(model);
+          const center = box.getCenter(new Vector3());
 
-    // Pelvis Arch
-    const pelvis = new Mesh(new BoxGeometry(0.92, 0.32, 0.36), fasciaMat);
-    pelvis.position.set(0, 0.72, 0);
-    bodyGroup.add(pelvis);
+          model.position.x = -center.x;
+          model.position.y = -center.y + 0.05;
+          model.position.z = -center.z;
 
-    // Patella (Knee joints)
-    const patellaL = new Mesh(new SphereGeometry(0.15, 16, 16), fasciaMat);
-    patellaL.position.set(-0.42, -1.2, 0.06);
-    bodyGroup.add(patellaL);
-    const patellaR = new Mesh(new SphereGeometry(0.15, 16, 16), fasciaMat);
-    patellaR.position.set(0.42, -1.2, 0.06);
-    bodyGroup.add(patellaR);
-
-    // ── 2. Contoured Pectoralis Major (Chest) ──
-    // Custom curved beveled pectoral shape
-    const pecShape = new Shape();
-    pecShape.moveTo(0, 0);
-    pecShape.lineTo(0.5, 0.08);
-    pecShape.bezierCurveTo(0.68, 0.02, 0.72, -0.32, 0.6, -0.42);
-    pecShape.bezierCurveTo(0.45, -0.5, 0.15, -0.48, 0, -0.44);
-    pecShape.closePath();
-
-    const pecGeomL = new ExtrudeGeometry(pecShape, {
-      depth: 0.18,
-      bevelEnabled: true,
-      bevelSegments: 4,
-      steps: 1,
-      bevelSize: 0.06,
-      bevelThickness: 0.08,
-    });
-    const pecGeomR = pecGeomL.clone();
-
-    // Left & Right pecs
-    addMuscle("chest", pecGeomL, [0.08, 2.38, 0.18], [0, -0.15, 0.06]);
-    addMuscle("chest", pecGeomR, [-0.08, 2.38, 0.18], [0, 0.15, -0.06], [-1, 1, 1]);
-
-    // ── 3. Contoured Deltoids (Shoulders) ──
-    // Sculpted shoulder caps wrapping the humeral head
-    const deltGeom = new SphereGeometry(0.32, 28, 28);
-    addMuscle("shoulders", deltGeom, [-0.85, 2.3, 0.02], [0, 0, 0.22], [1.25, 1.45, 1.15]);
-    addMuscle("shoulders", deltGeom, [0.85, 2.3, 0.02], [0, 0, -0.22], [1.25, 1.45, 1.15]);
-
-    // ── 4. Biceps & Brachialis ──
-    // Tapered anatomical arm cylinder with bicep peak
-    const bicepGeom = new CylinderGeometry(0.18, 0.15, 0.72, 24);
-    addMuscle("biceps", bicepGeom, [-0.86, 1.62, 0.12], [0, 0, 0.08], [1.1, 1.0, 1.15]);
-    addMuscle("biceps", bicepGeom, [0.86, 1.62, 0.12], [0, 0, -0.08], [1.1, 1.0, 1.15]);
-
-    // ── 5. Triceps Brachii ──
-    const tricepGeom = new CylinderGeometry(0.19, 0.15, 0.74, 24);
-    addMuscle("triceps", tricepGeom, [-0.86, 1.6, -0.12], [0, 0, 0.08], [1.15, 1.0, 1.2]);
-    addMuscle("triceps", tricepGeom, [0.86, 1.6, -0.12], [0, 0, -0.08], [1.15, 1.0, 1.2]);
-
-    // ── 6. Forearms & Brachioradialis ──
-    const forearmGeom = new CylinderGeometry(0.15, 0.1, 0.85, 20);
-    addMuscle("forearms", forearmGeom, [-0.94, 0.8, 0.04], [0, 0, 0.08], [1.2, 1.0, 1.1]);
-    addMuscle("forearms", forearmGeom, [0.94, 0.8, 0.04], [0, 0, -0.08], [1.2, 1.0, 1.1]);
-
-    // ── 7. Six-Pack Rectus Abdominis ──
-    // Curved beveled abdominal blocks
-    const abShape = new Shape();
-    abShape.moveTo(-0.12, -0.1);
-    abShape.lineTo(0.12, -0.1);
-    abShape.bezierCurveTo(0.14, 0, 0.14, 0.08, 0.12, 0.1);
-    abShape.lineTo(-0.12, 0.1);
-    abShape.bezierCurveTo(-0.14, 0.08, -0.14, 0, -0.12, -0.1);
-    abShape.closePath();
-
-    const abGeom = new ExtrudeGeometry(abShape, {
-      depth: 0.12,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.04,
-      bevelThickness: 0.05,
-    });
-
-    // Upper, mid, and lower abdominal pairs
-    addMuscle("abs", abGeom, [-0.16, 1.84, 0.22], [0, 0.08, 0]);
-    addMuscle("abs", abGeom, [0.16, 1.84, 0.22], [0, -0.08, 0]);
-    addMuscle("abs", abGeom, [-0.15, 1.56, 0.23], [0, 0.08, 0]);
-    addMuscle("abs", abGeom, [0.15, 1.56, 0.23], [0, -0.08, 0]);
-    addMuscle("abs", abGeom, [-0.14, 1.28, 0.22], [0, 0.06, 0], [0.95, 0.95, 1.0]);
-    addMuscle("abs", abGeom, [0.14, 1.28, 0.22], [0, -0.06, 0], [0.95, 0.95, 1.0]);
-
-    // ── 8. Obliques & Serratus Flank ──
-    const oblGeom = new CylinderGeometry(0.18, 0.14, 0.76, 20);
-    addMuscle("obliques", oblGeom, [-0.46, 1.5, 0.12], [0, 0, 0.16], [1.1, 1.0, 1.2]);
-    addMuscle("obliques", oblGeom, [0.46, 1.5, 0.12], [0, 0, -0.16], [1.1, 1.0, 1.2]);
-
-    // ── 9. Trapezius & Upper Back Diamond ──
-    const trapShape = new Shape();
-    trapShape.moveTo(0, 0.45);
-    trapShape.lineTo(0.55, 0.1);
-    trapShape.lineTo(0.12, -0.45);
-    trapShape.lineTo(0, -0.5);
-    trapShape.lineTo(-0.12, -0.45);
-    trapShape.lineTo(-0.55, 0.1);
-    trapShape.closePath();
-
-    const trapGeom = new ExtrudeGeometry(trapShape, {
-      depth: 0.14,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.05,
-      bevelThickness: 0.06,
-    });
-    addMuscle("traps", trapGeom, [0, 2.3, -0.16], [0, 0, 0]);
-
-    // ── 10. Latissimus Dorsi (V-Taper Wings) ──
-    const latShape = new Shape();
-    latShape.moveTo(0, 0);
-    latShape.bezierCurveTo(0.2, 0.1, 0.45, -0.1, 0.5, -0.3);
-    latShape.bezierCurveTo(0.45, -0.6, 0.15, -0.85, 0, -0.9);
-    latShape.closePath();
-
-    const latGeomL = new ExtrudeGeometry(latShape, {
-      depth: 0.15,
-      bevelEnabled: true,
-      bevelSegments: 3,
-      bevelSize: 0.05,
-      bevelThickness: 0.06,
-    });
-    const latGeomR = latGeomL.clone();
-
-    addMuscle("lats", latGeomL, [0.08, 2.05, -0.14], [0, -0.2, 0.08]);
-    addMuscle("lats", latGeomR, [-0.08, 2.05, -0.14], [0, 0.2, -0.08], [-1, 1, 1]);
-
-    // ── 11. Lower Back / Spinal Erectors ──
-    const erectorGeom = new CylinderGeometry(0.12, 0.14, 0.72, 16);
-    addMuscle("lower_back", erectorGeom, [-0.14, 1.25, -0.16]);
-    addMuscle("lower_back", erectorGeom, [0.14, 1.25, -0.16]);
-
-    // ── 12. Gluteus Maximus & Medius ──
-    // Muscular rounded posterior spheres
-    const gluteGeom = new SphereGeometry(0.44, 28, 28);
-    addMuscle("glutes", gluteGeom, [-0.34, 0.52, -0.18], [0.1, 0.05, 0.1], [1.05, 1.15, 1.15]);
-    addMuscle("glutes", gluteGeom, [0.34, 0.52, -0.18], [0.1, -0.05, -0.1], [1.05, 1.15, 1.15]);
-
-    // ── 13. Quadriceps (Vastus Lateralis sweep + Medialis teardrop) ──
-    // Sculpted anterior thigh
-    const quadGeom = new CylinderGeometry(0.32, 0.23, 1.45, 28);
-    addMuscle("quads", quadGeom, [-0.42, -0.4, 0.11], [0.04, 0, 0.04], [1.12, 1.0, 1.15]);
-    addMuscle("quads", quadGeom, [0.42, -0.4, 0.11], [0.04, 0, -0.04], [1.12, 1.0, 1.15]);
-
-    // ── 14. Hamstrings (Posterior Thigh) ──
-    const hamGeom = new CylinderGeometry(0.29, 0.21, 1.45, 28);
-    addMuscle("hamstrings", hamGeom, [-0.42, -0.4, -0.12], [-0.04, 0, 0.04], [1.08, 1.0, 1.12]);
-    addMuscle("hamstrings", hamGeom, [0.42, -0.4, -0.12], [-0.04, 0, -0.04], [1.08, 1.0, 1.12]);
-
-    // ── 15. Adductors (Inner Thigh) ──
-    const addGeom = new CylinderGeometry(0.18, 0.13, 1.2, 20);
-    addMuscle("adductors", addGeom, [-0.17, -0.32, 0.0], [0, 0, -0.06]);
-    addMuscle("adductors", addGeom, [0.17, -0.32, 0.0], [0, 0, 0.06]);
-
-    // ── 16. Calves (Gastrocnemius diamond taper) ──
-    // Organic calf profile curve using LatheGeometry
-    const calfPoints: Vector2[] = [
-      new Vector2(0.15, -0.7),
-      new Vector2(0.16, -0.55),
-      new Vector2(0.19, -0.3),
-      new Vector2(0.26, 0.1),
-      new Vector2(0.28, 0.35),
-      new Vector2(0.24, 0.55),
-      new Vector2(0.18, 0.7),
-    ];
-    const calfGeom = new LatheGeometry(calfPoints, 24);
-    addMuscle("calves", calfGeom, [-0.42, -1.95, -0.08], [0, 0, 0.02], [1.05, 1.0, 1.15]);
-    addMuscle("calves", calfGeom, [0.42, -1.95, -0.08], [0, 0, -0.02], [1.05, 1.0, 1.15]);
-
-    // ── 17. Tibialis Anterior (Front Shin) ──
-    const tibGeom = new CylinderGeometry(0.18, 0.12, 1.35, 20);
-    addMuscle("tibialis", tibGeom, [-0.42, -1.95, 0.1], [0.04, 0, 0.02], [1.1, 1.0, 1.0]);
-    addMuscle("tibialis", tibGeom, [0.42, -1.95, 0.1], [0.04, 0, -0.02], [1.1, 1.0, 1.0]);
-
-    muscleMeshesRef.current = muscleMap;
+          bodyGroup.add(model);
+          muscleMeshesRef.current = muscleMap;
+          setIsModelLoading(false);
+        },
+        undefined,
+        (err) => {
+          console.error("Failed to load anatomy GLB:", err);
+          setIsModelLoading(false);
+        }
+      );
+    } catch {
+      // In non-browser / JSDOM test environments, gracefully skip loader
+      setIsModelLoading(false);
+    }
 
     // Render loop
     const animate = () => {
@@ -776,8 +612,8 @@ export function InteractiveBodyMap({
       const ch = container.clientHeight;
       const aspect = cw / ch;
       camera.aspect = aspect;
-      camera.position.z = aspect < 0.65 ? 10.0 : aspect < 0.85 ? 9.2 : 8.5;
-      camera.lookAt(0, 0.7, 0);
+      camera.position.z = aspect < 0.65 ? 10.2 : aspect < 0.85 ? 9.5 : 8.8;
+      camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
       renderer.setSize(cw, ch);
     };
@@ -790,7 +626,6 @@ export function InteractiveBodyMap({
         reqIdRef.current = null;
       }
 
-      // Dispose all GPU geometries and materials across scene graph to eliminate memory leaks
       if (sceneRef.current) {
         sceneRef.current.traverse((obj) => {
           if (obj instanceof Mesh) {
@@ -807,7 +642,6 @@ export function InteractiveBodyMap({
         sceneRef.current.clear();
       }
 
-      if (muscleTex) muscleTex.dispose();
       muscleMeshesRef.current.clear();
       bodyGroupRef.current = null;
       sceneRef.current = null;
@@ -1069,7 +903,16 @@ export function InteractiveBodyMap({
       >
         {/* 3D WebGL Canvas Mode */}
         {viewMode === "3D" ? (
-          <div ref={mountRef} className="w-full h-full" />
+          <>
+            <div ref={mountRef} className="w-full h-full" />
+            {isModelLoading && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-[#070b14]/85 backdrop-blur-sm pointer-events-none select-none">
+                <div className="w-7 h-7 rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin" />
+                <span className="text-[11px] font-bold text-slate-300">Loading 3D Anatomy...</span>
+                <span className="text-[9px] text-slate-500 font-medium">1.45 MB Draco Stream</span>
+              </div>
+            )}
+          </>
         ) : (
           /* High-Res Medical Diagram Mode with Interactive SVG Overlays */
           <div className="relative w-full h-full flex items-center justify-center p-2">
