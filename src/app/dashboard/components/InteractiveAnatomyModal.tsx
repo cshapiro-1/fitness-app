@@ -2,12 +2,24 @@
 
 import React, { useState, useMemo } from "react";
 import { X, Sparkles, Dumbbell, Heart, Plus, Search, ChevronRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
-  InteractiveBodyMap,
   MUSCLE_DEFINITIONS,
   MuscleGroupId,
 } from "@/components/InteractiveBodyMap";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
+
+const InteractiveBodyMap = dynamic(
+  () => import("@/components/InteractiveBodyMap").then((mod) => mod.InteractiveBodyMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-[340px] aspect-[9/16] rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xs text-slate-500 animate-pulse font-bold">
+        Loading 3D Anatomy Model...
+      </div>
+    ),
+  }
+);
 
 interface InteractiveAnatomyModalProps {
   isOpen: boolean;

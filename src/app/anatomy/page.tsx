@@ -21,12 +21,28 @@ import {
   CheckCircle2,
   X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import {
-  InteractiveBodyMap,
   MUSCLE_DEFINITIONS,
   MuscleGroupId,
 } from "@/components/InteractiveBodyMap";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
+
+const InteractiveBodyMap = dynamic(
+  () => import("@/components/InteractiveBodyMap").then((mod) => mod.InteractiveBodyMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full max-w-[360px] aspect-[9/16] rounded-3xl bg-slate-900/90 border-2 border-slate-800/80 shadow-2xl flex flex-col items-center justify-center gap-3 p-6 text-center animate-pulse">
+        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/20">
+          <Sparkles size={22} className="animate-spin" style={{ animationDuration: "4s" }} />
+        </div>
+        <p className="text-xs font-black text-white tracking-wide">Initializing 3D Anatomy Engine</p>
+        <p className="text-[11px] text-slate-400 font-medium">Mounting GPU WebGL canvas &amp; kinesiology models...</p>
+      </div>
+    ),
+  }
+);
 
 export default function AnatomyExplorerPage() {
   const router = useRouter();

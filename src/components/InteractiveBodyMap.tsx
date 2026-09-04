@@ -1,7 +1,27 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import * as THREE from "three";
+import {
+  Scene,
+  PerspectiveCamera,
+  WebGLRenderer,
+  AmbientLight,
+  DirectionalLight,
+  Group,
+  Mesh,
+  MeshStandardMaterial,
+  Color,
+  Vector2,
+  Raycaster,
+  SphereGeometry,
+  CylinderGeometry,
+  BoxGeometry,
+  ConeGeometry,
+  CircleGeometry,
+  ACESFilmicToneMapping,
+  BufferGeometry,
+  Material,
+} from "three";
 import {
   Rotate3d,
   Play,
@@ -188,7 +208,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
   },
 };
 
-// ─── Pill group ordering so related muscles stay together ───
+// Pill group ordering so related muscles stay together
 const PILL_ORDER: MuscleGroupId[] = [
   "chest", "shoulders", "biceps", "triceps", "forearms",
   "traps", "lats", "lower_back",
@@ -218,14 +238,14 @@ export function InteractiveBodyMap({
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [cursor3dMuscle, setCursor3dMuscle] = useState<MuscleGroupId | null>(null);
-  const sceneRef = useRef<THREE.Scene | null>(null);
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const bodyGroupRef = useRef<THREE.Group | null>(null);
-  const muscleMeshesRef = useRef<Map<MuscleGroupId, THREE.Mesh[]>>(new Map());
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const sceneRef = useRef<Scene | null>(null);
+  const rendererRef = useRef<WebGLRenderer | null>(null);
+  const bodyGroupRef = useRef<Group | null>(null);
+  const muscleMeshesRef = useRef<Map<MuscleGroupId, Mesh[]>>(new Map());
+  const cameraRef = useRef<PerspectiveCamera | null>(null);
   const reqIdRef = useRef<number | null>(null);
-  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
-  const pointerRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const raycasterRef = useRef<Raycaster>(new Raycaster());
+  const pointerRef = useRef<Vector2>(new Vector2());
 
   const dragStartXRef = useRef<number>(0);
   const startAngleRef = useRef<number>(0);
@@ -261,7 +281,7 @@ export function InteractiveBodyMap({
       const isHovered = hoveredMuscle === muscleId;
 
       meshes.forEach((mesh) => {
-        const mat = mesh.material as THREE.MeshStandardMaterial;
+        const mat = mesh.material as MeshStandardMaterial;
         if (isSelected) {
           mat.color.setHex(0x00f5ff);
           mat.emissive.setHex(0x00f5ff);
@@ -290,23 +310,23 @@ export function InteractiveBodyMap({
     const container = mountRef.current;
     if (!container) return;
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0f1d);
+    const scene = new Scene();
+    scene.background = new Color(0x0a0f1d);
     sceneRef.current = scene;
 
     const w = container.clientWidth || 340;
     const h = container.clientHeight || 560;
-    const camera = new THREE.PerspectiveCamera(32, w / h, 0.1, 100);
+    const camera = new PerspectiveCamera(32, w / h, 0.1, 100);
     camera.position.set(0, 0.8, 8);
     camera.lookAt(0, 0.8, 0);
     cameraRef.current = camera;
 
-    let renderer: THREE.WebGLRenderer | null = null;
+    let renderer: WebGLRenderer | null = null;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMapping = ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.3;
       container.innerHTML = "";
       container.appendChild(renderer.domElement);
@@ -316,55 +336,55 @@ export function InteractiveBodyMap({
     }
 
     // Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    scene.add(new AmbientLight(0xffffff, 1.0));
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    const keyLight = new DirectionalLight(0xffffff, 1.6);
     keyLight.position.set(4, 6, 5);
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0x00f5ff, 0.6);
+    const fillLight = new DirectionalLight(0x00f5ff, 0.6);
     fillLight.position.set(-5, -2, 3);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+    const rimLight = new DirectionalLight(0x38bdf8, 1.2);
     rimLight.position.set(0, 4, -7);
     scene.add(rimLight);
 
     // Ground plane for reference depth
-    const groundGeom = new THREE.CircleGeometry(2.5, 48);
-    const groundMat = new THREE.MeshStandardMaterial({
+    const groundGeom = new CircleGeometry(2.5, 48);
+    const groundMat = new MeshStandardMaterial({
       color: 0x0e1729,
       roughness: 0.9,
       metalness: 0.0,
     });
-    const ground = new THREE.Mesh(groundGeom, groundMat);
+    const ground = new Mesh(groundGeom, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -2.9;
     scene.add(ground);
 
-    // Body
-    const bodyGroup = new THREE.Group();
+    // Body Group
+    const bodyGroup = new Group();
     bodyGroup.position.y = 0;
     scene.add(bodyGroup);
     bodyGroupRef.current = bodyGroup;
 
-    const muscleMap = new Map<MuscleGroupId, THREE.Mesh[]>();
+    const muscleMap = new Map<MuscleGroupId, Mesh[]>();
 
     const addMuscle = (
       id: MuscleGroupId,
-      geom: THREE.BufferGeometry,
+      geom: BufferGeometry,
       pos: [number, number, number],
       rot: [number, number, number] = [0, 0, 0],
       scale: [number, number, number] = [1, 1, 1]
     ) => {
-      const mat = new THREE.MeshStandardMaterial({
+      const mat = new MeshStandardMaterial({
         color: 0x8a3a34,
         roughness: 0.6,
         metalness: 0.15,
         emissive: 0x1a0808,
         emissiveIntensity: 0.1,
       });
-      const mesh = new THREE.Mesh(geom, mat);
+      const mesh = new Mesh(geom, mat);
       mesh.position.set(...pos);
       mesh.rotation.set(...rot);
       mesh.scale.set(...scale);
@@ -376,62 +396,62 @@ export function InteractiveBodyMap({
     };
 
     // Non-interactive skeleton parts
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0x5e2824, roughness: 0.55, metalness: 0.05 });
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), boneMat);
+    const boneMat = new MeshStandardMaterial({ color: 0x5e2824, roughness: 0.55, metalness: 0.05 });
+    const head = new Mesh(new SphereGeometry(0.48, 32, 32), boneMat);
     head.position.set(0, 3.2, 0);
     bodyGroup.add(head);
 
-    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.5, 20), boneMat);
+    const neck = new Mesh(new CylinderGeometry(0.22, 0.26, 0.5, 20), boneMat);
     neck.position.set(0, 2.7, 0);
     bodyGroup.add(neck);
 
-    const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.8, 16), boneMat);
+    const spine = new Mesh(new CylinderGeometry(0.18, 0.22, 1.8, 16), boneMat);
     spine.position.set(0, 1.7, 0);
     bodyGroup.add(spine);
 
     // Pelvis connector
-    const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.35), boneMat);
+    const pelvis = new Mesh(new BoxGeometry(0.9, 0.35, 0.35), boneMat);
     pelvis.position.set(0, 0.7, 0);
     bodyGroup.add(pelvis);
 
     // Knee joints
-    const kneeGeo = new THREE.SphereGeometry(0.18, 16, 16);
-    const kneeL = new THREE.Mesh(kneeGeo, boneMat);
+    const kneeGeo = new SphereGeometry(0.18, 16, 16);
+    const kneeL = new Mesh(kneeGeo, boneMat);
     kneeL.position.set(-0.42, -1.2, 0);
     bodyGroup.add(kneeL);
-    const kneeR = new THREE.Mesh(kneeGeo, boneMat);
+    const kneeR = new Mesh(kneeGeo, boneMat);
     kneeR.position.set(0.42, -1.2, 0);
     bodyGroup.add(kneeR);
 
     // ── Muscles ──
 
     // CHEST
-    const pecGeo = new THREE.BoxGeometry(0.48, 0.44, 0.3);
+    const pecGeo = new BoxGeometry(0.48, 0.44, 0.3);
     addMuscle("chest", pecGeo, [-0.3, 2.16, 0.24], [0, 0.12, -0.04]);
     addMuscle("chest", pecGeo, [0.3, 2.16, 0.24], [0, -0.12, 0.04]);
 
     // SHOULDERS
-    const deltGeo = new THREE.SphereGeometry(0.3, 24, 24);
+    const deltGeo = new SphereGeometry(0.3, 24, 24);
     addMuscle("shoulders", deltGeo, [-0.82, 2.28, 0.02], [0, 0, 0.15], [1.15, 1.2, 1.05]);
     addMuscle("shoulders", deltGeo, [0.82, 2.28, 0.02], [0, 0, -0.15], [1.15, 1.2, 1.05]);
 
     // BICEPS
-    const biGeo = new THREE.CylinderGeometry(0.17, 0.14, 0.7, 20);
+    const biGeo = new CylinderGeometry(0.17, 0.14, 0.7, 20);
     addMuscle("biceps", biGeo, [-0.85, 1.6, 0.12], [0, 0, 0.08]);
     addMuscle("biceps", biGeo, [0.85, 1.6, 0.12], [0, 0, -0.08]);
 
     // TRICEPS
-    const triGeo = new THREE.CylinderGeometry(0.18, 0.14, 0.72, 20);
+    const triGeo = new CylinderGeometry(0.18, 0.14, 0.72, 20);
     addMuscle("triceps", triGeo, [-0.85, 1.58, -0.12], [0, 0, 0.08]);
     addMuscle("triceps", triGeo, [0.85, 1.58, -0.12], [0, 0, -0.08]);
 
     // FOREARMS
-    const faGeo = new THREE.CylinderGeometry(0.14, 0.1, 0.8, 18);
+    const faGeo = new CylinderGeometry(0.14, 0.1, 0.8, 18);
     addMuscle("forearms", faGeo, [-0.92, 0.8, 0.04], [0, 0, 0.06]);
     addMuscle("forearms", faGeo, [0.92, 0.8, 0.04], [0, 0, -0.06]);
 
     // ABS (6-pack blocks)
-    const abGeo = new THREE.BoxGeometry(0.26, 0.22, 0.14);
+    const abGeo = new BoxGeometry(0.26, 0.22, 0.14);
     addMuscle("abs", abGeo, [-0.15, 1.82, 0.26]);
     addMuscle("abs", abGeo, [0.15, 1.82, 0.26]);
     addMuscle("abs", abGeo, [-0.15, 1.55, 0.26]);
@@ -440,50 +460,50 @@ export function InteractiveBodyMap({
     addMuscle("abs", abGeo, [0.14, 1.28, 0.25]);
 
     // OBLIQUES
-    const oblGeo = new THREE.BoxGeometry(0.22, 0.72, 0.25);
+    const oblGeo = new BoxGeometry(0.22, 0.72, 0.25);
     addMuscle("obliques", oblGeo, [-0.44, 1.5, 0.12], [0, 0, 0.12]);
     addMuscle("obliques", oblGeo, [0.44, 1.5, 0.12], [0, 0, -0.12]);
 
     // TRAPS
-    const trapGeo = new THREE.ConeGeometry(0.55, 0.8, 4);
+    const trapGeo = new ConeGeometry(0.55, 0.8, 4);
     addMuscle("traps", trapGeo, [0, 2.3, -0.18], [0, 0, Math.PI], [1.35, 1.0, 0.55]);
 
     // LATS
-    const latGeo = new THREE.BoxGeometry(0.4, 0.8, 0.24);
+    const latGeo = new BoxGeometry(0.4, 0.8, 0.24);
     addMuscle("lats", latGeo, [-0.42, 1.8, -0.18], [0, 0.18, 0.12]);
     addMuscle("lats", latGeo, [0.42, 1.8, -0.18], [0, -0.18, -0.12]);
 
     // LOWER BACK
-    const lbGeo = new THREE.BoxGeometry(0.44, 0.65, 0.26);
+    const lbGeo = new BoxGeometry(0.44, 0.65, 0.26);
     addMuscle("lower_back", lbGeo, [0, 1.28, -0.18]);
 
     // GLUTES
-    const gluteGeo = new THREE.SphereGeometry(0.42, 24, 24);
+    const gluteGeo = new SphereGeometry(0.42, 24, 24);
     addMuscle("glutes", gluteGeo, [-0.34, 0.5, -0.2], [0, 0, 0.1], [1.0, 1.1, 1.1]);
     addMuscle("glutes", gluteGeo, [0.34, 0.5, -0.2], [0, 0, -0.1], [1.0, 1.1, 1.1]);
 
     // QUADS
-    const quadGeo = new THREE.CylinderGeometry(0.3, 0.22, 1.4, 24);
+    const quadGeo = new CylinderGeometry(0.3, 0.22, 1.4, 24);
     addMuscle("quads", quadGeo, [-0.42, -0.4, 0.1], [0.04, 0, 0.04]);
     addMuscle("quads", quadGeo, [0.42, -0.4, 0.1], [0.04, 0, -0.04]);
 
     // HAMSTRINGS
-    const hamGeo = new THREE.CylinderGeometry(0.28, 0.2, 1.4, 24);
+    const hamGeo = new CylinderGeometry(0.28, 0.2, 1.4, 24);
     addMuscle("hamstrings", hamGeo, [-0.42, -0.4, -0.12], [-0.04, 0, 0.04]);
     addMuscle("hamstrings", hamGeo, [0.42, -0.4, -0.12], [-0.04, 0, -0.04]);
 
     // ADDUCTORS
-    const addGeo = new THREE.CylinderGeometry(0.18, 0.13, 1.15, 16);
+    const addGeo = new CylinderGeometry(0.18, 0.13, 1.15, 16);
     addMuscle("adductors", addGeo, [-0.16, -0.3, 0.0], [0, 0, -0.06]);
     addMuscle("adductors", addGeo, [0.16, -0.3, 0.0], [0, 0, 0.06]);
 
     // CALVES
-    const calfGeo = new THREE.CylinderGeometry(0.22, 0.14, 1.3, 24);
+    const calfGeo = new CylinderGeometry(0.22, 0.14, 1.3, 24);
     addMuscle("calves", calfGeo, [-0.42, -1.9, -0.1], [-0.04, 0, 0.02]);
     addMuscle("calves", calfGeo, [0.42, -1.9, -0.1], [-0.04, 0, -0.02]);
 
     // TIBIALIS
-    const tibGeo = new THREE.CylinderGeometry(0.18, 0.12, 1.3, 20);
+    const tibGeo = new CylinderGeometry(0.18, 0.12, 1.3, 20);
     addMuscle("tibialis", tibGeo, [-0.42, -1.9, 0.1], [0.04, 0, 0.02]);
     addMuscle("tibialis", tibGeo, [0.42, -1.9, 0.1], [0.04, 0, -0.02]);
 
@@ -508,8 +528,47 @@ export function InteractiveBodyMap({
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (reqIdRef.current) cancelAnimationFrame(reqIdRef.current);
-      if (renderer) renderer.dispose();
+      if (reqIdRef.current) {
+        cancelAnimationFrame(reqIdRef.current);
+        reqIdRef.current = null;
+      }
+
+      // Dispose all GPU geometries and materials across scene graph to eliminate memory leaks
+      if (sceneRef.current) {
+        sceneRef.current.traverse((obj) => {
+          if (obj instanceof Mesh) {
+            if (obj.geometry) {
+              obj.geometry.dispose();
+            }
+            if (obj.material) {
+              if (Array.isArray(obj.material)) {
+                obj.material.forEach((m: Material) => m.dispose());
+              } else {
+                obj.material.dispose();
+              }
+            }
+          }
+        });
+        sceneRef.current.clear();
+      }
+
+      muscleMeshesRef.current.clear();
+      bodyGroupRef.current = null;
+      sceneRef.current = null;
+      cameraRef.current = null;
+
+      if (renderer) {
+        try {
+          renderer.forceContextLoss();
+          renderer.dispose();
+        } catch {
+          // ignore in headless / test environments
+        }
+        if (renderer.domElement && renderer.domElement.parentNode) {
+          renderer.domElement.parentNode.removeChild(renderer.domElement);
+        }
+        rendererRef.current = null;
+      }
     };
   }, []);
 
@@ -529,7 +588,7 @@ export function InteractiveBodyMap({
       const hits = raycasterRef.current.intersectObjects(bodyGroup.children, true);
 
       for (const hit of hits) {
-        const id = (hit.object as THREE.Mesh).userData?.muscleId;
+        const id = (hit.object as Mesh).userData?.muscleId;
         if (id) return id as MuscleGroupId;
       }
       return null;
@@ -560,7 +619,6 @@ export function InteractiveBodyMap({
         const dx = e.clientX - dragStartXRef.current;
         setRotationAngle((startAngleRef.current + dx * 0.8 + 360) % 360);
       } else {
-        // Hover detection
         const muscleId = raycast(e.clientX, e.clientY);
         setCursor3dMuscle(muscleId);
         onHoverMuscle?.(muscleId);
@@ -583,7 +641,6 @@ export function InteractiveBodyMap({
       if (isDragging) {
         const wasDrag = Math.abs(e.clientX - dragStartXRef.current) > 5;
         if (!wasDrag) {
-          // Click!
           const muscleId = raycast(e.clientX, e.clientY);
           if (muscleId) {
             onSelectMuscle(muscleId);

@@ -24,10 +24,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: "npm"
+
+      - name: Cache Node Modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
 
       - name: Install Dependencies
-        run: npm ci
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm ci --prefer-offline --no-audit
 
       - name: Generate Prisma ORM Client
         run: npx prisma generate

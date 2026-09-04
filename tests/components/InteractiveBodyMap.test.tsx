@@ -107,4 +107,45 @@ describe("InteractiveBodyMap Component", () => {
     );
     expect(legExercises.length).toBeGreaterThanOrEqual(10);
   });
+
+  it("safely unmounts and executes WebGL GPU buffer and context cleanup without crashing", () => {
+    const handleSelect = vi.fn();
+    const { unmount } = render(
+      <InteractiveBodyMap
+        selectedMuscle="chest"
+        onSelectMuscle={handleSelect}
+      />
+    );
+
+    // Verify component renders
+    expect(screen.getByTestId("interactive-body-map")).toBeDefined();
+
+    // Verify unmount triggers WebGL cleanup without throwing
+    expect(() => unmount()).not.toThrow();
+  });
+
+  it("renders the active muscle HUD overlay with muscle details when a muscle is selected", () => {
+    const handleSelect = vi.fn();
+    const { rerender } = render(
+      <InteractiveBodyMap
+        selectedMuscle={null}
+        onSelectMuscle={handleSelect}
+      />
+    );
+
+    // Initially no HUD
+    expect(screen.queryByText("Selected")).toBeNull();
+
+    // Rerender with chest selected
+    rerender(
+      <InteractiveBodyMap
+        selectedMuscle="chest"
+        onSelectMuscle={handleSelect}
+      />
+    );
+
+    expect(screen.getByText("Chest (Pectorals)")).toBeDefined();
+    expect(screen.getByText("Selected")).toBeDefined();
+  });
 });
+
