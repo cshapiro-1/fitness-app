@@ -8,9 +8,7 @@ import {
   Pause,
   RotateCw,
   Crosshair,
-  Activity,
-  Sparkles,
-  Info,
+  MousePointer2,
 } from "lucide-react";
 
 export type MuscleGroupId =
@@ -34,6 +32,7 @@ export type MuscleGroupId =
 export interface MuscleInfo {
   id: MuscleGroupId;
   name: string;
+  shortLabel: string;
   category: "CHEST" | "BACK" | "LEGS" | "SHOULDERS" | "ARMS" | "CORE";
   subMuscles: string[];
   view: "anterior" | "posterior" | "both";
@@ -44,8 +43,7 @@ export interface MuscleInfo {
 
 export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
   chest: {
-    id: "chest",
-    name: "Chest (Pectorals)",
+    id: "chest", name: "Chest (Pectorals)", shortLabel: "Chest",
     category: "CHEST",
     subMuscles: ["Pectoralis Major (Sternal Head)", "Pectoralis Major (Clavicular Head)", "Pectoralis Minor", "Serratus Anterior"],
     view: "anterior",
@@ -54,8 +52,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   shoulders: {
-    id: "shoulders",
-    name: "Shoulders (Deltoids)",
+    id: "shoulders", name: "Shoulders (Deltoids)", shortLabel: "Delts",
     category: "SHOULDERS",
     subMuscles: ["Anterior Deltoid", "Lateral Deltoid (Middle Head)", "Posterior Deltoid (Rear Head)", "Rotator Cuff (Supraspinatus, Infraspinatus)"],
     view: "both",
@@ -64,8 +61,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   biceps: {
-    id: "biceps",
-    name: "Biceps & Brachialis",
+    id: "biceps", name: "Biceps & Brachialis", shortLabel: "Biceps",
     category: "ARMS",
     subMuscles: ["Biceps Brachii (Short Head)", "Biceps Brachii (Long Head)", "Brachialis", "Brachioradialis"],
     view: "anterior",
@@ -74,8 +70,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   triceps: {
-    id: "triceps",
-    name: "Triceps Brachii",
+    id: "triceps", name: "Triceps Brachii", shortLabel: "Triceps",
     category: "ARMS",
     subMuscles: ["Triceps Brachii (Lateral Head)", "Triceps Brachii (Long Head)", "Triceps Brachii (Medial Head)", "Anconeus"],
     view: "posterior",
@@ -84,8 +79,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   forearms: {
-    id: "forearms",
-    name: "Forearms & Grip",
+    id: "forearms", name: "Forearms & Grip", shortLabel: "Forearms",
     category: "ARMS",
     subMuscles: ["Flexor Carpi Radialis/Ulnaris", "Extensor Digitorum", "Pronator Teres", "Brachioradialis"],
     view: "both",
@@ -94,8 +88,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   traps: {
-    id: "traps",
-    name: "Trapezius & Upper Back",
+    id: "traps", name: "Trapezius & Upper Back", shortLabel: "Traps",
     category: "BACK",
     subMuscles: ["Upper Trapezius", "Middle Trapezius", "Lower Trapezius", "Levator Scapulae", "Rhomboids"],
     view: "posterior",
@@ -104,8 +97,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   lats: {
-    id: "lats",
-    name: "Latissimus Dorsi",
+    id: "lats", name: "Latissimus Dorsi", shortLabel: "Lats",
     category: "BACK",
     subMuscles: ["Latissimus Dorsi", "Teres Major", "Thoracolumbar Fascia"],
     view: "posterior",
@@ -114,8 +106,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   lower_back: {
-    id: "lower_back",
-    name: "Lower Back & Spinal Erectors",
+    id: "lower_back", name: "Lower Back & Spinal Erectors", shortLabel: "Low Back",
     category: "BACK",
     subMuscles: ["Erector Spinae (Iliocostalis, Longissimus, Spinalis)", "Multifidus", "Quadratus Lumborum (QL)"],
     view: "posterior",
@@ -124,8 +115,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   abs: {
-    id: "abs",
-    name: "Abs (Rectus Abdominis)",
+    id: "abs", name: "Abs (Rectus Abdominis)", shortLabel: "Abs",
     category: "CORE",
     subMuscles: ["Rectus Abdominis (Upper & Lower)", "Transverse Abdominis", "Pyramidalis"],
     view: "anterior",
@@ -134,8 +124,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   obliques: {
-    id: "obliques",
-    name: "Obliques & Core Flank",
+    id: "obliques", name: "Obliques & Core Flank", shortLabel: "Obliques",
     category: "CORE",
     subMuscles: ["External Obliques", "Internal Obliques", "Transverse Abdominis", "Quadratus Lumborum"],
     view: "both",
@@ -144,8 +133,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   glutes: {
-    id: "glutes",
-    name: "Glutes (Maximus & Medius)",
+    id: "glutes", name: "Glutes (Maximus & Medius)", shortLabel: "Glutes",
     category: "LEGS",
     subMuscles: ["Gluteus Maximus (Upper/Lower)", "Gluteus Medius", "Gluteus Minimus", "Deep Piriformis"],
     view: "posterior",
@@ -154,8 +142,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   quads: {
-    id: "quads",
-    name: "Quadriceps (Front Thigh)",
+    id: "quads", name: "Quadriceps (Front Thigh)", shortLabel: "Quads",
     category: "LEGS",
     subMuscles: ["Rectus Femoris", "Vastus Lateralis (Outer Sweep)", "Vastus Medialis (Teardrop)", "Vastus Intermedius", "Iliopsoas"],
     view: "anterior",
@@ -164,8 +151,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   hamstrings: {
-    id: "hamstrings",
-    name: "Hamstrings (Posterior Thigh)",
+    id: "hamstrings", name: "Hamstrings (Posterior Thigh)", shortLabel: "Hamstrings",
     category: "LEGS",
     subMuscles: ["Biceps Femoris (Long & Short Heads)", "Semitendinosus", "Semimembranosus"],
     view: "posterior",
@@ -174,8 +160,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   adductors: {
-    id: "adductors",
-    name: "Adductors (Inner Thigh / Groin)",
+    id: "adductors", name: "Adductors (Inner Thigh / Groin)", shortLabel: "Adductors",
     category: "LEGS",
     subMuscles: ["Adductor Magnus", "Adductor Longus", "Adductor Brevis", "Gracilis", "Pectineus"],
     view: "anterior",
@@ -184,8 +169,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   calves: {
-    id: "calves",
-    name: "Calves (Gastrocnemius & Soleus)",
+    id: "calves", name: "Calves (Gastrocnemius & Soleus)", shortLabel: "Calves",
     category: "LEGS",
     subMuscles: ["Gastrocnemius (Medial & Lateral Heads)", "Soleus", "Plantaris", "Achilles Tendon"],
     view: "posterior",
@@ -194,8 +178,7 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
   tibialis: {
-    id: "tibialis",
-    name: "Tibialis Anterior (Shins & Ankles)",
+    id: "tibialis", name: "Tibialis Anterior (Shins & Ankles)", shortLabel: "Tibialis",
     category: "LEGS",
     subMuscles: ["Tibialis Anterior", "Extensor Digitorum Longus", "Peroneus Longus/Brevis"],
     view: "anterior",
@@ -204,6 +187,14 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     color: "#00f5ff",
   },
 };
+
+// ─── Pill group ordering so related muscles stay together ───
+const PILL_ORDER: MuscleGroupId[] = [
+  "chest", "shoulders", "biceps", "triceps", "forearms",
+  "traps", "lats", "lower_back",
+  "abs", "obliques",
+  "quads", "hamstrings", "glutes", "adductors", "calves", "tibialis",
+];
 
 interface InteractiveBodyMapProps {
   selectedMuscle: MuscleGroupId | null;
@@ -226,12 +217,15 @@ export function InteractiveBodyMap({
   const [rotationAngle, setRotationAngle] = useState<number>(0);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [cursor3dMuscle, setCursor3dMuscle] = useState<MuscleGroupId | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const bodyGroupRef = useRef<THREE.Group | null>(null);
   const muscleMeshesRef = useRef<Map<MuscleGroupId, THREE.Mesh[]>>(new Map());
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const reqIdRef = useRef<number | null>(null);
+  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
+  const pointerRef = useRef<THREE.Vector2>(new THREE.Vector2());
 
   const dragStartXRef = useRef<number>(0);
   const startAngleRef = useRef<number>(0);
@@ -248,7 +242,7 @@ export function InteractiveBodyMap({
   useEffect(() => {
     if (!isAutoRotating) return;
     const interval = setInterval(() => {
-      setRotationAngle((prev) => (prev + 1.2) % 360);
+      setRotationAngle((prev) => (prev + 0.8) % 360);
     }, 30);
     return () => clearInterval(interval);
   }, [isAutoRotating]);
@@ -271,17 +265,16 @@ export function InteractiveBodyMap({
         if (isSelected) {
           mat.color.setHex(0x00f5ff);
           mat.emissive.setHex(0x00f5ff);
-          mat.emissiveIntensity = 0.85;
-          mat.roughness = 0.2;
-          mat.metalness = 0.5;
+          mat.emissiveIntensity = 1.0;
+          mat.roughness = 0.15;
+          mat.metalness = 0.6;
         } else if (isHovered) {
           mat.color.setHex(0x38bdf8);
           mat.emissive.setHex(0x38bdf8);
-          mat.emissiveIntensity = 0.45;
-          mat.roughness = 0.3;
-          mat.metalness = 0.3;
+          mat.emissiveIntensity = 0.6;
+          mat.roughness = 0.25;
+          mat.metalness = 0.35;
         } else {
-          // Base athletic anatomical muscular tone
           mat.color.setHex(0x8a3a34);
           mat.emissive.setHex(0x1a0808);
           mat.emissiveIntensity = 0.1;
@@ -292,62 +285,72 @@ export function InteractiveBodyMap({
     });
   }, [selectedMuscle, hoveredMuscle]);
 
-  // Build Real 3D Human Anatomy Geometry Scene
+  // ─── Build 3D Scene ───
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // 1. Scene
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0a0f1d);
     sceneRef.current = scene;
 
-    // 2. Camera
-    const camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.1, 100);
-    camera.position.set(0, 0, 9.2);
+    const w = container.clientWidth || 340;
+    const h = container.clientHeight || 560;
+    const camera = new THREE.PerspectiveCamera(32, w / h, 0.1, 100);
+    camera.position.set(0, 0.8, 8);
+    camera.lookAt(0, 0.8, 0);
     cameraRef.current = camera;
 
-    // 3. Renderer
     let renderer: THREE.WebGLRenderer | null = null;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(container.clientWidth || 340, container.clientHeight || 560);
+      renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.2;
+      renderer.toneMappingExposure = 1.3;
       container.innerHTML = "";
       container.appendChild(renderer.domElement);
       rendererRef.current = renderer;
     } catch {
-      // Fallback for non-WebGL / test environments
       renderer = null;
     }
 
-    // 4. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-    scene.add(ambientLight);
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.4);
-    dirLight1.position.set(5, 8, 6);
-    scene.add(dirLight1);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
+    keyLight.position.set(4, 6, 5);
+    scene.add(keyLight);
 
-    const dirLight2 = new THREE.DirectionalLight(0x00f5ff, 0.8);
-    dirLight2.position.set(-6, -4, 4);
-    scene.add(dirLight2);
+    const fillLight = new THREE.DirectionalLight(0x00f5ff, 0.6);
+    fillLight.position.set(-5, -2, 3);
+    scene.add(fillLight);
 
-    const backLight = new THREE.DirectionalLight(0x38bdf8, 1.0);
-    backLight.position.set(0, 5, -8);
-    scene.add(backLight);
+    const rimLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+    rimLight.position.set(0, 4, -7);
+    scene.add(rimLight);
 
-    // 5. Build 3D Human Anatomical Muscular Model
+    // Ground plane for reference depth
+    const groundGeom = new THREE.CircleGeometry(2.5, 48);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x0e1729,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
+    const ground = new THREE.Mesh(groundGeom, groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -2.9;
+    scene.add(ground);
+
+    // Body
     const bodyGroup = new THREE.Group();
-    bodyGroup.position.y = -0.1;
+    bodyGroup.position.y = 0;
     scene.add(bodyGroup);
     bodyGroupRef.current = bodyGroup;
 
     const muscleMap = new Map<MuscleGroupId, THREE.Mesh[]>();
 
-    const createMuscleMesh = (
+    const addMuscle = (
       id: MuscleGroupId,
       geom: THREE.BufferGeometry,
       pos: [number, number, number],
@@ -367,130 +370,139 @@ export function InteractiveBodyMap({
       mesh.scale.set(...scale);
       mesh.userData = { muscleId: id };
       bodyGroup.add(mesh);
-
-      const existing = muscleMap.get(id) || [];
-      existing.push(mesh);
-      muscleMap.set(id, existing);
-      return mesh;
+      const arr = muscleMap.get(id) || [];
+      arr.push(mesh);
+      muscleMap.set(id, arr);
     };
 
-    // Helper Geometries
-    const headGeom = new THREE.SphereGeometry(0.48, 32, 32);
-    const neckGeom = new THREE.CylinderGeometry(0.24, 0.28, 0.45, 24);
-    const pecGeom = new THREE.BoxGeometry(0.46, 0.42, 0.28);
-    const deltGeom = new THREE.SphereGeometry(0.32, 24, 24);
-    const bicepGeom = new THREE.CylinderGeometry(0.18, 0.16, 0.72, 20);
-    const tricepGeom = new THREE.CylinderGeometry(0.19, 0.16, 0.75, 20);
-    const forearmGeom = new THREE.CylinderGeometry(0.15, 0.12, 0.85, 20);
-    const absGeom = new THREE.BoxGeometry(0.28, 0.24, 0.15);
-    const obliqueGeom = new THREE.BoxGeometry(0.22, 0.75, 0.26);
-    const trapGeom = new THREE.ConeGeometry(0.55, 0.75, 4);
-    const latGeom = new THREE.BoxGeometry(0.38, 0.75, 0.22);
-    const lowerBackGeom = new THREE.BoxGeometry(0.42, 0.6, 0.24);
-    const gluteGeom = new THREE.SphereGeometry(0.46, 24, 24);
-    const quadGeom = new THREE.CylinderGeometry(0.32, 0.24, 1.45, 24);
-    const hamstringGeom = new THREE.CylinderGeometry(0.31, 0.23, 1.45, 24);
-    const adductorGeom = new THREE.CylinderGeometry(0.2, 0.15, 1.2, 16);
-    const calfGeom = new THREE.CylinderGeometry(0.24, 0.16, 1.35, 24);
-    const tibialisGeom = new THREE.CylinderGeometry(0.2, 0.14, 1.35, 20);
-
-    // Skeleton Core & Head
-    const headMat = new THREE.MeshStandardMaterial({ color: 0x6e2f2b, roughness: 0.5 });
-    const head = new THREE.Mesh(headGeom, headMat);
+    // Non-interactive skeleton parts
+    const boneMat = new THREE.MeshStandardMaterial({ color: 0x5e2824, roughness: 0.55, metalness: 0.05 });
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), boneMat);
     head.position.set(0, 3.2, 0);
     bodyGroup.add(head);
 
-    const neck = new THREE.Mesh(neckGeom, headMat);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.5, 20), boneMat);
     neck.position.set(0, 2.7, 0);
     bodyGroup.add(neck);
 
-    // Torso Core Frame
-    const coreSpine = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.8, 16), headMat);
-    coreSpine.position.set(0, 1.7, 0);
-    bodyGroup.add(coreSpine);
+    const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 1.8, 16), boneMat);
+    spine.position.set(0, 1.7, 0);
+    bodyGroup.add(spine);
 
-    // 1. CHEST (Pectorals)
-    createMuscleMesh("chest", pecGeom, [-0.32, 2.15, 0.24], [0, 0.15, -0.05]);
-    createMuscleMesh("chest", pecGeom, [0.32, 2.15, 0.24], [0, -0.15, 0.05]);
+    // Pelvis connector
+    const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.35), boneMat);
+    pelvis.position.set(0, 0.7, 0);
+    bodyGroup.add(pelvis);
 
-    // 2. SHOULDERS (Deltoids)
-    createMuscleMesh("shoulders", deltGeom, [-0.85, 2.25, 0.05], [0, 0, 0.2], [1.1, 1.2, 1.0]);
-    createMuscleMesh("shoulders", deltGeom, [0.85, 2.25, 0.05], [0, 0, -0.2], [1.1, 1.2, 1.0]);
+    // Knee joints
+    const kneeGeo = new THREE.SphereGeometry(0.18, 16, 16);
+    const kneeL = new THREE.Mesh(kneeGeo, boneMat);
+    kneeL.position.set(-0.42, -1.2, 0);
+    bodyGroup.add(kneeL);
+    const kneeR = new THREE.Mesh(kneeGeo, boneMat);
+    kneeR.position.set(0.42, -1.2, 0);
+    bodyGroup.add(kneeR);
 
-    // 3. BICEPS
-    createMuscleMesh("biceps", bicepGeom, [-0.88, 1.6, 0.1], [0, 0, 0.1]);
-    createMuscleMesh("biceps", bicepGeom, [0.88, 1.6, 0.1], [0, 0, -0.1]);
+    // ── Muscles ──
 
-    // 4. TRICEPS
-    createMuscleMesh("triceps", tricepGeom, [-0.88, 1.6, -0.12], [0, 0, 0.1]);
-    createMuscleMesh("triceps", tricepGeom, [0.88, 1.6, -0.12], [0, 0, -0.1]);
+    // CHEST
+    const pecGeo = new THREE.BoxGeometry(0.48, 0.44, 0.3);
+    addMuscle("chest", pecGeo, [-0.3, 2.16, 0.24], [0, 0.12, -0.04]);
+    addMuscle("chest", pecGeo, [0.3, 2.16, 0.24], [0, -0.12, 0.04]);
 
-    // 5. FOREARMS
-    createMuscleMesh("forearms", forearmGeom, [-0.96, 0.75, 0.05], [0, 0, 0.08]);
-    createMuscleMesh("forearms", forearmGeom, [0.96, 0.75, 0.05], [0, 0, -0.08]);
+    // SHOULDERS
+    const deltGeo = new THREE.SphereGeometry(0.3, 24, 24);
+    addMuscle("shoulders", deltGeo, [-0.82, 2.28, 0.02], [0, 0, 0.15], [1.15, 1.2, 1.05]);
+    addMuscle("shoulders", deltGeo, [0.82, 2.28, 0.02], [0, 0, -0.15], [1.15, 1.2, 1.05]);
 
-    // 6. ABS (6-Pack)
-    createMuscleMesh("abs", absGeom, [-0.17, 1.75, 0.26]);
-    createMuscleMesh("abs", absGeom, [0.17, 1.75, 0.26]);
-    createMuscleMesh("abs", absGeom, [-0.17, 1.45, 0.26]);
-    createMuscleMesh("abs", absGeom, [0.17, 1.45, 0.26]);
-    createMuscleMesh("abs", absGeom, [-0.16, 1.15, 0.25]);
-    createMuscleMesh("abs", absGeom, [0.16, 1.15, 0.25]);
+    // BICEPS
+    const biGeo = new THREE.CylinderGeometry(0.17, 0.14, 0.7, 20);
+    addMuscle("biceps", biGeo, [-0.85, 1.6, 0.12], [0, 0, 0.08]);
+    addMuscle("biceps", biGeo, [0.85, 1.6, 0.12], [0, 0, -0.08]);
 
-    // 7. OBLIQUES
-    createMuscleMesh("obliques", obliqueGeom, [-0.46, 1.45, 0.12], [0, 0, 0.15]);
-    createMuscleMesh("obliques", obliqueGeom, [0.46, 1.45, 0.12], [0, 0, -0.15]);
+    // TRICEPS
+    const triGeo = new THREE.CylinderGeometry(0.18, 0.14, 0.72, 20);
+    addMuscle("triceps", triGeo, [-0.85, 1.58, -0.12], [0, 0, 0.08]);
+    addMuscle("triceps", triGeo, [0.85, 1.58, -0.12], [0, 0, -0.08]);
 
-    // 8. TRAPS & UPPER BACK
-    createMuscleMesh("traps", trapGeom, [0, 2.28, -0.18], [0, 0, Math.PI], [1.4, 1.0, 0.6]);
+    // FOREARMS
+    const faGeo = new THREE.CylinderGeometry(0.14, 0.1, 0.8, 18);
+    addMuscle("forearms", faGeo, [-0.92, 0.8, 0.04], [0, 0, 0.06]);
+    addMuscle("forearms", faGeo, [0.92, 0.8, 0.04], [0, 0, -0.06]);
 
-    // 9. LATS
-    createMuscleMesh("lats", latGeom, [-0.44, 1.78, -0.16], [0, 0.2, 0.15]);
-    createMuscleMesh("lats", latGeom, [0.44, 1.78, -0.16], [0, -0.2, -0.15]);
+    // ABS (6-pack blocks)
+    const abGeo = new THREE.BoxGeometry(0.26, 0.22, 0.14);
+    addMuscle("abs", abGeo, [-0.15, 1.82, 0.26]);
+    addMuscle("abs", abGeo, [0.15, 1.82, 0.26]);
+    addMuscle("abs", abGeo, [-0.15, 1.55, 0.26]);
+    addMuscle("abs", abGeo, [0.15, 1.55, 0.26]);
+    addMuscle("abs", abGeo, [-0.14, 1.28, 0.25]);
+    addMuscle("abs", abGeo, [0.14, 1.28, 0.25]);
 
-    // 10. LOWER BACK
-    createMuscleMesh("lower_back", lowerBackGeom, [0, 1.25, -0.16]);
+    // OBLIQUES
+    const oblGeo = new THREE.BoxGeometry(0.22, 0.72, 0.25);
+    addMuscle("obliques", oblGeo, [-0.44, 1.5, 0.12], [0, 0, 0.12]);
+    addMuscle("obliques", oblGeo, [0.44, 1.5, 0.12], [0, 0, -0.12]);
 
-    // 11. GLUTES
-    createMuscleMesh("glutes", gluteGeom, [-0.36, 0.55, -0.22], [0, 0, 0.15], [1.0, 1.15, 1.1]);
-    createMuscleMesh("glutes", gluteGeom, [0.36, 0.55, -0.22], [0, 0, -0.15], [1.0, 1.15, 1.1]);
+    // TRAPS
+    const trapGeo = new THREE.ConeGeometry(0.55, 0.8, 4);
+    addMuscle("traps", trapGeo, [0, 2.3, -0.18], [0, 0, Math.PI], [1.35, 1.0, 0.55]);
 
-    // 12. QUADS
-    createMuscleMesh("quads", quadGeom, [-0.42, -0.42, 0.12], [0.05, 0, 0.05]);
-    createMuscleMesh("quads", quadGeom, [0.42, -0.42, 0.12], [0.05, 0, -0.05]);
+    // LATS
+    const latGeo = new THREE.BoxGeometry(0.4, 0.8, 0.24);
+    addMuscle("lats", latGeo, [-0.42, 1.8, -0.18], [0, 0.18, 0.12]);
+    addMuscle("lats", latGeo, [0.42, 1.8, -0.18], [0, -0.18, -0.12]);
 
-    // 13. HAMSTRINGS
-    createMuscleMesh("hamstrings", hamstringGeom, [-0.42, -0.42, -0.14], [-0.05, 0, 0.05]);
-    createMuscleMesh("hamstrings", hamstringGeom, [0.42, -0.42, -0.14], [-0.05, 0, -0.05]);
+    // LOWER BACK
+    const lbGeo = new THREE.BoxGeometry(0.44, 0.65, 0.26);
+    addMuscle("lower_back", lbGeo, [0, 1.28, -0.18]);
 
-    // 14. ADDUCTORS
-    createMuscleMesh("adductors", adductorGeom, [-0.18, -0.35, 0.02], [0, 0, -0.08]);
-    createMuscleMesh("adductors", adductorGeom, [0.18, -0.35, 0.02], [0, 0, 0.08]);
+    // GLUTES
+    const gluteGeo = new THREE.SphereGeometry(0.42, 24, 24);
+    addMuscle("glutes", gluteGeo, [-0.34, 0.5, -0.2], [0, 0, 0.1], [1.0, 1.1, 1.1]);
+    addMuscle("glutes", gluteGeo, [0.34, 0.5, -0.2], [0, 0, -0.1], [1.0, 1.1, 1.1]);
 
-    // 15. CALVES
-    createMuscleMesh("calves", calfGeom, [-0.42, -1.95, -0.12], [-0.05, 0, 0.03]);
-    createMuscleMesh("calves", calfGeom, [0.42, -1.95, -0.12], [-0.05, 0, -0.03]);
+    // QUADS
+    const quadGeo = new THREE.CylinderGeometry(0.3, 0.22, 1.4, 24);
+    addMuscle("quads", quadGeo, [-0.42, -0.4, 0.1], [0.04, 0, 0.04]);
+    addMuscle("quads", quadGeo, [0.42, -0.4, 0.1], [0.04, 0, -0.04]);
 
-    // 16. TIBIALIS
-    createMuscleMesh("tibialis", tibialisGeom, [-0.42, -1.95, 0.12], [0.05, 0, 0.03]);
-    createMuscleMesh("tibialis", tibialisGeom, [0.42, -1.95, 0.12], [0.05, 0, -0.03]);
+    // HAMSTRINGS
+    const hamGeo = new THREE.CylinderGeometry(0.28, 0.2, 1.4, 24);
+    addMuscle("hamstrings", hamGeo, [-0.42, -0.4, -0.12], [-0.04, 0, 0.04]);
+    addMuscle("hamstrings", hamGeo, [0.42, -0.4, -0.12], [-0.04, 0, -0.04]);
+
+    // ADDUCTORS
+    const addGeo = new THREE.CylinderGeometry(0.18, 0.13, 1.15, 16);
+    addMuscle("adductors", addGeo, [-0.16, -0.3, 0.0], [0, 0, -0.06]);
+    addMuscle("adductors", addGeo, [0.16, -0.3, 0.0], [0, 0, 0.06]);
+
+    // CALVES
+    const calfGeo = new THREE.CylinderGeometry(0.22, 0.14, 1.3, 24);
+    addMuscle("calves", calfGeo, [-0.42, -1.9, -0.1], [-0.04, 0, 0.02]);
+    addMuscle("calves", calfGeo, [0.42, -1.9, -0.1], [-0.04, 0, -0.02]);
+
+    // TIBIALIS
+    const tibGeo = new THREE.CylinderGeometry(0.18, 0.12, 1.3, 20);
+    addMuscle("tibialis", tibGeo, [-0.42, -1.9, 0.1], [0.04, 0, 0.02]);
+    addMuscle("tibialis", tibGeo, [0.42, -1.9, 0.1], [0.04, 0, -0.02]);
 
     muscleMeshesRef.current = muscleMap;
 
     // Render loop
     const animate = () => {
       reqIdRef.current = requestAnimationFrame(animate);
-      if (renderer) {
-        renderer.render(scene, camera);
-      }
+      if (renderer) renderer.render(scene, camera);
     };
     if (renderer) animate();
 
     const handleResize = () => {
       if (!container || !camera || !renderer) return;
-      camera.aspect = container.clientWidth / container.clientHeight;
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      camera.aspect = cw / ch;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(cw, ch);
     };
     window.addEventListener("resize", handleResize);
 
@@ -501,40 +513,31 @@ export function InteractiveBodyMap({
     };
   }, []);
 
-  // Raycaster for 3D Muscle Click and Hover
-  const handlePointerRaycast = useCallback(
-    (clientX: number, clientY: number, isClick: boolean) => {
+  // ─── Raycaster ───
+  const raycast = useCallback(
+    (clientX: number, clientY: number): MuscleGroupId | null => {
       const container = mountRef.current;
       const camera = cameraRef.current;
       const bodyGroup = bodyGroupRef.current;
-      if (!container || !camera || !bodyGroup) return;
+      if (!container || !camera || !bodyGroup) return null;
 
       const rect = container.getBoundingClientRect();
-      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -((clientY - rect.height) / rect.height) * 2 + 1;
+      pointerRef.current.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointerRef.current.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+      raycasterRef.current.setFromCamera(pointerRef.current, camera);
+      const hits = raycasterRef.current.intersectObjects(bodyGroup.children, true);
 
-      const intersects = raycaster.intersectObjects(bodyGroup.children, true);
-      if (intersects.length > 0) {
-        const hit = intersects.find((i) => (i.object as any).userData?.muscleId);
-        if (hit) {
-          const muscleId = (hit.object as any).userData.muscleId as MuscleGroupId;
-          if (isClick) {
-            onSelectMuscle(muscleId);
-          } else {
-            onHoverMuscle?.(muscleId);
-          }
-          return;
-        }
+      for (const hit of hits) {
+        const id = (hit.object as THREE.Mesh).userData?.muscleId;
+        if (id) return id as MuscleGroupId;
       }
-      if (!isClick) onHoverMuscle?.(null);
+      return null;
     },
-    [onSelectMuscle, onHoverMuscle]
+    []
   );
 
-  // Mouse & Touch Handlers
+  // ─── Pointer Events ───
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setIsAutoRotating(false);
@@ -554,22 +557,23 @@ export function InteractiveBodyMap({
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (isDragging) {
-        const deltaX = e.clientX - dragStartXRef.current;
-        const newAngle = (startAngleRef.current + deltaX * 0.85 + 360) % 360;
-        setRotationAngle(newAngle);
+        const dx = e.clientX - dragStartXRef.current;
+        setRotationAngle((startAngleRef.current + dx * 0.8 + 360) % 360);
       } else {
-        handlePointerRaycast(e.clientX, e.clientY, false);
+        // Hover detection
+        const muscleId = raycast(e.clientX, e.clientY);
+        setCursor3dMuscle(muscleId);
+        onHoverMuscle?.(muscleId);
       }
     },
-    [isDragging, handlePointerRaycast]
+    [isDragging, raycast, onHoverMuscle]
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       if (!isDragging || e.touches.length === 0) return;
-      const deltaX = e.touches[0].clientX - dragStartXRef.current;
-      const newAngle = (startAngleRef.current + deltaX * 0.85 + 360) % 360;
-      setRotationAngle(newAngle);
+      const dx = e.touches[0].clientX - dragStartXRef.current;
+      setRotationAngle((startAngleRef.current + dx * 0.8 + 360) % 360);
     },
     [isDragging]
   );
@@ -577,14 +581,18 @@ export function InteractiveBodyMap({
   const handleMouseUp = useCallback(
     (e: MouseEvent) => {
       if (isDragging) {
-        // If movement was minimal, consider it a click!
-        if (Math.abs(e.clientX - dragStartXRef.current) < 5) {
-          handlePointerRaycast(e.clientX, e.clientY, true);
+        const wasDrag = Math.abs(e.clientX - dragStartXRef.current) > 5;
+        if (!wasDrag) {
+          // Click!
+          const muscleId = raycast(e.clientX, e.clientY);
+          if (muscleId) {
+            onSelectMuscle(muscleId);
+          }
         }
         setIsDragging(false);
       }
     },
-    [isDragging, handlePointerRaycast]
+    [isDragging, raycast, onSelectMuscle]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -604,21 +612,22 @@ export function InteractiveBodyMap({
     };
   }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // When a muscle is selected, smoothly rotate the 3D model if on opposite side
-  const handleSelectMuscleAndAutoFace = useCallback(
+  // ─── Pill click: select + auto-face ───
+  const handlePillClick = useCallback(
     (muscleId: MuscleGroupId) => {
       onSelectMuscle(muscleId);
       const def = MUSCLE_DEFINITIONS[muscleId];
-      if (def) {
-        if (def.view === "posterior" && currentPerspective === "anterior") {
-          setRotationAngle(180);
-        } else if (def.view === "anterior" && currentPerspective === "posterior") {
-          setRotationAngle(0);
-        }
-      }
+      if (def.view === "posterior" && currentPerspective === "anterior") setRotationAngle(180);
+      else if (def.view === "anterior" && currentPerspective === "posterior") setRotationAngle(0);
     },
     [onSelectMuscle, currentPerspective]
   );
+
+  // Compute visible pills
+  const visiblePills = PILL_ORDER.filter((id) => {
+    const m = MUSCLE_DEFINITIONS[id];
+    return m.view === currentPerspective || m.view === "both" || currentPerspective === "lateral";
+  });
 
   return (
     <div
@@ -629,68 +638,49 @@ export function InteractiveBodyMap({
           : "bg-white border border-slate-200 shadow-xl text-slate-900"
       } ${className}`}
     >
-      {/* Top 3D Camera Controls Header */}
+      {/* Header */}
       <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800/80">
         <div className="flex items-center gap-2.5">
           <span className="inline-flex p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/20">
             <Rotate3d size={18} />
           </span>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black tracking-tight text-white">WebGL 3D Human Anatomy Model</h3>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                GPU 3D
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">Click any 3D muscle volume directly or drag to rotate 360°</p>
+            <h3 className="text-sm font-black tracking-tight text-white">3D Anatomy Model</h3>
+            <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+              <MousePointer2 size={10} className="inline" />
+              Click a muscle or drag to rotate
+            </p>
           </div>
         </div>
 
-        {/* Quick Perspective Presets & 360 Auto-Rotate Toggle */}
+        {/* View presets */}
         <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-2xl border border-slate-800">
-          <button
-            type="button"
-            data-testid="toggle-anterior"
-            onClick={() => setRotationAngle(0)}
-            className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${
-              currentPerspective === "anterior"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Front
-          </button>
-          <button
-            type="button"
-            onClick={() => setRotationAngle(90)}
-            className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${
-              currentPerspective === "lateral"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Side
-          </button>
-          <button
-            type="button"
-            data-testid="toggle-posterior"
-            onClick={() => setRotationAngle(180)}
-            className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${
-              currentPerspective === "posterior"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Back
-          </button>
-
+          {([
+            { label: "Front", angle: 0, perspective: "anterior" as const },
+            { label: "Side", angle: 90, perspective: "lateral" as const },
+            { label: "Back", angle: 180, perspective: "posterior" as const },
+          ]).map(({ label, angle, perspective }) => (
+            <button
+              key={label}
+              type="button"
+              data-testid={label === "Front" ? "toggle-anterior" : label === "Back" ? "toggle-posterior" : undefined}
+              onClick={() => { setIsAutoRotating(false); setRotationAngle(angle); }}
+              className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${
+                currentPerspective === perspective
+                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
           <button
             type="button"
             onClick={() => setIsAutoRotating(!isAutoRotating)}
-            title={isAutoRotating ? "Pause 360° Rotation" : "Auto-Rotate 360°"}
+            title={isAutoRotating ? "Pause rotation" : "Auto-rotate"}
             className={`p-1.5 rounded-xl border transition-all ${
               isAutoRotating
-                ? "bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm"
+                ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
                 : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
             }`}
           >
@@ -699,16 +689,23 @@ export function InteractiveBodyMap({
         </div>
       </div>
 
-      {/* Real WebGL 3D Canvas Viewport */}
+      {/* 3D Canvas */}
       <div
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        className="relative w-full max-w-[340px] aspect-[9/16] rounded-3xl overflow-hidden bg-[#0a0f1d] border-2 border-slate-800/80 shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing group select-none"
+        className="relative w-full max-w-[360px] aspect-[9/16] rounded-3xl overflow-hidden bg-[#0a0f1d] border-2 border-slate-800/80 shadow-2xl select-none"
+        style={{ cursor: isDragging ? "grabbing" : cursor3dMuscle ? "pointer" : "grab" }}
       >
-        {/* Three.js Canvas Mount */}
         <div ref={mountRef} className="w-full h-full" />
 
-        {/* HUD Medical Callout for Selected Muscle */}
+        {/* Hover tooltip */}
+        {hoveredMuscle && !selectedMuscle && !isDragging && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 backdrop-blur-sm z-30 pointer-events-none whitespace-nowrap shadow-lg shadow-cyan-500/15">
+            {MUSCLE_DEFINITIONS[hoveredMuscle].name}
+          </div>
+        )}
+
+        {/* Selected muscle HUD */}
         {selectedMuscle && (
           <div className="absolute bottom-3 left-3 right-3 py-2 px-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-cyan-500/50 flex items-center justify-between text-xs shadow-2xl shadow-cyan-500/20 z-30 pointer-events-none">
             <div className="flex items-center gap-2">
@@ -722,14 +719,14 @@ export function InteractiveBodyMap({
                 </span>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/40">
-              Active Focus
+            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-cyan-500 text-slate-950">
+              Selected
             </span>
           </div>
         )}
       </div>
 
-      {/* 360 Rotation Slider Control */}
+      {/* Rotation Slider */}
       <div className="w-full mt-3 px-2 flex items-center gap-3">
         <RotateCw size={13} className="text-slate-500 shrink-0" />
         <input
@@ -748,32 +745,34 @@ export function InteractiveBodyMap({
         </span>
       </div>
 
-      {/* Interactive Muscle Quick Selector Pills */}
+      {/* Quick Selector Pills */}
       <div className="w-full mt-4 pt-3.5 border-t border-slate-800/80 flex flex-wrap gap-1.5 justify-center">
-        {Object.values(MUSCLE_DEFINITIONS)
-          .filter(m => m.view === currentPerspective || m.view === "both" || currentPerspective === "lateral")
-          .map(muscle => {
-            const isSelected = selectedMuscle === muscle.id;
-            return (
-              <button
-                key={muscle.id}
-                type="button"
-                data-testid={`pill-${muscle.id}`}
-                onClick={() => handleSelectMuscleAndAutoFace(muscle.id)}
-                onMouseEnter={() => onHoverMuscle?.(muscle.id)}
-                onMouseLeave={() => onHoverMuscle?.(null)}
-                className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all ${
-                  isSelected
-                    ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/30 scale-105"
-                    : isDark
-                    ? "bg-slate-950/90 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
-                    : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-                }`}
-              >
-                {muscle.name.split(" ")[0]}
-              </button>
-            );
-          })}
+        {visiblePills.map((id) => {
+          const muscle = MUSCLE_DEFINITIONS[id];
+          const isSelected = selectedMuscle === id;
+          const isHovered = hoveredMuscle === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              data-testid={`pill-${id}`}
+              onClick={() => handlePillClick(id)}
+              onMouseEnter={() => onHoverMuscle?.(id)}
+              onMouseLeave={() => onHoverMuscle?.(null)}
+              className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all ${
+                isSelected
+                  ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/30 scale-105"
+                  : isHovered
+                  ? "bg-slate-800 text-cyan-300 border-cyan-500/40"
+                  : isDark
+                  ? "bg-slate-950/90 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
+                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
+              }`}
+            >
+              {muscle.shortLabel}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
