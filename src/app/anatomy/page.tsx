@@ -1,25 +1,23 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   ArrowLeft,
   Search,
   Dumbbell,
   Sparkles,
-  Play,
   CalendarPlus,
-  Flame,
-  Activity,
   Heart,
   ShieldAlert,
-  Layers,
   ChevronRight,
-  Info,
-  Sliders,
-  CheckCircle2,
+  Sun,
+  Moon,
+  LogOut,
   X,
+  Layers,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import {
@@ -27,18 +25,20 @@ import {
   MuscleGroupId,
 } from "@/components/InteractiveBodyMap";
 import { INITIAL_UNIFIED_EXERCISES } from "@/lib/unifiedExerciseLibrary";
+import { StrkyrLogo } from "@/components/StrkyrLogo";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const InteractiveBodyMap = dynamic(
   () => import("@/components/InteractiveBodyMap").then((mod) => mod.InteractiveBodyMap),
   {
     ssr: false,
     loading: () => (
-      <div className="w-full max-w-[360px] aspect-[9/16] rounded-3xl bg-slate-900/90 border-2 border-slate-800/80 shadow-2xl flex flex-col items-center justify-center gap-3 p-6 text-center animate-pulse">
-        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/20">
-          <Sparkles size={22} className="animate-spin" style={{ animationDuration: "4s" }} />
+      <div className="w-full max-w-[290px] sm:max-w-[340px] aspect-[4/5] sm:aspect-[9/14] rounded-3xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col items-center justify-center gap-3 p-6 text-center animate-pulse">
+        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 dark:bg-cyan-500/10 border border-blue-500/20 dark:border-cyan-500/20 flex items-center justify-center text-blue-600 dark:text-cyan-400 shadow-sm">
+          <Sparkles size={20} className="animate-spin" style={{ animationDuration: "4s" }} />
         </div>
-        <p className="text-xs font-black text-white tracking-wide">Initializing 3D Anatomy Engine</p>
-        <p className="text-[11px] text-slate-400 font-medium">Mounting GPU WebGL canvas &amp; kinesiology models...</p>
+        <p className="text-xs font-black text-slate-800 dark:text-white tracking-wide">Initializing 3D Anatomy Engine</p>
+        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Mounting WebGL canvas &amp; models...</p>
       </div>
     ),
   }
@@ -46,12 +46,40 @@ const InteractiveBodyMap = dynamic(
 
 export default function AnatomyExplorerPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [selectedMuscleId, setSelectedMuscleId] = useState<MuscleGroupId>("chest");
   const [hoveredMuscleId, setHoveredMuscleId] = useState<MuscleGroupId | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"EXERCISES" | "STRETCHES" | "ANATOMY">("EXERCISES");
+  const [activeTab, setActiveTab] = useState<"EXERCISES" | "STRETCHES">("EXERCISES");
+  const [mobileTab, setMobileTab] = useState<"MAP" | "MOVEMENTS">("MAP");
   const [selectedPreviewImage, setSelectedPreviewImage] = useState<string | null>(null);
   const [equipmentFilter, setEquipmentFilter] = useState<string>("ALL");
+  const [isDark, setIsDark] = useState(false);
+
+  // Sync theme with STRKYR app theme state
+  useEffect(() => {
+    document.title = "Anatomy & Kinesiology Explorer | STRKYR";
+    try {
+      const savedTheme = localStorage.getItem("strkyr_theme_dark");
+      let activeDark = false;
+      if (savedTheme !== null) {
+        activeDark = savedTheme === "true";
+      } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        activeDark = true;
+      }
+      setIsDark(activeDark);
+      document.documentElement.classList.toggle("dark", activeDark);
+    } catch {}
+  }, []);
+
+  const toggleTheme = () => {
+    const next = !isDark;
+    setIsDark(next);
+    try {
+      localStorage.setItem("strkyr_theme_dark", String(next));
+      document.documentElement.classList.toggle("dark", next);
+    } catch {}
+  };
 
   const selectedMuscle = MUSCLE_DEFINITIONS[selectedMuscleId];
 
@@ -70,7 +98,6 @@ export default function AnatomyExplorerPage() {
         }
       } else {
         // 2. Muscle Group Match when no search query
-        const groupLower = selectedMuscle.name.toLowerCase();
         const catLower = selectedMuscle.category.toLowerCase();
         const idLower = selectedMuscle.id.toLowerCase();
 
@@ -111,7 +138,7 @@ export default function AnatomyExplorerPage() {
       localStorage.setItem(
         "strkyr_draft_muscle_workout",
         JSON.stringify({
-          name: `${selectedMuscle.name.split(" ")[0]} Power & Hypertrophy Session`,
+          name: `${selectedMuscle.shortLabel} Session`,
           targetMuscle: selectedMuscle.name,
           exercises: exerciseNames,
           timestamp: Date.now(),
@@ -134,64 +161,171 @@ export default function AnatomyExplorerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-cyan-500 selection:text-slate-950">
-      {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div
+      className={`app ${isDark ? "dark-theme" : ""}`}
+      style={{
+        minHeight: "100vh",
+        background: isDark ? "#0f172a" : "#f8fafc",
+        color: isDark ? "#f8fafc" : "#0f172a",
+      }}
+    >
+      {/* Unified STRKYR Header */}
+      <header
+        className="header"
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 40,
+          background: isDark ? "#1e293b" : "#ffffff",
+          borderBottom: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+          padding: "0 16px",
+          height: "56px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Header Left: Dashboard Return + STRKYR Brand + Breadcrumb */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all font-semibold text-xs border border-slate-700/60"
+            className="nav-btn"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              fontWeight: 600,
+              padding: "6px 10px",
+              borderRadius: "8px",
+            }}
+            title="Return to Dashboard"
           >
-            <ArrowLeft size={14} />
-            <span>Dashboard</span>
+            <ArrowLeft size={16} />
+            <span className="hide-mobile">Dashboard</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-              <Sparkles size={16} />
-            </span>
-            <h1 className="text-base font-extrabold tracking-tight bg-gradient-to-r from-cyan-400 via-sky-300 to-white bg-clip-text text-transparent">
-              Interactive Anatomy &amp; Kinesiology Explorer
-            </h1>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "6px", textDecoration: "none", color: "inherit" }}>
+              <StrkyrLogo size={22} />
+              <span style={{ fontWeight: 800, fontSize: "15px", letterSpacing: "-0.02em" }}>STRKYR</span>
+            </Link>
+            <span style={{ color: isDark ? "#475569" : "#cbd5e1" }}>/</span>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px", fontWeight: 700, fontSize: "13px", color: isDark ? "#94a3b8" : "#475569" }}>
+              <Sparkles size={13} style={{ color: "#2563eb" }} />
+              <span className="truncate max-w-[120px] sm:max-w-none">Anatomy Explorer</span>
+            </div>
           </div>
         </div>
 
-        {/* Global Navigation Links */}
-        <div className="flex items-center gap-2">
+        {/* Header Right: Section Nav + Theme Toggle + User Avatar / Sign Out */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Link
             href="/recovery"
-            className="px-3 py-1.5 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700 transition-all text-xs font-bold border border-slate-700/60"
+            className="nav-btn hide-mobile"
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600 }}
           >
-            Recovery &amp; Mobility
+            <Heart size={14} style={{ color: "#10b981" }} />
+            <span>Recovery</span>
           </Link>
+
           <Link
             href="/nutrition"
-            className="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700 transition-all text-xs font-bold border border-slate-700/60"
+            className="nav-btn hide-mobile"
+            style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontWeight: 600 }}
           >
-            Nutrition &amp; Macros
+            <span>Nutrition</span>
           </Link>
+
+          {/* Theme Toggle */}
+          <button
+            type="button"
+            className="nav-btn"
+            onClick={toggleTheme}
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            style={{ padding: "6px 9px" }}
+          >
+            {isDark ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
+
+          {/* Profile / Sign Out */}
+          {session?.user && (
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <UserAvatar src={session.user.image} name={session.user.name || "User"} size={26} />
+              <button
+                type="button"
+                className="nav-btn nav-btn-danger hide-mobile"
+                onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+                title="Sign out"
+                style={{ display: "flex", alignItems: "center", gap: "4px", padding: "6px 8px" }}
+              >
+                <LogOut size={12} />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main Studio Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-8 flex flex-col gap-6">
-        {/* Search Bar & Stats Bar */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 shadow-lg">
+      <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "16px 12px 64px", width: "100%" }} className="flex flex-col gap-4 sm:gap-6">
+        {/* Mobile View Mode Switcher (Visible on mobile screens < lg) */}
+        <div className="lg:hidden flex items-center p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <button
+            type="button"
+            data-testid="mobile-tab-map"
+            onClick={() => setMobileTab("MAP")}
+            className={`flex-1 py-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              mobileTab === "MAP"
+                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            <Sparkles size={14} />
+            <span>3D Body Map</span>
+          </button>
+          <button
+            type="button"
+            data-testid="mobile-tab-movements"
+            onClick={() => setMobileTab("MOVEMENTS")}
+            className={`flex-1 py-2 text-xs font-black rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+              mobileTab === "MOVEMENTS"
+                ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            <Dumbbell size={14} />
+            <span>Movements ({strengthExercises.length + mobilityStretches.length})</span>
+          </button>
+        </div>
+
+        {/* Hero Control Bar: Search & Quick Muscle Action Dispatchers */}
+        <div
+          className={`flex flex-col md:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl transition-all ${
+            isDark
+              ? "bg-slate-900 border border-slate-800 shadow-xl"
+              : "bg-white border border-slate-200 shadow-sm"
+          }`}
+        >
           {/* Search Input */}
           <div className="relative w-full md:max-w-md">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
             <input
               type="text"
               data-testid="anatomy-search-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search muscle, movement, or tendon (e.g., Pecs, Hamstrings, QL)..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 transition-all"
+              placeholder="Search muscle, exercise, or cue..."
+              className={`w-full pl-9 pr-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium focus:outline-none transition-all ${
+                isDark
+                  ? "bg-slate-950 border border-slate-800 text-slate-100 placeholder:text-slate-500 focus:border-blue-500"
+                  : "bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              }`}
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X size={14} />
               </button>
@@ -199,43 +333,52 @@ export default function AnatomyExplorerPage() {
           </div>
 
           {/* Muscle Focus Action Header Buttons */}
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 w-full md:w-auto justify-end">
             <button
               type="button"
               data-testid="btn-start-workout"
               onClick={handleStartWorkout}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-500 hover:from-cyan-400 hover:to-sky-400 text-slate-950 font-bold text-xs shadow-md shadow-cyan-500/20 transition-all"
+              className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all"
             >
-              <Dumbbell size={14} />
-              <span>Start {selectedMuscle.name.split(" ")[0]} Workout</span>
+              <Dumbbell size={13} />
+              <span>Start {selectedMuscle.shortLabel}</span>
             </button>
 
             <button
               type="button"
               data-testid="btn-start-recovery"
               onClick={handleStartRecovery}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700/80 transition-all"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl font-bold text-xs border transition-all ${
+                isDark
+                  ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              }`}
             >
-              <Heart size={14} className="text-emerald-400" />
-              <span>Targeted Recovery</span>
+              <Heart size={13} className="text-emerald-500" />
+              <span>Recovery</span>
             </button>
 
             <button
               type="button"
               data-testid="btn-add-planner"
               onClick={handleAddToPlanner}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700/80 transition-all"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl font-bold text-xs border transition-all ${
+                isDark
+                  ? "bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+              }`}
             >
-              <CalendarPlus size={14} className="text-amber-400" />
-              <span>Add to Program</span>
+              <CalendarPlus size={13} className="text-amber-500" />
+              <span className="hide-mobile">Add to Program</span>
+              <span className="sm:hidden">Program</span>
             </button>
           </div>
         </div>
 
-        {/* 2-Column Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Interactive Anatomical Body Map */}
-          <div className="lg:col-span-5 flex flex-col gap-4">
+        {/* 2-Column Split Studio Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Left Column: Interactive Anatomical Body Map & Muscle Detail Card */}
+          <div className={`lg:col-span-5 flex-col gap-4 ${mobileTab === "MAP" ? "flex" : "hidden lg:flex"}`}>
             <InteractiveBodyMap
               selectedMuscle={selectedMuscleId}
               onSelectMuscle={(id) => {
@@ -244,27 +387,47 @@ export default function AnatomyExplorerPage() {
               }}
               hoveredMuscle={hoveredMuscleId}
               onHoverMuscle={setHoveredMuscleId}
-              isDark={true}
+              isDark={isDark}
             />
 
+            {/* Mobile Quick Action Link to Switch to Movements */}
+            <button
+              type="button"
+              onClick={() => setMobileTab("MOVEMENTS")}
+              className="lg:hidden w-full py-2.5 px-4 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between shadow-sm transition-all"
+            >
+              <span>View {selectedMuscle.shortLabel} Exercises ({filteredMovements.length})</span>
+              <ChevronRight size={16} />
+            </button>
+
             {/* Selected Muscle Deep Anatomical Card */}
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl flex flex-col gap-3">
+            <div
+              className={`p-4 sm:p-5 rounded-3xl transition-all ${
+                isDark
+                  ? "bg-slate-900 border border-slate-800 shadow-xl"
+                  : "bg-white border border-slate-200 shadow-sm"
+              } flex flex-col gap-3`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse shadow-sm shadow-cyan-400/50" />
-                  <h3 className="text-sm font-black tracking-wide text-white uppercase">{selectedMuscle.name}</h3>
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-sm shadow-blue-500/50" />
+                  <h3 className="text-sm font-black tracking-wide uppercase">{selectedMuscle.name}</h3>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                   {selectedMuscle.category}
                 </span>
               </div>
 
-              {/* Sub-muscles */}
+              {/* Sub-muscles List */}
               <div className="flex flex-wrap gap-1.5 mt-1">
                 {selectedMuscle.subMuscles.map((sub, i) => (
                   <span
                     key={i}
-                    className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700/60"
+                    className={`text-[10px] sm:text-[11px] font-medium px-2 py-0.5 rounded-md border ${
+                      isDark
+                        ? "bg-slate-800 text-slate-300 border-slate-700/60"
+                        : "bg-slate-100 text-slate-700 border-slate-200"
+                    }`}
                   >
                     {sub}
                   </span>
@@ -272,16 +435,28 @@ export default function AnatomyExplorerPage() {
               </div>
 
               {/* Functional Kinesiology Role */}
-              <div className="text-xs text-slate-300 mt-2 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-                <span className="font-bold text-cyan-400">Primary Biomechanical Function: </span>
+              <div
+                className={`text-xs mt-1.5 leading-relaxed p-3 rounded-2xl border ${
+                  isDark
+                    ? "bg-slate-950/70 text-slate-300 border-slate-800"
+                    : "bg-blue-50/40 text-slate-700 border-blue-100"
+                }`}
+              >
+                <span className="font-bold text-blue-600 dark:text-cyan-400">Primary Biomechanical Function: </span>
                 {selectedMuscle.primaryRole}
               </div>
 
               {/* Posture & Tightness Indicator */}
-              <div className="text-xs text-amber-300/90 leading-relaxed bg-amber-500/5 p-3 rounded-xl border border-amber-500/20 flex items-start gap-2">
-                <ShieldAlert size={15} className="text-amber-400 shrink-0 mt-0.5" />
+              <div
+                className={`text-xs leading-relaxed p-3 rounded-2xl border flex items-start gap-2.5 ${
+                  isDark
+                    ? "bg-amber-500/10 text-amber-300 border-amber-500/20"
+                    : "bg-amber-50/80 text-amber-800 border-amber-200"
+                }`}
+              >
+                <ShieldAlert size={15} className="text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-bold text-amber-400">Common Imbalance &amp; Tightness: </span>
+                  <span className="font-bold text-amber-600 dark:text-amber-400">Common Imbalance &amp; Tightness: </span>
                   {selectedMuscle.commonTightness}
                 </div>
               </div>
@@ -289,36 +464,46 @@ export default function AnatomyExplorerPage() {
           </div>
 
           {/* Right Column: Movement Catalog (Exercises & Stretches) */}
-          <div className="lg:col-span-7 flex flex-col gap-4">
+          <div className={`lg:col-span-7 flex-col gap-4 ${mobileTab === "MOVEMENTS" ? "flex" : "hidden lg:flex"}`}>
             {/* Catalog Navigation Tabs */}
-            <div className="flex items-center justify-between p-1.5 rounded-2xl bg-slate-900 border border-slate-800">
+            <div
+              className={`flex items-center justify-between p-1.5 rounded-2xl border ${
+                isDark
+                  ? "bg-slate-900 border-slate-800"
+                  : "bg-white border-slate-200 shadow-sm"
+              }`}
+            >
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   data-testid="tab-exercises"
                   onClick={() => setActiveTab("EXERCISES")}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all ${
                     activeTab === "EXERCISES"
-                      ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : isDark
+                      ? "text-slate-400 hover:text-slate-200"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <Dumbbell size={14} />
-                  <span>Targeted Strength ({strengthExercises.length})</span>
+                  <Dumbbell size={13} />
+                  <span>Strength ({strengthExercises.length})</span>
                 </button>
 
                 <button
                   type="button"
                   data-testid="tab-stretches"
                   onClick={() => setActiveTab("STRETCHES")}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all ${
                     activeTab === "STRETCHES"
-                      ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : isDark
+                      ? "text-slate-400 hover:text-slate-200"
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <Heart size={14} />
-                  <span>Mobility &amp; Stretches ({mobilityStretches.length})</span>
+                  <Heart size={13} />
+                  <span>Stretches ({mobilityStretches.length})</span>
                 </button>
               </div>
 
@@ -327,9 +512,13 @@ export default function AnatomyExplorerPage() {
                 aria-label="Filter movements by equipment"
                 value={equipmentFilter}
                 onChange={(e) => setEquipmentFilter(e.target.value)}
-                className="bg-slate-950 text-slate-300 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-800 focus:outline-none focus:border-cyan-500"
+                className={`text-xs font-bold px-2.5 sm:px-3 py-1.5 rounded-xl border focus:outline-none transition-all ${
+                  isDark
+                    ? "bg-slate-950 text-slate-200 border-slate-800 focus:border-blue-500"
+                    : "bg-slate-50 text-slate-700 border-slate-200 focus:border-blue-500"
+                }`}
               >
-                <option value="ALL">All Equipment</option>
+                <option value="ALL">All Gear</option>
                 <option value="Barbell">Barbell</option>
                 <option value="Dumbbell">Dumbbell</option>
                 <option value="Cable">Cable</option>
@@ -339,18 +528,24 @@ export default function AnatomyExplorerPage() {
             </div>
 
             {/* Movements Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[750px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 max-h-[750px] overflow-y-auto pr-1">
               {(activeTab === "EXERCISES" ? strengthExercises : mobilityStretches).map((movement, idx) => (
                 <div
                   key={idx}
                   data-testid={`movement-card-${movement.normalizedName}`}
-                  className="group relative rounded-2xl bg-slate-900/90 border border-slate-800/80 hover:border-cyan-500/50 transition-all duration-300 p-4 flex flex-col justify-between shadow-lg hover:shadow-cyan-500/10"
+                  className={`group relative rounded-2xl border transition-all duration-200 p-3 sm:p-4 flex flex-col justify-between ${
+                    isDark
+                      ? "bg-slate-900/90 border-slate-800 hover:border-blue-500/50 shadow-lg hover:shadow-blue-500/10"
+                      : "bg-white border-slate-200 hover:border-blue-400 shadow-sm hover:shadow-md"
+                  }`}
                 >
-                  <div>
-                    {/* 3D Anatomy Diagram Preview */}
+                  <div className="flex flex-row md:flex-col gap-3">
+                    {/* Compact Diagram Thumbnail on Mobile / Video on Desktop */}
                     <div
+                      data-testid={`diagram-thumbnail-${movement.normalizedName}`}
+                      title="Click to inspect 3D biomechanics diagram"
                       onClick={() => setSelectedPreviewImage(movement.diagramUrl || null)}
-                      className="relative w-full aspect-video rounded-xl bg-slate-950 border border-slate-800/80 overflow-hidden mb-3 cursor-pointer group-hover:border-cyan-500/30 transition-all"
+                      className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-full md:aspect-video rounded-xl bg-slate-950 border border-slate-800/80 overflow-hidden shrink-0 cursor-pointer group-hover:border-blue-500/40 transition-all"
                     >
                       {movement.diagramUrl ? (
                         <img
@@ -359,46 +554,54 @@ export default function AnatomyExplorerPage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-600 text-xs">
-                          3D Anatomy Visual
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-[10px]">
+                          3D Visual
                         </div>
                       )}
-                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-slate-950/80 text-[10px] font-bold text-cyan-400 backdrop-blur-sm border border-slate-800">
+                      <span className="hidden md:inline-block absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-slate-950/80 text-[10px] font-bold text-cyan-400 backdrop-blur-sm border border-slate-800">
                         View 3D
                       </span>
                     </div>
 
-                    {/* Title & Equipment */}
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <h4 className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
-                        {movement.name}
-                      </h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 shrink-0 border border-slate-700/60">
-                        {movement.equipment}
-                      </span>
-                    </div>
-
-                    {/* Target Muscle Tags */}
-                    <div className="flex flex-wrap gap-1 mb-2.5">
-                      {movement.primaryMuscles.map((pm, pmi) => (
+                    <div className="flex-1 min-w-0">
+                      {/* Title & Equipment */}
+                      <div className="flex items-start justify-between gap-1.5 mb-1">
+                        <h4 className={`text-xs font-bold leading-snug transition-colors line-clamp-1 ${isDark ? "text-white group-hover:text-blue-400" : "text-slate-900 group-hover:text-blue-600"}`}>
+                          {movement.name}
+                        </h4>
                         <span
-                          key={pmi}
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                          className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0 border ${
+                            isDark
+                              ? "bg-slate-800 text-slate-300 border-slate-700/60"
+                              : "bg-slate-100 text-slate-600 border-slate-200"
+                          }`}
                         >
-                          {pm}
+                          {movement.equipment}
                         </span>
-                      ))}
-                    </div>
+                      </div>
 
-                    {/* Biomechanical Cue */}
-                    <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed mb-3">
-                      {movement.biomechanicsCue}
-                    </p>
+                      {/* Target Muscle Tags */}
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {movement.primaryMuscles.map((pm, pmi) => (
+                          <span
+                            key={pmi}
+                            className="text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60"
+                          >
+                            {pm}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Biomechanical Cue */}
+                      <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 sm:line-clamp-2 leading-relaxed mb-2">
+                        {movement.biomechanicsCue}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Card Bottom Actions */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-800/80 text-[11px]">
-                    <span className="text-slate-400 font-medium">{movement.breathingPattern ? "Form Verified" : "Unified"}</span>
+                  <div className={`flex items-center justify-between pt-2 border-t text-[11px] ${isDark ? "border-slate-800" : "border-slate-100"}`}>
+                    <span className="text-slate-400 font-medium text-[10px]">{movement.breathingPattern ? "Form Verified" : "Unified"}</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -415,7 +618,7 @@ export default function AnatomyExplorerPage() {
                           console.error(e);
                         }
                       }}
-                      className="inline-flex items-center gap-1 font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+                      className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
                       <span>Add to Workout</span>
                       <ChevronRight size={14} />
@@ -425,10 +628,16 @@ export default function AnatomyExplorerPage() {
               ))}
 
               {(activeTab === "EXERCISES" ? strengthExercises : mobilityStretches).length === 0 && (
-                <div className="col-span-full py-16 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800/60">
-                  <Dumbbell className="w-10 h-10 mx-auto mb-2 text-slate-600" />
-                  <p className="text-xs font-bold text-slate-400">No movements found matching query.</p>
-                  <p className="text-[11px] text-slate-500 mt-1">Try selecting another muscle or clearing the search filter.</p>
+                <div
+                  className={`col-span-full py-12 text-center rounded-2xl border ${
+                    isDark
+                      ? "text-slate-500 bg-slate-900/40 border-slate-800/60"
+                      : "text-slate-500 bg-slate-50 border-slate-200"
+                  }`}
+                >
+                  <Dumbbell className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-xs font-bold text-slate-700 dark:text-slate-300">No movements found matching query.</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Try selecting another muscle or clearing the search filter.</p>
                 </div>
               )}
             </div>
@@ -440,23 +649,33 @@ export default function AnatomyExplorerPage() {
       {selectedPreviewImage && (
         <div
           onClick={() => setSelectedPreviewImage(null)}
-          className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-hidden"
+            className={`relative max-w-2xl w-full max-h-[88vh] rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden border flex flex-col ${
+              isDark
+                ? "bg-slate-900 border-slate-800 text-white"
+                : "bg-white border-slate-200 text-slate-900"
+            }`}
           >
-            <button
-              type="button"
-              onClick={() => setSelectedPreviewImage(null)}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all border border-slate-700/60"
-            >
-              <X size={18} />
-            </button>
-            <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-              Medical 3D Kinesiology &amp; Biomechanical Diagram
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs sm:text-sm font-bold flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                Medical 3D Kinesiology &amp; Biomechanical Diagram
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSelectedPreviewImage(null)}
+                className={`p-1.5 rounded-xl border transition-all ${
+                  isDark
+                    ? "bg-slate-800 text-slate-400 hover:text-white border-slate-700"
+                    : "bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200"
+                }`}
+              >
+                <X size={16} />
+              </button>
+            </div>
             <div className="aspect-video w-full rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
               <img src={selectedPreviewImage} alt="3D Anatomy" className="w-full h-full object-contain" />
             </div>

@@ -448,11 +448,13 @@ export function InteractiveBodyMap({
     scene.background = new Color(0x070b14);
     sceneRef.current = scene;
 
-    const w = container.clientWidth || 340;
-    const h = container.clientHeight || 560;
-    const camera = new PerspectiveCamera(31, w / h, 0.1, 100);
-    camera.position.set(0, 0.85, 8.2);
-    camera.lookAt(0, 0.85, 0);
+    const w = container.clientWidth || 300;
+    const h = container.clientHeight || 400;
+    const aspect = w / h;
+    const camera = new PerspectiveCamera(34, aspect, 0.1, 100);
+    const targetZ = aspect < 0.65 ? 10.0 : aspect < 0.85 ? 9.2 : 8.5;
+    camera.position.set(0, 0.7, targetZ);
+    camera.lookAt(0, 0.7, 0);
     cameraRef.current = camera;
 
     let renderer: WebGLRenderer | null = null;
@@ -772,7 +774,10 @@ export function InteractiveBodyMap({
       if (!container || !camera || !renderer) return;
       const cw = container.clientWidth;
       const ch = container.clientHeight;
-      camera.aspect = cw / ch;
+      const aspect = cw / ch;
+      camera.aspect = aspect;
+      camera.position.z = aspect < 0.65 ? 10.0 : aspect < 0.85 ? 9.2 : 8.5;
+      camera.lookAt(0, 0.7, 0);
       camera.updateProjectionMatrix();
       renderer.setSize(cw, ch);
     };
@@ -1053,10 +1058,14 @@ export function InteractiveBodyMap({
 
       {/* Main Viewport Container */}
       <div
+        data-testid="body-map-viewport"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        className="relative w-full max-w-[360px] aspect-[9/16] rounded-3xl overflow-hidden bg-[#070b14] border-2 border-slate-800/80 shadow-2xl select-none flex items-center justify-center"
-        style={{ cursor: viewMode === "3D" ? (isDragging ? "grabbing" : cursor3dMuscle ? "pointer" : "grab") : "default" }}
+        className="relative w-full max-w-[290px] sm:max-w-[340px] aspect-[4/5] sm:aspect-[9/14] max-h-[380px] sm:max-h-[480px] rounded-3xl overflow-hidden bg-[#070b14] border-2 border-slate-800/80 shadow-2xl select-none flex items-center justify-center touch-none"
+        style={{
+          cursor: viewMode === "3D" ? (isDragging ? "grabbing" : cursor3dMuscle ? "pointer" : "grab") : "default",
+          touchAction: "none",
+        }}
       >
         {/* 3D WebGL Canvas Mode */}
         {viewMode === "3D" ? (

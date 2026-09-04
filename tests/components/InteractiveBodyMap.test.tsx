@@ -172,4 +172,31 @@ describe("InteractiveBodyMap Component", () => {
     fireEvent.click(threeDModeBtn);
     expect(screen.getByTestId("interactive-body-map")).toBeDefined();
   });
+
+  it("handles touch start, move, and end events on mobile viewports without errors", () => {
+    const handleSelect = vi.fn();
+    render(
+      <InteractiveBodyMap
+        selectedMuscle="chest"
+        onSelectMuscle={handleSelect}
+      />
+    );
+
+    const viewport = screen.getByTestId("body-map-viewport");
+    expect(viewport).toBeDefined();
+
+    // Verify touchAction none style is present for mobile touch drag
+    expect(viewport.style.touchAction).toBe("none");
+
+    // Simulate mobile touch drag
+    fireEvent.touchStart(viewport, {
+      touches: [{ clientX: 100, clientY: 100 }],
+    });
+
+    fireEvent.touchMove(window, {
+      touches: [{ clientX: 120, clientY: 100 }],
+    });
+
+    fireEvent.touchEnd(window);
+  });
 });
