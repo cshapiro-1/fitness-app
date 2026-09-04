@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
     const urlClientId = new URL(req.url).searchParams.get("clientId");
     let targetClientIds: string[] = [];
     let isSelfQuery = false;
-    let isCollin =
+    const isUserCollin = Boolean(
       (userEmail && userEmail.includes("collin")) ||
-      (session?.user?.name && session.user.name.toLowerCase().includes("collin")) ||
-      false;
+      (session?.user?.name && session.user.name.toLowerCase().includes("collin"))
+    );
 
     if (urlClientId && urlClientId !== "all") {
       const targetClient = await prisma.client.findUnique({
@@ -45,12 +45,11 @@ export async function GET(req: NextRequest) {
       }
 
       targetClientIds = [urlClientId];
-      if (
+
+      const isTargetCollin = Boolean(
         targetClient.name?.toLowerCase().includes("collin") ||
         (targetClient.email && targetClient.email.toLowerCase().includes("collin"))
-      ) {
-        isCollin = true;
-      }
+      );
 
       if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
         isSelfQuery = true;
@@ -64,7 +63,8 @@ export async function GET(req: NextRequest) {
         otherSelfClients.forEach((c) => {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
-      } else if (isCollin) {
+      } else if (isTargetCollin && (isUserCollin || isAdmin)) {
+        // Only consolidate Collin's personal client records when Collin/Admin is viewing Collin's personal profile
         const otherCollinClients = await prisma.client.findMany({
           where: {
             OR: [
@@ -131,14 +131,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Fetch real WorkoutSessions
+    const isSingleClientQuery = Boolean(urlClientId && urlClientId !== "all");
+    const sessionWhereClause: any = {
+      deletedAt: null,
+    };
+
+    if (isSingleClientQuery) {
+      sessionWhereClause.clientId = { in: targetClientIds };
+    } else {
+      sessionWhereClause.OR = [
+        ...(targetClientIds.length > 0 ? [{ clientId: { in: targetClientIds } }] : []),
+        ...((isSelfQuery || !urlClientId || urlClientId === "all") && userId ? [{ loggedById: userId }] : []),
+      ];
+    }
+
     const sessions = await prisma.workoutSession.findMany({
-      where: {
-        deletedAt: null,
-        OR: [
-          ...(targetClientIds.length > 0 ? [{ clientId: { in: targetClientIds } }] : []),
-          ...((isSelfQuery || isCollin || !urlClientId || urlClientId === "all") && userId ? [{ loggedById: userId }] : []),
-        ],
-      },
+      where: sessionWhereClause,
       include: {
         exercises: { orderBy: { order: "asc" }, include: { sets: { orderBy: { order: "asc" } } } },
       },

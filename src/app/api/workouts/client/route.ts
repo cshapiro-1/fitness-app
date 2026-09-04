@@ -58,6 +58,14 @@ export async function GET(req: NextRequest) {
           OR: searchTerms.map((term) => ({
             name: { contains: term, mode: "insensitive" as const },
           })),
+          AND: [
+            {
+              OR: [
+                { email: null },
+                ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
+              ],
+            },
+          ],
         },
         select: { id: true },
       });
@@ -68,7 +76,10 @@ export async function GET(req: NextRequest) {
 
     if (userId) {
       const selfClients = await prisma.client.findMany({
-        where: { userId },
+        where: {
+          userId,
+          name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)", "Solo Athlete"] },
+        },
         select: { id: true },
       });
       selfClients.forEach((c) => {
@@ -76,13 +87,16 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fetch real WorkoutSessions for all matched client IDs or logged by user
+    if (clientIds.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Fetch real WorkoutSessions strictly for all matched client IDs
     const sessions = await prisma.workoutSession.findMany({
       where: {
         deletedAt: null,
         OR: [
-          ...(clientIds.length > 0 ? [{ clientId: { in: clientIds } }] : []),
-          ...(userId ? [{ loggedById: userId }] : []),
+          { clientId: { in: clientIds } },
         ],
       },
       include: {
