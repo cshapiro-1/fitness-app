@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import * as THREE from "three";
 import {
   Rotate3d,
   Play,
@@ -8,11 +9,8 @@ import {
   RotateCw,
   Crosshair,
   Activity,
-  Layers,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  ShieldAlert,
+  Info,
 } from "lucide-react";
 
 export type MuscleGroupId =
@@ -42,11 +40,6 @@ export interface MuscleInfo {
   primaryRole: string;
   commonTightness: string;
   color: string;
-  pinCoordinates?: {
-    anterior?: { x: number; y: number };
-    posterior?: { x: number; y: number };
-    lateral?: { x: number; y: number };
-  };
 }
 
 export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
@@ -59,7 +52,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Horizontal shoulder adduction, internal rotation, and pushing power.",
     commonTightness: "Shortened in desk workers and bench-heavy lifters, pulling shoulders forward into internal rotation.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 50, y: 25 }, lateral: { x: 42, y: 25 } },
   },
   shoulders: {
     id: "shoulders",
@@ -70,7 +62,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Arm abduction, forward flexion, horizontal abduction, and 360° glenohumeral stability.",
     commonTightness: "Anterior dominance with weak rear deltoids creates shoulder impingement and poor overhead mechanics.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 28, y: 23 }, posterior: { x: 28, y: 23 }, lateral: { x: 55, y: 23 } },
   },
   biceps: {
     id: "biceps",
@@ -81,7 +72,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Elbow flexion, forearm supination (turning palm up), and shoulder stabilization.",
     commonTightness: "Distal bicep tendon strain and shortened elbow flexion from excessive typing or heavy pulling.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 23, y: 34 }, lateral: { x: 52, y: 31 } },
   },
   triceps: {
     id: "triceps",
@@ -92,7 +82,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Elbow extension and shoulder extension (long head stabilization).",
     commonTightness: "Triceps tendon stiffness at olecranon process; long head tightness limits overhead shoulder flexion.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 23, y: 34 }, lateral: { x: 62, y: 32 } },
   },
   forearms: {
     id: "forearms",
@@ -103,7 +92,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Wrist flexion/extension, radial/ulnar deviation, and grip strength.",
     commonTightness: "Medial/lateral epicondylitis ('Golfer's / Tennis Elbow') and wrist stiffness.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 18, y: 46 }, posterior: { x: 18, y: 46 }, lateral: { x: 50, y: 45 } },
   },
   traps: {
     id: "traps",
@@ -114,7 +102,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Scapular elevation, retraction, upward rotation, and thoracic spine stability.",
     commonTightness: "Upper traps carry stress tension; lower traps often underactive leading to poor scapular upward rotation.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 50, y: 22 }, lateral: { x: 58, y: 19 } },
   },
   lats: {
     id: "lats",
@@ -125,7 +112,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Shoulder adduction, extension, internal rotation, and lumbar spine decompression.",
     commonTightness: "Tight lats restrict overhead reaching and force lumbar spine hyperextension during overhead pressing.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 38, y: 35 }, lateral: { x: 42, y: 35 } },
   },
   lower_back: {
     id: "lower_back",
@@ -136,7 +122,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Spinal extension, lateral lumbar stabilization, and anti-flexion bracing under heavy axial loads.",
     commonTightness: "Erector over-recruitment compensating for weak glutes/core; deep QL asymmetry causes one-sided low back pain.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 50, y: 44 } },
   },
   abs: {
     id: "abs",
@@ -147,7 +132,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Trunk flexion, posterior pelvic tilting, and 360° intra-abdominal pressure.",
     commonTightness: "Weak transverse abdominis allows anterior pelvic tilt; shortened rectus can pull ribcage down into rounded posture.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 50, y: 36 }, lateral: { x: 42, y: 36 } },
   },
   obliques: {
     id: "obliques",
@@ -158,7 +142,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Torso rotation, lateral flexion, and anti-rotational spinal protection.",
     commonTightness: "Asymmetrical rotational tightness from dominant-side athletic patterns (golf, baseball, throwing).",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 38, y: 38 }, posterior: { x: 35, y: 38 }, lateral: { x: 48, y: 39 } },
   },
   glutes: {
     id: "glutes",
@@ -169,7 +152,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Hip extension, abduction, external rotation, and pelvic stability during single-leg drive.",
     commonTightness: "'Glute amnesia' from sitting; piriformis tightness compresses sciatic nerve causing radiating pain.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 40, y: 51 }, lateral: { x: 46, y: 50 } },
   },
   quads: {
     id: "quads",
@@ -180,7 +162,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Knee extension and hip flexion (Rectus Femoris); absorbing landing impact and driving vertical force.",
     commonTightness: "Shortened hip flexors and rectus femoris pull pelvis into anterior tilt, inhibiting glute firing.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 38, y: 60 }, lateral: { x: 54, y: 60 } },
   },
   hamstrings: {
     id: "hamstrings",
@@ -191,7 +172,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Knee flexion, hip extension, and decelerating forward running speed.",
     commonTightness: "Often feels tight but is actually 'locked-long' due to anterior pelvic tilt; requires eccentric strengthening.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 38, y: 65 }, lateral: { x: 46, y: 64 } },
   },
   adductors: {
     id: "adductors",
@@ -202,7 +182,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Hip adduction, hip flexion/extension assistance, and deep squat stabilization.",
     commonTightness: "Tight adductors pull knees inward (knee valgus) during squats and lunges, limiting hip mobility.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 48, y: 56 } },
   },
   calves: {
     id: "calves",
@@ -213,7 +192,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Plantarflexion, ankle stabilization, and elastic energy return in sprinting and jumping.",
     commonTightness: "Tight soleus limits ankle dorsiflexion, causing heels to rise or torso to collapse forward in squats.",
     color: "#00f5ff",
-    pinCoordinates: { posterior: { x: 38, y: 82 }, lateral: { x: 44, y: 82 } },
   },
   tibialis: {
     id: "tibialis",
@@ -224,7 +202,6 @@ export const MUSCLE_DEFINITIONS: Record<MuscleGroupId, MuscleInfo> = {
     primaryRole: "Ankle dorsiflexion, foot inversion, and absorbing heel-strike forces.",
     commonTightness: "Weakness causes shin splints and poor knee tracking; tightness reduces ankle articulation.",
     color: "#00f5ff",
-    pinCoordinates: { anterior: { x: 38, y: 82 }, lateral: { x: 56, y: 83 } },
   },
 };
 
@@ -245,29 +222,29 @@ export function InteractiveBodyMap({
   className = "",
   isDark = true,
 }: InteractiveBodyMapProps) {
-  // 3D Rotation angle state (0deg = Anterior Front, 90deg = Side Profile, 180deg = Posterior Back, 270deg = Side Profile 2)
+  const mountRef = useRef<HTMLDivElement>(null);
   const [rotationAngle, setRotationAngle] = useState<number>(0);
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const bodyGroupRef = useRef<THREE.Group | null>(null);
+  const muscleMeshesRef = useRef<Map<MuscleGroupId, THREE.Mesh[]>>(new Map());
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const reqIdRef = useRef<number | null>(null);
+
   const dragStartXRef = useRef<number>(0);
   const startAngleRef = useRef<number>(0);
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Derive current effective view based on rotation angle (0 to 360)
+  // Derive current perspective from rotation angle
   const normalizedAngle = ((rotationAngle % 360) + 360) % 360;
-  
   let currentPerspective: "anterior" | "lateral" | "posterior" = "anterior";
-  if (normalizedAngle >= 45 && normalizedAngle < 135) {
-    currentPerspective = "lateral";
-  } else if (normalizedAngle >= 135 && normalizedAngle < 225) {
-    currentPerspective = "posterior";
-  } else if (normalizedAngle >= 225 && normalizedAngle < 315) {
-    currentPerspective = "lateral";
-  } else {
-    currentPerspective = "anterior";
-  }
+  if (normalizedAngle >= 45 && normalizedAngle < 135) currentPerspective = "lateral";
+  else if (normalizedAngle >= 135 && normalizedAngle < 225) currentPerspective = "posterior";
+  else if (normalizedAngle >= 225 && normalizedAngle < 315) currentPerspective = "lateral";
+  else currentPerspective = "anterior";
 
-  // Auto-rotate 360 loop
+  // Auto-rotate loop
   useEffect(() => {
     if (!isAutoRotating) return;
     const interval = setInterval(() => {
@@ -276,23 +253,288 @@ export function InteractiveBodyMap({
     return () => clearInterval(interval);
   }, [isAutoRotating]);
 
-  // When a muscle is selected, smoothly rotate the 3D model if on the opposite side
-  const handleSelectMuscleAndAutoFace = useCallback(
-    (muscleId: MuscleGroupId) => {
-      onSelectMuscle(muscleId);
-      const def = MUSCLE_DEFINITIONS[muscleId];
-      if (def) {
-        if (def.view === "posterior" && currentPerspective === "anterior") {
-          setRotationAngle(180);
-        } else if (def.view === "anterior" && currentPerspective === "posterior") {
-          setRotationAngle(0);
+  // Update 3D body rotation
+  useEffect(() => {
+    if (bodyGroupRef.current) {
+      bodyGroupRef.current.rotation.y = (rotationAngle * Math.PI) / 180;
+    }
+  }, [rotationAngle]);
+
+  // Update 3D Muscle Materials based on Selection & Hover
+  useEffect(() => {
+    muscleMeshesRef.current.forEach((meshes, muscleId) => {
+      const isSelected = selectedMuscle === muscleId;
+      const isHovered = hoveredMuscle === muscleId;
+
+      meshes.forEach((mesh) => {
+        const mat = mesh.material as THREE.MeshStandardMaterial;
+        if (isSelected) {
+          mat.color.setHex(0x00f5ff);
+          mat.emissive.setHex(0x00f5ff);
+          mat.emissiveIntensity = 0.85;
+          mat.roughness = 0.2;
+          mat.metalness = 0.5;
+        } else if (isHovered) {
+          mat.color.setHex(0x38bdf8);
+          mat.emissive.setHex(0x38bdf8);
+          mat.emissiveIntensity = 0.45;
+          mat.roughness = 0.3;
+          mat.metalness = 0.3;
+        } else {
+          // Base athletic anatomical muscular tone
+          mat.color.setHex(0x8a3a34);
+          mat.emissive.setHex(0x1a0808);
+          mat.emissiveIntensity = 0.1;
+          mat.roughness = 0.6;
+          mat.metalness = 0.15;
+        }
+      });
+    });
+  }, [selectedMuscle, hoveredMuscle]);
+
+  // Build Real 3D Human Anatomy Geometry Scene
+  useEffect(() => {
+    const container = mountRef.current;
+    if (!container) return;
+
+    // 1. Scene
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0f1d);
+    sceneRef.current = scene;
+
+    // 2. Camera
+    const camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 0, 9.2);
+    cameraRef.current = camera;
+
+    // 3. Renderer
+    let renderer: THREE.WebGLRenderer | null = null;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth || 340, container.clientHeight || 560);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.innerHTML = "";
+      container.appendChild(renderer.domElement);
+      rendererRef.current = renderer;
+    } catch {
+      // Fallback for non-WebGL / test environments
+      renderer = null;
+    }
+
+    // 4. Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.4);
+    dirLight1.position.set(5, 8, 6);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x00f5ff, 0.8);
+    dirLight2.position.set(-6, -4, 4);
+    scene.add(dirLight2);
+
+    const backLight = new THREE.DirectionalLight(0x38bdf8, 1.0);
+    backLight.position.set(0, 5, -8);
+    scene.add(backLight);
+
+    // 5. Build 3D Human Anatomical Muscular Model
+    const bodyGroup = new THREE.Group();
+    bodyGroup.position.y = -0.1;
+    scene.add(bodyGroup);
+    bodyGroupRef.current = bodyGroup;
+
+    const muscleMap = new Map<MuscleGroupId, THREE.Mesh[]>();
+
+    const createMuscleMesh = (
+      id: MuscleGroupId,
+      geom: THREE.BufferGeometry,
+      pos: [number, number, number],
+      rot: [number, number, number] = [0, 0, 0],
+      scale: [number, number, number] = [1, 1, 1]
+    ) => {
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x8a3a34,
+        roughness: 0.6,
+        metalness: 0.15,
+        emissive: 0x1a0808,
+        emissiveIntensity: 0.1,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.position.set(...pos);
+      mesh.rotation.set(...rot);
+      mesh.scale.set(...scale);
+      mesh.userData = { muscleId: id };
+      bodyGroup.add(mesh);
+
+      const existing = muscleMap.get(id) || [];
+      existing.push(mesh);
+      muscleMap.set(id, existing);
+      return mesh;
+    };
+
+    // Helper Geometries
+    const headGeom = new THREE.SphereGeometry(0.48, 32, 32);
+    const neckGeom = new THREE.CylinderGeometry(0.24, 0.28, 0.45, 24);
+    const pecGeom = new THREE.BoxGeometry(0.46, 0.42, 0.28);
+    const deltGeom = new THREE.SphereGeometry(0.32, 24, 24);
+    const bicepGeom = new THREE.CylinderGeometry(0.18, 0.16, 0.72, 20);
+    const tricepGeom = new THREE.CylinderGeometry(0.19, 0.16, 0.75, 20);
+    const forearmGeom = new THREE.CylinderGeometry(0.15, 0.12, 0.85, 20);
+    const absGeom = new THREE.BoxGeometry(0.28, 0.24, 0.15);
+    const obliqueGeom = new THREE.BoxGeometry(0.22, 0.75, 0.26);
+    const trapGeom = new THREE.ConeGeometry(0.55, 0.75, 4);
+    const latGeom = new THREE.BoxGeometry(0.38, 0.75, 0.22);
+    const lowerBackGeom = new THREE.BoxGeometry(0.42, 0.6, 0.24);
+    const gluteGeom = new THREE.SphereGeometry(0.46, 24, 24);
+    const quadGeom = new THREE.CylinderGeometry(0.32, 0.24, 1.45, 24);
+    const hamstringGeom = new THREE.CylinderGeometry(0.31, 0.23, 1.45, 24);
+    const adductorGeom = new THREE.CylinderGeometry(0.2, 0.15, 1.2, 16);
+    const calfGeom = new THREE.CylinderGeometry(0.24, 0.16, 1.35, 24);
+    const tibialisGeom = new THREE.CylinderGeometry(0.2, 0.14, 1.35, 20);
+
+    // Skeleton Core & Head
+    const headMat = new THREE.MeshStandardMaterial({ color: 0x6e2f2b, roughness: 0.5 });
+    const head = new THREE.Mesh(headGeom, headMat);
+    head.position.set(0, 3.2, 0);
+    bodyGroup.add(head);
+
+    const neck = new THREE.Mesh(neckGeom, headMat);
+    neck.position.set(0, 2.7, 0);
+    bodyGroup.add(neck);
+
+    // Torso Core Frame
+    const coreSpine = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.24, 1.8, 16), headMat);
+    coreSpine.position.set(0, 1.7, 0);
+    bodyGroup.add(coreSpine);
+
+    // 1. CHEST (Pectorals)
+    createMuscleMesh("chest", pecGeom, [-0.32, 2.15, 0.24], [0, 0.15, -0.05]);
+    createMuscleMesh("chest", pecGeom, [0.32, 2.15, 0.24], [0, -0.15, 0.05]);
+
+    // 2. SHOULDERS (Deltoids)
+    createMuscleMesh("shoulders", deltGeom, [-0.85, 2.25, 0.05], [0, 0, 0.2], [1.1, 1.2, 1.0]);
+    createMuscleMesh("shoulders", deltGeom, [0.85, 2.25, 0.05], [0, 0, -0.2], [1.1, 1.2, 1.0]);
+
+    // 3. BICEPS
+    createMuscleMesh("biceps", bicepGeom, [-0.88, 1.6, 0.1], [0, 0, 0.1]);
+    createMuscleMesh("biceps", bicepGeom, [0.88, 1.6, 0.1], [0, 0, -0.1]);
+
+    // 4. TRICEPS
+    createMuscleMesh("triceps", tricepGeom, [-0.88, 1.6, -0.12], [0, 0, 0.1]);
+    createMuscleMesh("triceps", tricepGeom, [0.88, 1.6, -0.12], [0, 0, -0.1]);
+
+    // 5. FOREARMS
+    createMuscleMesh("forearms", forearmGeom, [-0.96, 0.75, 0.05], [0, 0, 0.08]);
+    createMuscleMesh("forearms", forearmGeom, [0.96, 0.75, 0.05], [0, 0, -0.08]);
+
+    // 6. ABS (6-Pack)
+    createMuscleMesh("abs", absGeom, [-0.17, 1.75, 0.26]);
+    createMuscleMesh("abs", absGeom, [0.17, 1.75, 0.26]);
+    createMuscleMesh("abs", absGeom, [-0.17, 1.45, 0.26]);
+    createMuscleMesh("abs", absGeom, [0.17, 1.45, 0.26]);
+    createMuscleMesh("abs", absGeom, [-0.16, 1.15, 0.25]);
+    createMuscleMesh("abs", absGeom, [0.16, 1.15, 0.25]);
+
+    // 7. OBLIQUES
+    createMuscleMesh("obliques", obliqueGeom, [-0.46, 1.45, 0.12], [0, 0, 0.15]);
+    createMuscleMesh("obliques", obliqueGeom, [0.46, 1.45, 0.12], [0, 0, -0.15]);
+
+    // 8. TRAPS & UPPER BACK
+    createMuscleMesh("traps", trapGeom, [0, 2.28, -0.18], [0, 0, Math.PI], [1.4, 1.0, 0.6]);
+
+    // 9. LATS
+    createMuscleMesh("lats", latGeom, [-0.44, 1.78, -0.16], [0, 0.2, 0.15]);
+    createMuscleMesh("lats", latGeom, [0.44, 1.78, -0.16], [0, -0.2, -0.15]);
+
+    // 10. LOWER BACK
+    createMuscleMesh("lower_back", lowerBackGeom, [0, 1.25, -0.16]);
+
+    // 11. GLUTES
+    createMuscleMesh("glutes", gluteGeom, [-0.36, 0.55, -0.22], [0, 0, 0.15], [1.0, 1.15, 1.1]);
+    createMuscleMesh("glutes", gluteGeom, [0.36, 0.55, -0.22], [0, 0, -0.15], [1.0, 1.15, 1.1]);
+
+    // 12. QUADS
+    createMuscleMesh("quads", quadGeom, [-0.42, -0.42, 0.12], [0.05, 0, 0.05]);
+    createMuscleMesh("quads", quadGeom, [0.42, -0.42, 0.12], [0.05, 0, -0.05]);
+
+    // 13. HAMSTRINGS
+    createMuscleMesh("hamstrings", hamstringGeom, [-0.42, -0.42, -0.14], [-0.05, 0, 0.05]);
+    createMuscleMesh("hamstrings", hamstringGeom, [0.42, -0.42, -0.14], [-0.05, 0, -0.05]);
+
+    // 14. ADDUCTORS
+    createMuscleMesh("adductors", adductorGeom, [-0.18, -0.35, 0.02], [0, 0, -0.08]);
+    createMuscleMesh("adductors", adductorGeom, [0.18, -0.35, 0.02], [0, 0, 0.08]);
+
+    // 15. CALVES
+    createMuscleMesh("calves", calfGeom, [-0.42, -1.95, -0.12], [-0.05, 0, 0.03]);
+    createMuscleMesh("calves", calfGeom, [0.42, -1.95, -0.12], [-0.05, 0, -0.03]);
+
+    // 16. TIBIALIS
+    createMuscleMesh("tibialis", tibialisGeom, [-0.42, -1.95, 0.12], [0.05, 0, 0.03]);
+    createMuscleMesh("tibialis", tibialisGeom, [0.42, -1.95, 0.12], [0.05, 0, -0.03]);
+
+    muscleMeshesRef.current = muscleMap;
+
+    // Render loop
+    const animate = () => {
+      reqIdRef.current = requestAnimationFrame(animate);
+      if (renderer) {
+        renderer.render(scene, camera);
+      }
+    };
+    if (renderer) animate();
+
+    const handleResize = () => {
+      if (!container || !camera || !renderer) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (reqIdRef.current) cancelAnimationFrame(reqIdRef.current);
+      if (renderer) renderer.dispose();
+    };
+  }, []);
+
+  // Raycaster for 3D Muscle Click and Hover
+  const handlePointerRaycast = useCallback(
+    (clientX: number, clientY: number, isClick: boolean) => {
+      const container = mountRef.current;
+      const camera = cameraRef.current;
+      const bodyGroup = bodyGroupRef.current;
+      if (!container || !camera || !bodyGroup) return;
+
+      const rect = container.getBoundingClientRect();
+      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((clientY - rect.height) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(x, y), camera);
+
+      const intersects = raycaster.intersectObjects(bodyGroup.children, true);
+      if (intersects.length > 0) {
+        const hit = intersects.find((i) => (i.object as any).userData?.muscleId);
+        if (hit) {
+          const muscleId = (hit.object as any).userData.muscleId as MuscleGroupId;
+          if (isClick) {
+            onSelectMuscle(muscleId);
+          } else {
+            onHoverMuscle?.(muscleId);
+          }
+          return;
         }
       }
+      if (!isClick) onHoverMuscle?.(null);
     },
-    [onSelectMuscle, currentPerspective]
+    [onSelectMuscle, onHoverMuscle]
   );
 
-  // Mouse / Touch Drag to Rotate
+  // Mouse & Touch Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setIsAutoRotating(false);
@@ -311,63 +553,72 @@ export function InteractiveBodyMap({
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (!isDragging) return;
-      const deltaX = e.clientX - dragStartXRef.current;
-      const newAngle = (startAngleRef.current + deltaX * 0.75 + 360) % 360;
-      setRotationAngle(newAngle);
+      if (isDragging) {
+        const deltaX = e.clientX - dragStartXRef.current;
+        const newAngle = (startAngleRef.current + deltaX * 0.85 + 360) % 360;
+        setRotationAngle(newAngle);
+      } else {
+        handlePointerRaycast(e.clientX, e.clientY, false);
+      }
     },
-    [isDragging]
+    [isDragging, handlePointerRaycast]
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       if (!isDragging || e.touches.length === 0) return;
       const deltaX = e.touches[0].clientX - dragStartXRef.current;
-      const newAngle = (startAngleRef.current + deltaX * 0.75 + 360) % 360;
+      const newAngle = (startAngleRef.current + deltaX * 0.85 + 360) % 360;
       setRotationAngle(newAngle);
     },
     [isDragging]
   );
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback(
+    (e: MouseEvent) => {
+      if (isDragging) {
+        // If movement was minimal, consider it a click!
+        if (Math.abs(e.clientX - dragStartXRef.current) < 5) {
+          handlePointerRaycast(e.clientX, e.clientY, true);
+        }
+        setIsDragging(false);
+      }
+    },
+    [isDragging, handlePointerRaycast]
+  );
+
+  const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
   }, []);
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-      window.addEventListener("touchmove", handleTouchMove);
-      window.addEventListener("touchend", handleMouseUp);
-    } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleMouseUp);
-    }
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", handleTouchEnd);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
       window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleMouseUp);
+      window.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [isDragging, handleMouseMove, handleTouchMove, handleMouseUp]);
+  }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // Active muscle pin coordinate for current perspective
-  const selectedDef = selectedMuscle ? MUSCLE_DEFINITIONS[selectedMuscle] : null;
-  const activePin = selectedDef?.pinCoordinates?.[currentPerspective] || null;
-
-  const getOverlayOpacity = (id: MuscleGroupId) => {
-    if (selectedMuscle === id) return 0.65;
-    if (hoveredMuscle === id) return 0.4;
-    return 0.08;
-  };
-
-  const getStrokeOpacity = (id: MuscleGroupId) => {
-    if (selectedMuscle === id) return 1.0;
-    if (hoveredMuscle === id) return 0.8;
-    return 0.15;
-  };
+  // When a muscle is selected, smoothly rotate the 3D model if on opposite side
+  const handleSelectMuscleAndAutoFace = useCallback(
+    (muscleId: MuscleGroupId) => {
+      onSelectMuscle(muscleId);
+      const def = MUSCLE_DEFINITIONS[muscleId];
+      if (def) {
+        if (def.view === "posterior" && currentPerspective === "anterior") {
+          setRotationAngle(180);
+        } else if (def.view === "anterior" && currentPerspective === "posterior") {
+          setRotationAngle(0);
+        }
+      }
+    },
+    [onSelectMuscle, currentPerspective]
+  );
 
   return (
     <div
@@ -386,12 +637,12 @@ export function InteractiveBodyMap({
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black tracking-tight text-white">3D Anatomy Turntable</h3>
+              <h3 className="text-sm font-black tracking-tight text-white">WebGL 3D Human Anatomy Model</h3>
               <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                360° Interactive
+                GPU 3D
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Drag body to rotate 360° or click muscles to isolate</p>
+            <p className="text-[11px] text-slate-400 font-medium">Click any 3D muscle volume directly or drag to rotate 360°</p>
           </div>
         </div>
 
@@ -448,534 +699,18 @@ export function InteractiveBodyMap({
         </div>
       </div>
 
-      {/* 3D Perspective Viewport */}
+      {/* Real WebGL 3D Canvas Viewport */}
       <div
-        ref={containerRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        className="relative w-full max-w-[340px] aspect-[9/16] rounded-3xl overflow-hidden bg-slate-950 border-2 border-slate-800/80 shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing group select-none"
-        style={{ perspective: "1200px" }}
+        className="relative w-full max-w-[340px] aspect-[9/16] rounded-3xl overflow-hidden bg-[#0a0f1d] border-2 border-slate-800/80 shadow-2xl flex items-center justify-center cursor-grab active:cursor-grabbing group select-none"
       >
-        {/* 3D Rotating Model Body */}
-        <div
-          className="relative w-full h-full transition-transform duration-100 ease-out"
-          style={{
-            transformStyle: "preserve-3d",
-            transform: `rotateY(${(rotationAngle % 90) - 45}deg)`,
-          }}
-        >
-          {/* Medical 3D Render Image */}
-          <img
-            src={
-              currentPerspective === "anterior"
-                ? "/anatomy/body_anterior.jpg"
-                : currentPerspective === "lateral"
-                ? "/anatomy/body_lateral.jpg"
-                : "/anatomy/body_posterior.jpg"
-            }
-            alt={`3D Human Anatomy — ${currentPerspective}`}
-            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
-          />
+        {/* Three.js Canvas Mount */}
+        <div ref={mountRef} className="w-full h-full" />
 
-          {/* Ambient Lighting Vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
-
-          {/* Interactive SVG Muscle Overlay Hotspots */}
-          <svg
-            viewBox="0 0 360 640"
-            className="absolute inset-0 w-full h-full"
-          >
-            <defs>
-              <filter id="hyperCyanGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="8" result="blur" />
-                <feComponentTransfer in="blur" result="glow">
-                  <feFuncA type="linear" slope="3.5" />
-                </feComponentTransfer>
-                <feMerge>
-                  <feMergeNode in="glow" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-
-            {currentPerspective === "anterior" ? (
-              /* ANTERIOR (FRONT) HOTSPOTS */
-              <g>
-                {/* Shoulders */}
-                <g
-                  data-testid="muscle-shoulders"
-                  onClick={() => handleSelectMuscleAndAutoFace("shoulders")}
-                  onMouseEnter={() => onHoverMuscle?.("shoulders")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M95 120 Q70 140 72 175 Q95 190 115 170 Q120 140 120 120 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("shoulders")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "shoulders" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("shoulders")}
-                    filter={selectedMuscle === "shoulders" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M265 120 Q290 140 288 175 Q265 190 245 170 Q240 140 240 120 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("shoulders")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "shoulders" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("shoulders")}
-                    filter={selectedMuscle === "shoulders" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Chest */}
-                <g
-                  data-testid="muscle-chest"
-                  onClick={() => handleSelectMuscleAndAutoFace("chest")}
-                  onMouseEnter={() => onHoverMuscle?.("chest")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M178 125 L125 125 Q105 155 115 185 Q150 198 178 180 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("chest")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "chest" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("chest")}
-                    filter={selectedMuscle === "chest" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M182 125 L235 125 Q255 155 245 185 Q210 198 182 180 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("chest")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "chest" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("chest")}
-                    filter={selectedMuscle === "chest" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Biceps */}
-                <g
-                  data-testid="muscle-biceps"
-                  onClick={() => handleSelectMuscleAndAutoFace("biceps")}
-                  onMouseEnter={() => onHoverMuscle?.("biceps")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M72 178 Q60 215 68 245 Q90 245 96 215 Q95 178 72 178 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("biceps")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "biceps" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("biceps")}
-                    filter={selectedMuscle === "biceps" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M288 178 Q300 215 292 245 Q270 245 264 215 Q265 178 288 178 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("biceps")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "biceps" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("biceps")}
-                    filter={selectedMuscle === "biceps" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Forearms */}
-                <g
-                  data-testid="muscle-forearms"
-                  onClick={() => handleSelectMuscleAndAutoFace("forearms")}
-                  onMouseEnter={() => onHoverMuscle?.("forearms")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M66 250 Q48 290 42 340 Q62 340 76 290 Q80 250 66 250 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("forearms")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "forearms" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("forearms")}
-                    filter={selectedMuscle === "forearms" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M294 250 Q312 290 318 340 Q298 340 284 290 Q280 250 294 250 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("forearms")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "forearms" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("forearms")}
-                    filter={selectedMuscle === "forearms" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Abs */}
-                <g
-                  data-testid="muscle-abs"
-                  onClick={() => handleSelectMuscleAndAutoFace("abs")}
-                  onMouseEnter={() => onHoverMuscle?.("abs")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M152 188 L208 188 L202 290 L158 290 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("abs")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "abs" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("abs")}
-                    filter={selectedMuscle === "abs" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Obliques */}
-                <g
-                  data-testid="muscle-obliques"
-                  onClick={() => handleSelectMuscleAndAutoFace("obliques")}
-                  onMouseEnter={() => onHoverMuscle?.("obliques")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M125 195 L150 195 L155 285 L135 295 Q120 245 125 195 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("obliques")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "obliques" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("obliques")}
-                    filter={selectedMuscle === "obliques" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M235 195 L210 195 L205 285 L225 295 Q240 245 235 195 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("obliques")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "obliques" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("obliques")}
-                    filter={selectedMuscle === "obliques" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Quadriceps */}
-                <g
-                  data-testid="muscle-quads"
-                  onClick={() => handleSelectMuscleAndAutoFace("quads")}
-                  onMouseEnter={() => onHoverMuscle?.("quads")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M125 315 Q105 385 115 465 Q140 470 156 465 Q165 385 155 315 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("quads")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "quads" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("quads")}
-                    filter={selectedMuscle === "quads" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M235 315 Q255 385 245 465 Q220 470 204 465 Q195 385 205 315 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("quads")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "quads" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("quads")}
-                    filter={selectedMuscle === "quads" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Adductors */}
-                <g
-                  data-testid="muscle-adductors"
-                  onClick={() => handleSelectMuscleAndAutoFace("adductors")}
-                  onMouseEnter={() => onHoverMuscle?.("adductors")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M156 325 Q175 385 168 450 L158 450 Q165 385 156 325 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("adductors")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "adductors" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("adductors")}
-                    filter={selectedMuscle === "adductors" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M204 325 Q185 385 192 450 L202 450 Q195 385 204 325 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("adductors")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "adductors" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("adductors")}
-                    filter={selectedMuscle === "adductors" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Tibialis */}
-                <g
-                  data-testid="muscle-tibialis"
-                  onClick={() => handleSelectMuscleAndAutoFace("tibialis")}
-                  onMouseEnter={() => onHoverMuscle?.("tibialis")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M125 480 Q118 545 125 610 Q142 610 148 545 Q145 480 125 480 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("tibialis")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "tibialis" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("tibialis")}
-                    filter={selectedMuscle === "tibialis" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M235 480 Q242 545 235 610 Q218 610 212 545 Q215 480 235 480 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("tibialis")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "tibialis" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("tibialis")}
-                    filter={selectedMuscle === "tibialis" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-              </g>
-            ) : currentPerspective === "posterior" ? (
-              /* POSTERIOR (BACK) HOTSPOTS */
-              <g>
-                {/* Traps */}
-                <g
-                  data-testid="muscle-traps"
-                  onClick={() => handleSelectMuscleAndAutoFace("traps")}
-                  onMouseEnter={() => onHoverMuscle?.("traps")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M180 100 L140 120 L135 155 L180 215 L225 155 L220 120 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("traps")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "traps" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("traps")}
-                    filter={selectedMuscle === "traps" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Rear Delts */}
-                <g
-                  data-testid="muscle-reardelts"
-                  onClick={() => handleSelectMuscleAndAutoFace("shoulders")}
-                  onMouseEnter={() => onHoverMuscle?.("shoulders")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M95 120 Q70 140 72 175 Q95 190 115 170 Q120 140 120 120 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("shoulders")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "shoulders" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("shoulders")}
-                    filter={selectedMuscle === "shoulders" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M265 120 Q290 140 288 175 Q265 190 245 170 Q240 140 240 120 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("shoulders")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "shoulders" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("shoulders")}
-                    filter={selectedMuscle === "shoulders" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Triceps */}
-                <g
-                  data-testid="muscle-triceps"
-                  onClick={() => handleSelectMuscleAndAutoFace("triceps")}
-                  onMouseEnter={() => onHoverMuscle?.("triceps")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M72 178 Q60 215 68 250 Q90 250 96 215 Q95 178 72 178 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("triceps")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "triceps" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("triceps")}
-                    filter={selectedMuscle === "triceps" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M288 178 Q300 215 292 250 Q270 250 264 215 Q265 178 288 178 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("triceps")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "triceps" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("triceps")}
-                    filter={selectedMuscle === "triceps" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Lats */}
-                <g
-                  data-testid="muscle-lats"
-                  onClick={() => handleSelectMuscleAndAutoFace("lats")}
-                  onMouseEnter={() => onHoverMuscle?.("lats")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M135 170 Q112 205 125 265 L175 265 L175 220 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("lats")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "lats" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("lats")}
-                    filter={selectedMuscle === "lats" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M225 170 Q248 205 235 265 L185 265 L185 220 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("lats")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "lats" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("lats")}
-                    filter={selectedMuscle === "lats" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Lower Back */}
-                <g
-                  data-testid="muscle-lower_back"
-                  onClick={() => handleSelectMuscleAndAutoFace("lower_back")}
-                  onMouseEnter={() => onHoverMuscle?.("lower_back")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M162 268 L198 268 L192 320 L168 320 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("lower_back")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "lower_back" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("lower_back")}
-                    filter={selectedMuscle === "lower_back" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Glutes */}
-                <g
-                  data-testid="muscle-glutes"
-                  onClick={() => handleSelectMuscleAndAutoFace("glutes")}
-                  onMouseEnter={() => onHoverMuscle?.("glutes")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M125 325 Q115 375 175 385 L178 325 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("glutes")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "glutes" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("glutes")}
-                    filter={selectedMuscle === "glutes" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M235 325 Q245 375 185 385 L182 325 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("glutes")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "glutes" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("glutes")}
-                    filter={selectedMuscle === "glutes" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Hamstrings */}
-                <g
-                  data-testid="muscle-hamstrings"
-                  onClick={() => handleSelectMuscleAndAutoFace("hamstrings")}
-                  onMouseEnter={() => onHoverMuscle?.("hamstrings")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M120 395 Q112 445 122 475 Q148 475 168 470 Q172 420 168 395 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("hamstrings")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "hamstrings" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("hamstrings")}
-                    filter={selectedMuscle === "hamstrings" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M240 395 Q248 445 238 475 Q212 475 192 470 Q188 420 192 395 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("hamstrings")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "hamstrings" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("hamstrings")}
-                    filter={selectedMuscle === "hamstrings" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-
-                {/* Calves */}
-                <g
-                  data-testid="muscle-calves"
-                  onClick={() => handleSelectMuscleAndAutoFace("calves")}
-                  onMouseEnter={() => onHoverMuscle?.("calves")}
-                  onMouseLeave={() => onHoverMuscle?.(null)}
-                >
-                  <path
-                    d="M118 490 Q108 545 125 615 Q144 615 152 545 Q148 490 118 490 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("calves")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "calves" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("calves")}
-                    filter={selectedMuscle === "calves" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                  <path
-                    d="M242 490 Q252 545 235 615 Q216 615 208 545 Q212 490 242 490 Z"
-                    fill="#00f5ff"
-                    fillOpacity={getOverlayOpacity("calves")}
-                    stroke="#00f5ff"
-                    strokeWidth={selectedMuscle === "calves" ? "3" : "1.5"}
-                    strokeOpacity={getStrokeOpacity("calves")}
-                    filter={selectedMuscle === "calves" ? "url(#hyperCyanGlow)" : undefined}
-                  />
-                </g>
-              </g>
-            ) : (
-              /* LATERAL (SIDE) HOTSPOTS */
-              <g>
-                <rect
-                  x="140"
-                  y="120"
-                  width="80"
-                  height="460"
-                  rx="40"
-                  fill="#00f5ff"
-                  fillOpacity={selectedMuscle ? 0.25 : 0.05}
-                  stroke="#00f5ff"
-                  strokeWidth="2"
-                  strokeDasharray="6 4"
-                  className="animate-pulse"
-                />
-              </g>
-            )}
-          </svg>
-
-          {/* Glowing Animated Target Pinpoint over Active Selected Muscle */}
-          {activePin && (
-            <div
-              className="absolute -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-all duration-500 ease-out z-20"
-              style={{ left: `${activePin.x}%`, top: `${activePin.y}%` }}
-            >
-              <div className="relative flex items-center justify-center">
-                <span className="absolute w-8 h-8 rounded-full bg-cyan-400/40 animate-ping" />
-                <span className="w-4 h-4 rounded-full bg-cyan-400 border-2 border-white shadow-lg shadow-cyan-400/80" />
-                <div className="absolute left-6 whitespace-nowrap px-2.5 py-1 rounded-lg bg-slate-950/90 border border-cyan-400/80 text-[10px] font-black text-white shadow-xl shadow-cyan-500/30 backdrop-blur-md">
-                  {selectedDef?.name.split(" ")[0]}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* HUD Medical Pinpoint Indicator on Active Muscle */}
+        {/* HUD Medical Callout for Selected Muscle */}
         {selectedMuscle && (
-          <div className="absolute bottom-3 left-3 right-3 py-2 px-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-cyan-500/50 flex items-center justify-between text-xs shadow-2xl shadow-cyan-500/20 z-30">
+          <div className="absolute bottom-3 left-3 right-3 py-2 px-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-cyan-500/50 flex items-center justify-between text-xs shadow-2xl shadow-cyan-500/20 z-30 pointer-events-none">
             <div className="flex items-center gap-2">
               <Crosshair size={15} className="text-cyan-400 animate-spin" style={{ animationDuration: "6s" }} />
               <div>
@@ -994,7 +729,7 @@ export function InteractiveBodyMap({
         )}
       </div>
 
-      {/* 360 Rotation Turntable Slider Control */}
+      {/* 360 Rotation Slider Control */}
       <div className="w-full mt-3 px-2 flex items-center gap-3">
         <RotateCw size={13} className="text-slate-500 shrink-0" />
         <input

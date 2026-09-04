@@ -21,7 +21,7 @@ describe("InteractiveBodyMap Component", () => {
     expect(screen.getByTestId("interactive-body-map")).toBeDefined();
     expect(screen.getByTestId("toggle-anterior")).toBeDefined();
     expect(screen.getByTestId("toggle-posterior")).toBeDefined();
-    expect(screen.getByTestId("muscle-chest")).toBeDefined();
+    expect(screen.getByTestId("pill-chest")).toBeDefined();
   });
 
   it("switches to Posterior view when clicking the posterior toggle", () => {
@@ -36,27 +36,13 @@ describe("InteractiveBodyMap Component", () => {
     const posteriorBtn = screen.getByTestId("toggle-posterior");
     fireEvent.click(posteriorBtn);
 
-    expect(screen.getByTestId("muscle-lats")).toBeDefined();
-    expect(screen.getByTestId("muscle-glutes")).toBeDefined();
-    expect(screen.getByTestId("muscle-hamstrings")).toBeDefined();
+    expect(screen.getByTestId("pill-traps")).toBeDefined();
+    expect(screen.getByTestId("pill-lats")).toBeDefined();
+    expect(screen.getByTestId("pill-glutes")).toBeDefined();
+    expect(screen.getByTestId("pill-hamstrings")).toBeDefined();
   });
 
-  it("triggers onSelectMuscle when a muscle region is clicked", () => {
-    const handleSelect = vi.fn();
-    render(
-      <InteractiveBodyMap
-        selectedMuscle={null}
-        onSelectMuscle={handleSelect}
-      />
-    );
-
-    const chestGroup = screen.getByTestId("muscle-chest");
-    fireEvent.click(chestGroup);
-
-    expect(handleSelect).toHaveBeenCalledWith("chest");
-  });
-
-  it("triggers onSelectMuscle when a quick-selector pill is clicked", () => {
+  it("triggers onSelectMuscle when a muscle quick-selector pill is clicked", () => {
     const handleSelect = vi.fn();
     render(
       <InteractiveBodyMap
@@ -71,7 +57,7 @@ describe("InteractiveBodyMap Component", () => {
     expect(handleSelect).toHaveBeenCalledWith("quads");
   });
 
-  it("triggers onHoverMuscle on mouse enter and leave", () => {
+  it("triggers onHoverMuscle on quick-selector pill mouse enter and leave", () => {
     const handleSelect = vi.fn();
     const handleHover = vi.fn();
     render(
@@ -82,11 +68,11 @@ describe("InteractiveBodyMap Component", () => {
       />
     );
 
-    const bicepsGroup = screen.getByTestId("muscle-biceps");
-    fireEvent.mouseEnter(bicepsGroup);
+    const bicepsPill = screen.getByTestId("pill-biceps");
+    fireEvent.mouseEnter(bicepsPill);
     expect(handleHover).toHaveBeenCalledWith("biceps");
 
-    fireEvent.mouseLeave(bicepsGroup);
+    fireEvent.mouseLeave(bicepsPill);
     expect(handleHover).toHaveBeenCalledWith(null);
   });
 
