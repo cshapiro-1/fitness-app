@@ -147,5 +147,29 @@ describe("InteractiveBodyMap Component", () => {
     expect(screen.getByText("Chest (Pectorals)")).toBeDefined();
     expect(screen.getByText("Selected")).toBeDefined();
   });
-});
 
+  it("switches between 3D Model and Medical Diagram view modes seamlessly", () => {
+    const handleSelect = vi.fn();
+    render(
+      <InteractiveBodyMap
+        selectedMuscle="chest"
+        onSelectMuscle={handleSelect}
+      />
+    );
+
+    const diagramModeBtn = screen.getByTestId("mode-toggle-diagram");
+    expect(diagramModeBtn).toBeDefined();
+
+    fireEvent.click(diagramModeBtn);
+
+    // Verify medical diagram image renders
+    const diagramImg = screen.getByAltText("Medical Anatomy Diagram");
+    expect(diagramImg).toBeDefined();
+    expect(diagramImg.getAttribute("src")).toBe("/anatomy/body_anterior.jpg");
+
+    // Switch back to 3D mode
+    const threeDModeBtn = screen.getByTestId("mode-toggle-3d");
+    fireEvent.click(threeDModeBtn);
+    expect(screen.getByTestId("interactive-body-map")).toBeDefined();
+  });
+});
