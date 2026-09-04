@@ -199,7 +199,8 @@ CRITICAL EXERCISE SCIENCE PRINCIPLES:
    - Total volume = Sum(weight * reps * sets). Working load = weight on the barbell for a single set. Never confuse total session volume with working weight!
 3. TONE & FORMAT:
    - Be authoritative, encouraging, concise, and structured with bullet points.
-   - If recommending a workout routine or progression, clearly specify exercise names, sets, reps, and weights.`;
+   - If recommending a workout routine or progression, clearly specify exercise names, sets, reps, and weights.
+${userRole === "CLIENT" ? `4. ATHLETE RESTRICTION: The user is an athlete (role: CLIENT). If the user asks you to create, generate, or design a workout plan, routine, or training split, you MUST politely refuse. Inform them that automated program generation is an exclusive feature of the STRKYR Coach Studio, and that they can manually construct workouts in the Workout Logger or reach out to Coach Collin for personalized programming.` : ""}`;
 
         const userPrompt = `Athlete Context: ${targetName} (${userRole})
 Recent Logged Training History:
@@ -261,7 +262,8 @@ CRITICAL RULES:
 - Progressive overload on Deadlift/Squat is strictly +5 to +10 lbs (e.g. from 205 lbs to 210-215 lbs, NEVER 600 lbs!).
 - Upper body compound: +2.5 to +5 lbs.
 - Apply the NSCA 2-for-2 rule.
-- Do not confuse session cumulative volume with single-set working load.`,
+- Do not confuse session cumulative volume with single-set working load.
+${userRole === "CLIENT" ? `- STRICT ATHLETE RESTRICTION: The user is an athlete (CLIENT). If asked to generate, create, or design a workout plan, routine, or split, decline politely and state that automated program design is exclusive to the STRKYR Coach Studio, but they can build workouts manually in the Workout Logger.` : ""}`,
               },
               {
                 role: "user",
@@ -293,7 +295,7 @@ CRITICAL RULES:
         name: targetName,
       },
       answer: finalAnswer,
-      action: result.action || null,
+      action: userRole === "CLIENT" ? null : (result.action || null),
       referencedExercises: result.referencedExercises,
       metricsFound: result.metricsFound,
       generatedAt: new Date().toISOString(),

@@ -75,6 +75,14 @@ export function answerFitnessQuery(query: string, context: AIChatContext): AICha
     normalizedQuery.includes("lower body");
 
   if (isCreateIntent) {
+    // Strict Guardrail: Solo clients / athletes cannot use AI to generate workout plans or routines
+    if (requesterRole === "CLIENT") {
+      return {
+        answer: `🔒 **Coach Exclusive Feature**: Automated periodized workout plan and routine generation is exclusively reserved for coaches in the **STRKYR Coach Studio**.\n\nAs an athlete, you can construct, customize, and log your own custom workouts anytime using the **Solo Workout Builder** in your athlete dashboard, or connect with Coach Collin for a personalized periodized program!`,
+        referencedExercises: [],
+      };
+    }
+
     let routineName = "Custom Hypertrophy Workout";
     let routineExercises: Array<{
       name: string;
@@ -301,6 +309,13 @@ export function answerFitnessQuery(query: string, context: AIChatContext): AICha
     normalizedQuery.includes("i just finished");
 
   if (isLogIntent) {
+    if (requesterRole === "CLIENT") {
+      return {
+        answer: `📝 **Ready to Log Your Solo Workout:**\n\nYou can track and log your exercises, sets, weights, and reps directly in the **Workout Logger** tab. Select your movements from our 120+ exercise library and start your session!`,
+        referencedExercises: ["Workout Logger"],
+      };
+    }
+
     return {
       answer: `📝 **Ready to Log Workout Session for ${targetLabel}:**\n\nI have parsed your session details. Click below to load these movements directly into the live gym logger so your volume kinematics and 1RM progression update instantly.`,
       referencedExercises: ["Live Gym Logger"],

@@ -182,6 +182,26 @@ export const authOptions: NextAuthOptions = {
                 }
                 dbUser.clientProfileId = matchedClient.id;
                 dbUser.role = targetRole;
+              } else if (dbUser.role === "CLIENT") {
+                try {
+                  const soloClient = await prisma.client.create({
+                    data: {
+                      userId: dbUser.id,
+                      name: dbUser.name || "Solo Athlete",
+                      email: cleanEmail,
+                      image: incomingImage || dbUser.image,
+                      inviteStatus: "ACCEPTED",
+                      notes: "Personal Solo Athlete Profile",
+                    },
+                  });
+                  await prisma.user.update({
+                    where: { id: dbUser.id },
+                    data: { clientProfileId: soloClient.id },
+                  });
+                  dbUser.clientProfileId = soloClient.id;
+                } catch (e) {
+                  console.error("Failed to auto-create solo client profile:", e);
+                }
               }
             }
 

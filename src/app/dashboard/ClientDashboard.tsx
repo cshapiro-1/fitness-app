@@ -46,6 +46,8 @@ import { ProgramPlanner } from "./components/ProgramPlanner";
 import { TextImportModal } from "./components/TextImportModal";
 import { StudioNavTabs, StudioTabType } from "./components/StudioNavTabs";
 import { RemoveAssignedWorkoutsModal } from "./components/RemoveAssignedWorkoutsModal";
+import { WorkoutBuilder } from "./components/WorkoutBuilder";
+import { DraftWorkout, WorkoutSession } from "./types";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { StrkyrLogo } from "@/components/StrkyrLogo";
 import { playTimerCompletionBeep, prewarmAudio } from "@/lib/soundAlert";
@@ -86,6 +88,23 @@ export function ClientDashboard({
   const [showAIChatModal, setShowAIChatModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+
+  // Workout Builder State for Solo Athlete Workouts
+  const [activeWorkout, setActiveWorkout] = useState<DraftWorkout | null>(null);
+  const [exercisePicker, setExercisePicker] = useState("");
+  const [savingWorkout, setSavingWorkout] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [draftRestoredNotice, setDraftRestoredNotice] = useState(false);
+  const [clientProfileId, setClientProfileId] = useState<string | null>(null);
+
+  const athleteClientId =
+    clientProfileId ||
+    workouts[0]?.clientId ||
+    (session?.user as any)?.clientProfileId ||
+    (session?.user as any)?.id ||
+    "self";
+
+  const hasUnsavedWorkout = !!(activeWorkout && activeWorkout.exercises && activeWorkout.exercises.length > 0);
 
   // Anatomy Guide Modal State
   const [selectedAnatomyExercise, setSelectedAnatomyExercise] = useState<string | null>(null);
@@ -128,6 +147,9 @@ export function ClientDashboard({
           if (data.user?.image) {
             setCurrentImage(data.user.image);
           }
+          if (data.user?.clientProfileId) {
+            setClientProfileId(data.user.clientProfileId);
+          }
         }
       } catch (err) {
         console.error("Failed to load profile image", err);
@@ -135,6 +157,35 @@ export function ClientDashboard({
     }
     loadProfile();
   }, []);
+
+  // Restore workout draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("strkyr_athlete_active_draft");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+          setActiveWorkout(parsed);
+          setDraftRestoredNotice(true);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore athlete workout draft", e);
+    }
+  }, []);
+
+  // Auto-save active workout draft
+  useEffect(() => {
+    try {
+      if (activeWorkout && activeWorkout.exercises && activeWorkout.exercises.length > 0) {
+        localStorage.setItem("strkyr_athlete_active_draft", JSON.stringify(activeWorkout));
+      } else {
+        localStorage.removeItem("strkyr_athlete_active_draft");
+      }
+    } catch (e) {
+      console.error("Failed to auto-save athlete workout draft", e);
+    }
+  }, [activeWorkout]);
 
   // Auto-launch athlete tour on first join
   useEffect(() => {
@@ -155,19 +206,15 @@ export function ClientDashboard({
         const parsed = JSON.parse(draftMuscle);
         localStorage.removeItem("strkyr_draft_muscle_workout");
         if (parsed.exercises && parsed.exercises.length > 0) {
-          setEditingWorkout({
-            id: undefined,
-            title: parsed.name || "Targeted Muscle Workout",
-            status: "IN_PROGRESS",
+          setActiveWorkout({
             startedAt: new Date().toISOString(),
             notes: parsed.name || "Targeted Muscle Workout",
-            exercises: parsed.exercises.map((exName: string, i: number) => ({
-              id: `temp-${i}`,
+            exercises: parsed.exercises.map((exName: string) => ({
               name: exName,
-              orderIndex: i,
-              sets: [{ id: `set-${i}-0`, setNumber: 1, weight: 0, reps: 10, notes: "" }],
+              sets: [{ weight: "", reps: "10", notes: "" }],
             })),
           });
+          setTab("assigned");
         }
       }
 
@@ -176,29 +223,24 @@ export function ClientDashboard({
         const parsed = JSON.parse(directPick);
         localStorage.removeItem("strkyr_direct_exercise_pick");
         if (parsed.name) {
-          setEditingWorkout((prev: any) => {
+          setActiveWorkout((prev) => {
             const base = prev || {
-              id: undefined,
-              title: "Active Workout Session",
-              status: "IN_PROGRESS",
               startedAt: new Date().toISOString(),
               notes: "",
               exercises: [],
             };
-            const nextIdx = base.exercises ? base.exercises.length : 0;
             return {
               ...base,
               exercises: [
-                ...(base.exercises || []),
+                ...base.exercises,
                 {
-                  id: `temp-${nextIdx}`,
                   name: parsed.name,
-                  orderIndex: nextIdx,
-                  sets: [{ id: `set-${nextIdx}-0`, setNumber: 1, weight: 0, reps: 10, notes: "" }],
+                  sets: [{ weight: "", reps: "10", notes: "" }],
                 },
               ],
             };
           });
+          setTab("assigned");
         }
       }
     } catch (e) {
@@ -398,6 +440,165 @@ export function ClientDashboard({
     } finally {
       setRepeatingWorkoutId(null);
       setRepeatingWorkoutForModal(null);
+    }
+  };
+
+  const startWorkout = () => {
+    setActiveWorkout({
+      startedAt: new Date().toISOString(),
+      notes: "",
+      exercises: [{ name: "Barbell Bench Press", sets: [{ weight: "", reps: "", notes: "" }] }],
+    });
+    setDraftRestoredNotice(false);
+  };
+
+  const beginPlannedWorkout = (workout: WorkoutSession) => {
+    setActiveWorkout({
+      plannedWorkoutId: workout.id,
+      startedAt: new Date().toISOString(),
+      notes: workout.notes || "",
+      exercises: (workout.exercises || []).map((ex) => ({
+        name: ex.name,
+        isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
+        category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
+        sets: (ex.sets || []).map((s) => ({
+          weight: String(s.weight),
+          reps: String(s.reps),
+          notes: s.notes || "",
+        })),
+      })),
+    });
+    setDraftRestoredNotice(false);
+  };
+
+  const discardActiveWorkout = () => {
+    if (!confirm("Are you sure you want to discard this in-progress workout draft?")) return;
+    try {
+      localStorage.removeItem("strkyr_athlete_active_draft");
+    } catch {}
+    setActiveWorkout(null);
+    setDraftRestoredNotice(false);
+  };
+
+  const saveWorkoutPlan = async () => {
+    if (!activeWorkout) return;
+    setSavingPlan(true);
+    try {
+      const payload = {
+        clientId: athleteClientId,
+        status: "PLANNED",
+        notes: activeWorkout.notes || null,
+        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+          name: ex.name,
+          order: exIndex,
+          isBodyweight: !!ex.isBodyweight,
+          category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
+          sets: ex.sets.map((s, sIndex) => ({
+            order: sIndex,
+            weight: parseFloat(s.weight) || 0,
+            reps: parseInt(s.reps, 10) || 0,
+            notes: s.notes || null,
+          })),
+        })),
+      };
+
+      if (activeWorkout.plannedWorkoutId) {
+        const res = await fetch(`/api/workouts/${activeWorkout.plannedWorkoutId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          setWorkouts((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
+          try {
+            localStorage.removeItem("strkyr_athlete_active_draft");
+          } catch {}
+          setActiveWorkout(null);
+          setDraftRestoredNotice(false);
+        } else {
+          const err = await res.json().catch(() => null);
+          alert(err?.error || "Failed to update workout plan.");
+        }
+      } else {
+        const res = await fetch("/api/workouts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setWorkouts((prev) => [saved, ...prev]);
+          try {
+            localStorage.removeItem("strkyr_athlete_active_draft");
+          } catch {}
+          setActiveWorkout(null);
+          setDraftRestoredNotice(false);
+        } else {
+          const err = await res.json().catch(() => null);
+          alert(err?.error || "Failed to save workout plan.");
+        }
+      }
+    } catch {
+      alert("Error saving workout plan.");
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const completeWorkout = async () => {
+    if (!activeWorkout) return;
+    setSavingWorkout(true);
+    try {
+      const payload = {
+        clientId: athleteClientId,
+        status: "COMPLETED",
+        startedAt: activeWorkout.startedAt,
+        completedAt: new Date().toISOString(),
+        notes: activeWorkout.notes || null,
+        plannedWorkoutId: activeWorkout.plannedWorkoutId || null,
+        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+          name: ex.name,
+          order: exIndex,
+          isBodyweight: !!ex.isBodyweight,
+          category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
+          sets: ex.sets.map((s, sIndex) => ({
+            order: sIndex,
+            weight: parseFloat(s.weight) || 0,
+            reps: parseInt(s.reps, 10) || 0,
+            notes: s.notes || null,
+          })),
+        })),
+      };
+
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        setWorkouts((prev) => {
+          if (activeWorkout.plannedWorkoutId) {
+            return prev.map((w) => (w.id === activeWorkout.plannedWorkoutId ? saved : w));
+          }
+          return [saved, ...prev];
+        });
+        try {
+          localStorage.removeItem("strkyr_athlete_active_draft");
+        } catch {}
+        setActiveWorkout(null);
+        setDraftRestoredNotice(false);
+        setTab("history");
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "Failed to log workout.");
+      }
+    } catch {
+      alert("Error logging workout.");
+    } finally {
+      setSavingWorkout(false);
     }
   };
 
@@ -831,7 +1032,7 @@ export function ClientDashboard({
           onSelectTab={(t) => setTab(t === "log" ? "assigned" : t)}
           plannedCount={planned.length}
           completedCount={completed.length}
-          hasActiveWorkout={!!inProgressWorkout}
+          hasActiveWorkout={hasUnsavedWorkout || !!inProgressWorkout}
         />
 
         {/* TAB: Program Planner View for Athlete */}
@@ -841,201 +1042,38 @@ export function ClientDashboard({
             onStartPlannedWorkout={(wId) => {
               const found = planned.find((pw: any) => pw.id === wId);
               if (found) {
-                setEditingWorkout(found);
+                beginPlannedWorkout(found);
+                setTab("assigned");
               }
             }}
           />
         )}
 
-        {/* TAB 1: Assigned Workouts */}
+        {/* TAB 1: Solo Workout Builder & Assigned Routines */}
         {tab === "assigned" && (
-          <div className="card" data-tour="client-workouts" style={{ padding: "16px 18px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: 800 }}>Assigned Routines from Coach</h3>
-                <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563eb", background: "#eff6ff", padding: "3px 8px", borderRadius: "10px" }}>
-                  {planned.length} Active
-                </span>
-              </div>
-
-              {planned.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setShowRemoveAllModal(true)}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "#dc2626",
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    padding: "5px 10px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                  title="Remove all assigned workouts from your schedule"
-                >
-                  <Trash2 size={13} />
-                  <span>Remove All Assigned ({planned.length})</span>
-                </button>
-              )}
-            </div>
-
-            {loading && (
-              <div className="empty-state">
-                <div className="spin-inline" /> Loading assigned workouts...
-              </div>
-            )}
-
-            {!loading && !planned.length && (
-              <div className="empty-state" style={{ padding: "32px 16px" }}>
-                <Dumbbell size={32} style={{ opacity: 0.3, marginBottom: "8px" }} />
-                <p style={{ margin: 0, fontWeight: 600, color: "#334155" }}>No pending workouts assigned.</p>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>When your coach schedules a routine, it will appear here automatically.</span>
-              </div>
-            )}
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {planned.map((workout) => (
-                <div
-                  key={workout.id}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    padding: "14px 16px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px", flexWrap: "wrap", gap: "6px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Calendar size={14} style={{ color: "#2563eb" }} />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a" }}>
-                        {workout.notes || `Planned Session · ${workout.exercises?.length || 0} Exercises`}
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      {workout.startedAt ? (
-                        <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 700, background: "#eff6ff", padding: "2px 8px", borderRadius: "6px", border: "1px solid #bfdbfe" }}>
-                          📅 Assigned for {new Date(workout.startedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
-                          {new Date(workout.createdAt).toLocaleDateString()}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteWorkout(workout.id)}
-                        className="btn-ghost-danger"
-                        title="Remove assigned workout"
-                        style={{ padding: "3px 6px", borderRadius: "6px" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {workout.notes && (
-                    <div style={{ background: "#f8fafc", padding: "8px 12px", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "12px", color: "#475569", marginBottom: "10px" }}>
-                      <FileText size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
-                      <b>Coach Notes:</b> {workout.notes}
-                    </div>
-                  )}
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {(workout.exercises || []).map((ex: any, idx: number) => {
-                      const isBW = ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name);
-                      return (
-                        <div
-                          key={ex.id || idx}
-                          style={{
-                            background: "#fafafa",
-                            border: "1px solid #f1f5f9",
-                            borderRadius: "8px",
-                            padding: "8px 10px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            fontSize: "12px",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                            <span style={{ fontWeight: 700, color: "#0f172a" }}>{ex.name}</span>
-                            {isBW && (
-                              <span
-                                style={{
-                                  fontSize: "9px",
-                                  fontWeight: 700,
-                                  background: "#f0fdf4",
-                                  color: "#166534",
-                                  border: "1px solid #bbf7d0",
-                                  padding: "1px 5px",
-                                  borderRadius: "4px",
-                                }}
-                              >
-                                Bodyweight
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenAnatomyGuide(ex.name)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                color: "#0284c7",
-                                cursor: "pointer",
-                                padding: "2px 4px",
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "3px",
-                                fontSize: "11px",
-                                fontWeight: 600,
-                              }}
-                              title="View 3D muscle anatomy & form guide"
-                            >
-                              <Activity size={12} />
-                              <span>Anatomy</span>
-                            </button>
-                          </div>
-                          <span style={{ color: "#64748b", fontWeight: 600 }}>
-                            {(ex.sets || []).length} sets
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Workout Action Buttons */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "8px", marginTop: "12px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setEditingWorkout(workout)}
-                      className="btn-secondary"
-                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", padding: "8px 12px" }}
-                      title="Edit planned exercises, sets, weights and notes"
-                    >
-                      <Edit3 size={13} />
-                      <span>Edit Plan</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingWorkout(workout)}
-                      className="btn-primary"
-                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", fontSize: "12px", padding: "8px 14px", background: "#16a34a", color: "#ffffff" }}
-                      title="Track, adjust, and complete this workout"
-                    >
-                      <CheckCircle2 size={13} />
-                      <span>Log &amp; Complete</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <WorkoutBuilder
+            activeWorkout={activeWorkout}
+            setActiveWorkout={setActiveWorkout}
+            exercisePicker={exercisePicker}
+            setExercisePicker={setExercisePicker}
+            plannedWorkouts={planned}
+            historyWorkouts={completed}
+            savingPlan={savingPlan}
+            savingWorkout={savingWorkout}
+            draftRestored={draftRestoredNotice}
+            onClearDraftNotice={() => setDraftRestoredNotice(false)}
+            onStartWorkout={startWorkout}
+            onBeginPlannedWorkout={beginPlannedWorkout}
+            onEditPlannedWorkout={beginPlannedWorkout}
+            onSaveWorkoutPlan={saveWorkoutPlan}
+            onCompleteWorkout={completeWorkout}
+            onDiscardWorkout={discardActiveWorkout}
+            onDeleteWorkout={handleDeleteWorkout}
+            onOpenTextImport={() => setShowTextImportModal(true)}
+            clientId={athleteClientId}
+            clientName={userName || "You"}
+            onClearAllPlanned={() => fetchWorkouts()}
+          />
         )}
 
         {/* TAB 2: Workout History with Interactive Search & Filter */}

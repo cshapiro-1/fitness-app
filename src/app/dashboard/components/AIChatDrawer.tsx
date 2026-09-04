@@ -104,20 +104,23 @@ export function AIChatDrawer({
         text:
           role === "TRAINER"
             ? "👋 **Welcome Coach!** I'm your AI Performance Co-Pilot. You can ask me to draft complete workouts (*'Create a 4-day push/pull/legs split'*), analyze any athlete's 1RM progression, check muscular balance ratios, or generate exercise substitutions."
-            : "👋 **Welcome!** I'm your personal AI Strength Assistant. Ask me to generate workout routines, check your bench/squat progression, find joint-friendly exercise substitutions, or view 3D muscle anatomy guides!",
+            : "👋 **Welcome!** I'm your personal AI Strength Assistant. Ask me about exercise form cues, your personal PR progression, joint-friendly exercise substitutions, or checking 3D muscle anatomy guides!",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        action: {
-          type: "LOAD_INTO_BUILDER",
-          label: "⚡ Build New Hypertrophy Workout",
-          data: {
-            routineName: "Upper Body Hypertrophy",
-            exercises: [
-              { name: "Barbell Bench Press", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "185", reps: "8", notes: "" }, { weight: "185", reps: "8", notes: "" }] },
-              { name: "Lat Pulldown Machine", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "140", reps: "10", notes: "" }, { weight: "140", reps: "10", notes: "" }] },
-              { name: "Standing Dumbbell Lateral Raise", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "25", reps: "12", notes: "" }, { weight: "25", reps: "12", notes: "" }] },
-            ],
-          },
-        },
+        action:
+          role === "TRAINER"
+            ? {
+                type: "LOAD_INTO_BUILDER",
+                label: "⚡ Build New Hypertrophy Workout",
+                data: {
+                  routineName: "Upper Body Hypertrophy",
+                  exercises: [
+                    { name: "Barbell Bench Press", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "185", reps: "8", notes: "" }, { weight: "185", reps: "8", notes: "" }] },
+                    { name: "Lat Pulldown Machine", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "140", reps: "10", notes: "" }, { weight: "140", reps: "10", notes: "" }] },
+                    { name: "Standing Dumbbell Lateral Raise", category: "STRENGTH", isBodyweight: false, sets: [{ weight: "25", reps: "12", notes: "" }, { weight: "25", reps: "12", notes: "" }] },
+                  ],
+                },
+              }
+            : undefined,
       };
       setMessages([welcome]);
     }
@@ -143,10 +146,10 @@ export function AIChatDrawer({
           "Design a lower body power split with squats & RDLs",
         ]
       : [
-          "Create a full body workout for me",
           "How is my bench press progressing?",
           "What can I substitute if my shoulder hurts on bench press?",
           "Do I have any push/pull volume imbalances?",
+          "How do I perform a Barbell Romanian Deadlift?",
         ];
 
   const handleSendMessage = async (queryText?: string) => {
@@ -216,6 +219,9 @@ export function AIChatDrawer({
   };
 
   const handleExecuteAction = (msgId: string, action: AIChatAction) => {
+    if (role === "CLIENT" && (action.type === "LOAD_INTO_BUILDER" || action.type === "ASSIGN_TO_CLIENT")) {
+      return;
+    }
     setExecutedActionIds((prev) => ({ ...prev, [msgId]: true }));
 
     if (action.type === "LOAD_INTO_BUILDER" || action.type === "LOG_WORKOUT") {
@@ -415,7 +421,7 @@ export function AIChatDrawer({
                   {msg.text}
 
                   {/* 1-Click Interactive Action Card */}
-                  {msg.action && (
+                  {msg.action && !(role === "CLIENT" && (msg.action.type === "LOAD_INTO_BUILDER" || msg.action.type === "ASSIGN_TO_CLIENT")) && (
                     <div
                       style={{
                         marginTop: "12px",

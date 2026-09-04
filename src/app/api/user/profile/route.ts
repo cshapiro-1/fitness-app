@@ -74,6 +74,40 @@ export async function GET() {
       }
     }
 
+    // If client has no linked profile, resolve or auto-create self profile
+    if (!user.clientProfileId && user.role === "CLIENT") {
+      let matchedClient = email ? await prisma.client.findFirst({
+        where: { email: { equals: email, mode: "insensitive" } },
+      }) : null;
+
+      if (!matchedClient) {
+        try {
+          matchedClient = await prisma.client.create({
+            data: {
+              userId: user.id,
+              name: user.name || "Solo Athlete",
+              email: user.email,
+              image: userAvatar,
+              inviteStatus: "ACCEPTED",
+              notes: "Personal Solo Athlete Profile",
+            },
+          });
+        } catch (e) {
+          console.error("Auto self client creation failed:", e);
+        }
+      }
+
+      if (matchedClient) {
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { clientProfileId: matchedClient.id },
+          });
+          user.clientProfileId = matchedClient.id;
+        } catch (e) {}
+      }
+    }
+
     const subInfo = await checkTrainerSubscription(user.id);
 
     return NextResponse.json({
@@ -87,6 +121,7 @@ export async function GET() {
         fitnessGoals: user.fitnessGoals,
         role: user.role,
         isAdmin: user.isAdmin,
+        clientProfileId: user.clientProfileId,
         subscriptionProvider: user.subscriptionProvider || "stripe",
         subscriptionStatus: user.subscriptionStatus || "trial",
         subscribedUntil: user.subscribedUntil,

@@ -204,21 +204,48 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     
     const body = await req.json();
-    const { clientId, status, startedAt, completedAt, notes, exercises } = body;
+    let { clientId, status, startedAt, completedAt, notes, exercises } = body;
     
-    if (!clientId || !exercises) return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    if (!exercises) return NextResponse.json({ error: "Missing data: exercises are required" }, { status: 400 });
 
-    const targetClient = await prisma.client.findUnique({
-      where: { id: clientId },
-      select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
-    });
+    let targetClient: any = null;
+    if (clientId && clientId !== "self") {
+      targetClient = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
+      });
+    }
 
+    // If clientId was "self", omitted, or targetClient not found, resolve client for current user/athlete
     if (!targetClient) {
-      return NextResponse.json({ error: "Target client not found" }, { status: 404 });
+      targetClient = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { userId },
+            ...(session?.user?.email ? [{ email: { equals: session.user.email, mode: "insensitive" as const } }] : []),
+          ],
+        },
+        select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
+      });
+
+      // Auto-create self client profile if solo athlete has none
+      if (!targetClient) {
+        targetClient = await prisma.client.create({
+          data: {
+            userId,
+            name: session?.user?.name || "Solo Athlete",
+            email: session?.user?.email || null,
+            inviteStatus: "ACCEPTED",
+            notes: "Personal Solo Athlete Profile",
+          },
+          select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
+        });
+      }
+      clientId = targetClient.id;
     }
 
     const isCoach = targetClient.userId === userId;
-    const isAthlete = session?.user?.email && targetClient.email?.toLowerCase() === session.user.email.toLowerCase();
+    const isAthlete = (session?.user?.email && targetClient.email?.toLowerCase() === session.user.email.toLowerCase()) || targetClient.userId === userId;
     const isAdmin = (session?.user as any)?.isAdmin === true;
 
     if (!isCoach && !isAthlete && !isAdmin) {

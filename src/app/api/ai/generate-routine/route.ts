@@ -81,8 +81,21 @@ export async function POST(req: NextRequest) {
 
     // Optional session - allow guest previews and authenticated users alike
     const session = await getServerSession(authOptions).catch(() => null);
+    const userRole = ((session?.user as any)?.role || "").toUpperCase();
+    const isAdmin = (session?.user as any)?.isAdmin === true;
 
     const body = await req.json().catch(() => ({}));
+
+    // Strict Gating: Solo clients / athletes are prohibited from automated routine/program generation
+    if (userRole === "CLIENT" && !isAdmin && body.sessionType !== "MOBILITY") {
+      return NextResponse.json(
+        {
+          error: "Automated routine generation is reserved for STRKYR Coach Studio. Athletes can design custom solo workouts using the Workout Builder.",
+          code: "COACH_STUDIO_EXCLUSIVE",
+        },
+        { status: 403 }
+      );
+    }
 
     if (body.sessionType === "MOBILITY") {
       const {
