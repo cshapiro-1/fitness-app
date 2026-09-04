@@ -22,11 +22,12 @@ export function middleware(request: NextRequest) {
   // 6. Content Security Policy (CSP)
   const cspHeader = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://js.stripe.com https://cdn.jsdelivr.net https://apis.google.com https://accounts.google.com;
+    worker-src 'self' blob:;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: https: blob: https://*.googleusercontent.com https://lh3.googleusercontent.com https://*.google.com;
     font-src 'self' https://fonts.gstatic.com data:;
-    connect-src 'self' https://api.stripe.com https://*.stripe.com https://*.supabase.co https://*.neon.tech https://*.google.com https://accounts.google.com https://www.googleapis.com https://*.googleusercontent.com https://lh3.googleusercontent.com;
+    connect-src 'self' blob: data: https://api.stripe.com https://*.stripe.com https://*.supabase.co https://*.neon.tech https://*.google.com https://accounts.google.com https://www.googleapis.com https://*.googleusercontent.com https://lh3.googleusercontent.com;
     frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://accounts.google.com;
     object-src 'none';
     base-uri 'self';

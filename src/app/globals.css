@@ -1124,3 +1124,841 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   gap: 8px;
 }
 
+/* ==========================================================================
+   ANATOMY & KINESIOLOGY EXPLORER DESIGN SYSTEM
+   ========================================================================== */
+
+.anatomy-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 20px 80px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Hero Toolbar Bar */
+.anatomy-hero-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  flex-wrap: wrap;
+}
+
+.anatomy-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 240px;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+}
+
+.anatomy-search-input {
+  width: 100%;
+  padding: 9px 36px 9px 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.anatomy-search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.anatomy-search-icon {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+}
+
+.anatomy-search-clear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-3);
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.anatomy-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Mobile Segmented Switcher */
+.anatomy-mobile-switcher {
+  display: none;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  gap: 4px;
+  width: 100%;
+}
+
+.anatomy-mobile-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+}
+
+.anatomy-mobile-tab.active {
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+/* 2-Column Split Studio Layout */
+.anatomy-grid {
+  display: grid;
+  grid-template-columns: 410px 1fr;
+  gap: 22px;
+  align-items: start;
+}
+
+.anatomy-left-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.anatomy-right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* 3D Body Map Card */
+.anatomy-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.anatomy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.anatomy-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.anatomy-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.01em;
+}
+
+.anatomy-subtitle {
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.anatomy-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.anatomy-viewmode-toggle {
+  display: flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.anatomy-viewmode-btn {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+}
+
+.anatomy-viewmode-btn.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.anatomy-perspective-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.anatomy-perspective-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+}
+
+.anatomy-perspective-btn.active {
+  background: #00f5ff;
+  color: #070b14;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 245, 255, 0.4);
+}
+
+.anatomy-autorotate-btn {
+  padding: 4px 7px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.anatomy-autorotate-btn.active {
+  background: rgba(0, 245, 255, 0.15);
+  border-color: #00f5ff;
+  color: #00f5ff;
+}
+
+/* 3D Viewport Bounding Box */
+.anatomy-viewport-wrap {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  border-radius: 14px;
+  background: #070b14;
+  border: 1px solid #1e293b;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.18);
+  touch-action: none;
+  user-select: none;
+}
+
+.anatomy-canvas-mount {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.anatomy-canvas-mount canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+.anatomy-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(7, 11, 20, 0.88);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  color: #f1f5f9;
+}
+
+.anatomy-loading-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 245, 255, 0.2);
+  border-top-color: #00f5ff;
+  animation: spin 0.8s linear infinite;
+}
+
+.anatomy-hud-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 25;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: rgba(7, 11, 20, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 245, 255, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(0, 245, 255, 0.15);
+  pointer-events: none;
+}
+
+.anatomy-hud-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.anatomy-hud-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  display: block;
+  line-height: 1.2;
+}
+
+.anatomy-hud-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: #00f5ff;
+  display: block;
+}
+
+.anatomy-hud-badge {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #00f5ff;
+  color: #070b14;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+/* Rotation Slider */
+.anatomy-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  width: 100%;
+}
+
+.anatomy-slider {
+  flex: 1;
+  accent-color: #00f5ff;
+  height: 5px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.anatomy-slider-value {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: monospace;
+  color: #00f5ff;
+  width: 36px;
+  text-align: right;
+}
+
+/* Quick Muscle Pills */
+.anatomy-pills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.anatomy-pill {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.2;
+}
+
+.anatomy-pill:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--primary);
+}
+
+.anatomy-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #1d4ed8;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  transform: scale(1.04);
+}
+
+/* Selected Muscle Details Card */
+.anatomy-details-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.anatomy-details-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.anatomy-details-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.anatomy-details-submuscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.anatomy-submuscle-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+
+.anatomy-role-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+
+.anatomy-tightness-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  color: #854d0e;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* Movement Catalog in Right Column */
+.anatomy-catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+}
+
+.anatomy-catalog-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.anatomy-catalog-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+}
+
+.anatomy-catalog-tab.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
+.anatomy-equipment-select {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+}
+
+.anatomy-movements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  max-height: 780px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.anatomy-movement-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow);
+  transition: all 0.15s ease;
+}
+
+.anatomy-movement-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.anatomy-card-top {
+  display: flex;
+  gap: 12px;
+}
+
+.anatomy-thumb-wrap {
+  width: 82px;
+  height: 82px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #070b14;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.anatomy-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.anatomy-thumb-wrap:hover .anatomy-thumb-img {
+  transform: scale(1.08);
+}
+
+.anatomy-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.anatomy-movement-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.anatomy-movement-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.anatomy-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.anatomy-badge-gear {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+}
+
+.anatomy-badge-muscle {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.anatomy-cue-text {
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.anatomy-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+
+.anatomy-btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.anatomy-btn-add:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Modal */
+.anatomy-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.anatomy-modal-content {
+  position: relative;
+  max-width: 720px;
+  width: 100%;
+  max-height: 88vh;
+  border-radius: 20px;
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Responsive Rules */
+@media (max-width: 1024px) {
+  .anatomy-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .anatomy-mobile-switcher {
+    display: flex;
+  }
+  .anatomy-viewport-wrap {
+    height: 420px;
+    max-height: 440px;
+  }
+}
+
+@media (max-width: 640px) {
+  .anatomy-container {
+    padding: 12px 12px 70px;
+    gap: 12px;
+  }
+  .anatomy-hero-bar {
+    padding: 10px 12px;
+  }
+  .anatomy-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .anatomy-movements-grid {
+    grid-template-columns: 1fr;
+  }
+  .anatomy-viewport-wrap {
+    height: 380px;
+    max-height: 400px;
+  }
+}
+
+/* Dark Theme Adaptations */
+.dark-theme,
+.dark {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #f8fafc;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+}
+
+.dark-theme .anatomy-search-input,
+.dark .anatomy-search-input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+.dark-theme .anatomy-role-box,
+.dark .anatomy-role-box {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.3);
+  color: #93c5fd;
+}
+
+.dark-theme .anatomy-tightness-box,
+.dark .anatomy-tightness-box {
+  background: rgba(234, 179, 8, 0.1);
+  border-color: rgba(234, 179, 8, 0.25);
+  color: #fde047;
+}
+
+.dark-theme .anatomy-submuscle-tag,
+.dark .anatomy-submuscle-tag {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dark-theme .anatomy-pill,
+.dark .anatomy-pill {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dark-theme .anatomy-pill:hover,
+.dark .anatomy-pill:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+.dark-theme .anatomy-pill.active,
+.dark .anatomy-pill.active {
+  background: #00f5ff;
+  color: #070b14;
+  border-color: #00f5ff;
+  box-shadow: 0 2px 8px rgba(0, 245, 255, 0.4);
+}
+
+.dark-theme .anatomy-badge-gear,
+.dark .anatomy-badge-gear {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.dark-theme .anatomy-badge-muscle,
+.dark .anatomy-badge-muscle {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #93c5fd;
+}
+
+.dark-theme .anatomy-equipment-select,
+.dark .anatomy-equipment-select {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+

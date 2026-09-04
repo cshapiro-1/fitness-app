@@ -789,47 +789,65 @@ export function InteractiveBodyMap({
   return (
     <div
       data-testid="interactive-body-map"
-      className={`relative flex flex-col items-center select-none rounded-3xl p-5 transition-all duration-300 ${
-        isDark
-          ? "bg-slate-900/95 border border-slate-800 shadow-2xl text-slate-100 backdrop-blur-xl"
-          : "bg-white border border-slate-200 shadow-xl text-slate-900"
-      } ${className}`}
+      className={`anatomy-card ${className}`}
     >
       {/* Top Header with Mode Switcher & Presets */}
-      <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800/80">
-        <div className="flex items-center gap-2.5">
-          <span className="inline-flex p-2 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-md shadow-cyan-500/20">
-            <Rotate3d size={18} />
-          </span>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-black tracking-tight text-white">Interactive Anatomy Model</h3>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+      <div className="anatomy-card-header">
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "32px",
+              height: "32px",
+              borderRadius: "10px",
+              background: "rgba(0, 245, 255, 0.12)",
+              color: "#00f5ff",
+              border: "1px solid rgba(0, 245, 255, 0.25)",
+            }}
+          >
+            <Rotate3d size={16} />
+          </div>
+          <div className="anatomy-title-wrap">
+            <div className="anatomy-title">
+              <span>Interactive Anatomy</span>
+              <span
+                style={{
+                  fontSize: "9px",
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                  background: viewMode === "3D" ? "rgba(0, 245, 255, 0.15)" : "rgba(37, 99, 235, 0.15)",
+                  color: viewMode === "3D" ? "#00f5ff" : "#2563eb",
+                  border: viewMode === "3D" ? "1px solid rgba(0, 245, 255, 0.3)" : "1px solid rgba(37, 99, 235, 0.3)",
+                }}
+              >
                 {viewMode === "3D" ? "3D WebGL" : "Medical Diagram"}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <MousePointer2 size={10} className="inline" />
-              {viewMode === "3D"
-                ? "Click any 3D muscle or drag to rotate 360°"
-                : "Interactive medical-grade anatomy chart"}
-            </p>
+            <div className="anatomy-subtitle" style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <MousePointer2 size={10} />
+              <span>
+                {viewMode === "3D"
+                  ? "Click any 3D muscle or drag to rotate 360°"
+                  : "Interactive medical-grade anatomy chart"}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Controls: View Mode & Perspectives */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="anatomy-header-controls">
           {/* Mode Switcher */}
-          <div className="flex items-center bg-slate-950 p-1 rounded-2xl border border-slate-800">
+          <div className="anatomy-viewmode-toggle">
             <button
               type="button"
               data-testid="mode-toggle-3d"
               onClick={() => setViewMode("3D")}
-              className={`px-2.5 py-1 text-[11px] font-black rounded-xl transition-all ${
-                viewMode === "3D"
-                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
+              className={`anatomy-viewmode-btn ${viewMode === "3D" ? "active" : ""}`}
             >
               3D Model
             </button>
@@ -837,18 +855,14 @@ export function InteractiveBodyMap({
               type="button"
               data-testid="mode-toggle-diagram"
               onClick={() => setViewMode("DIAGRAM")}
-              className={`px-2.5 py-1 text-[11px] font-black rounded-xl transition-all ${
-                viewMode === "DIAGRAM"
-                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                  : "text-slate-400 hover:text-white"
-              }`}
+              className={`anatomy-viewmode-btn ${viewMode === "DIAGRAM" ? "active" : ""}`}
             >
               Diagram
             </button>
           </div>
 
           {/* Perspective Buttons */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-2xl border border-slate-800">
+          <div className="anatomy-perspective-group">
             {([
               { label: "Front", angle: 0, perspective: "anterior" as const },
               { label: "Side", angle: 90, perspective: "lateral" as const },
@@ -862,11 +876,7 @@ export function InteractiveBodyMap({
                   setIsAutoRotating(false);
                   setRotationAngle(angle);
                 }}
-                className={`px-2.5 py-1 text-xs font-black rounded-xl transition-all ${
-                  currentPerspective === perspective
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                className={`anatomy-perspective-btn ${currentPerspective === perspective ? "active" : ""}`}
               >
                 {label}
               </button>
@@ -876,14 +886,10 @@ export function InteractiveBodyMap({
               <button
                 type="button"
                 onClick={() => setIsAutoRotating(!isAutoRotating)}
-                title={isAutoRotating ? "Pause rotation" : "Auto-rotate"}
-                className={`p-1.5 rounded-xl border transition-all ${
-                  isAutoRotating
-                    ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
-                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
-                }`}
+                title={isAutoRotating ? "Pause rotation" : "Auto-rotate turntable"}
+                className={`anatomy-autorotate-btn ${isAutoRotating ? "active" : ""}`}
               >
-                {isAutoRotating ? <Pause size={13} /> : <Play size={13} />}
+                {isAutoRotating ? <Pause size={12} /> : <Play size={12} />}
               </button>
             )}
           </div>
@@ -895,7 +901,7 @@ export function InteractiveBodyMap({
         data-testid="body-map-viewport"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        className="relative w-full max-w-[290px] sm:max-w-[340px] aspect-[4/5] sm:aspect-[9/14] max-h-[380px] sm:max-h-[480px] rounded-3xl overflow-hidden bg-[#070b14] border-2 border-slate-800/80 shadow-2xl select-none flex items-center justify-center touch-none"
+        className="anatomy-viewport-wrap"
         style={{
           cursor: viewMode === "3D" ? (isDragging ? "grabbing" : cursor3dMuscle ? "pointer" : "grab") : "default",
           touchAction: "none",
@@ -904,28 +910,28 @@ export function InteractiveBodyMap({
         {/* 3D WebGL Canvas Mode */}
         {viewMode === "3D" ? (
           <>
-            <div ref={mountRef} className="w-full h-full" />
+            <div ref={mountRef} className="anatomy-canvas-mount" />
             {isModelLoading && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-[#070b14]/85 backdrop-blur-sm pointer-events-none select-none">
-                <div className="w-7 h-7 rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin" />
-                <span className="text-[11px] font-bold text-slate-300">Loading 3D Anatomy...</span>
-                <span className="text-[9px] text-slate-500 font-medium">1.45 MB Draco Stream</span>
+              <div className="anatomy-loading-overlay">
+                <div className="anatomy-loading-spinner" />
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#ffffff" }}>Loading 3D Anatomy...</span>
+                <span style={{ fontSize: "10px", color: "#94a3b8" }}>1.45 MB Draco Stream</span>
               </div>
             )}
           </>
         ) : (
           /* High-Res Medical Diagram Mode with Interactive SVG Overlays */
-          <div className="relative w-full h-full flex items-center justify-center p-2">
+          <div style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "8px" }}>
             <img
               src={currentDiagramImage}
               alt="Medical Anatomy Diagram"
-              className="w-full h-full object-contain filter drop-shadow-2xl"
+              style={{ width: "100%", height: "100%", objectFit: "contain", filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.5))" }}
             />
 
             {/* Interactive SVG Muscle Hotspots Overlay */}
             <svg
               viewBox="0 0 100 100"
-              className="absolute inset-0 w-full h-full pointer-events-auto"
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "auto" }}
             >
               {Object.values(MUSCLE_DEFINITIONS).map((muscle) => {
                 const isAnterior = currentPerspective === "anterior";
@@ -948,11 +954,14 @@ export function InteractiveBodyMap({
                     onClick={() => onSelectMuscle(muscle.id)}
                     onMouseEnter={() => onHoverMuscle?.(muscle.id)}
                     onMouseLeave={() => onHoverMuscle?.(null)}
-                    className="cursor-pointer transition-all duration-300"
-                    fill={isSelected ? "rgba(0, 245, 255, 0.35)" : isHovered ? "rgba(56, 189, 248, 0.25)" : "transparent"}
-                    stroke={isSelected ? "#00f5ff" : isHovered ? "#38bdf8" : "transparent"}
-                    strokeWidth={isSelected ? 1.2 : 0.8}
-                    strokeDasharray={isSelected ? "2 2" : undefined}
+                    style={{
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      fill: isSelected ? "rgba(0, 245, 255, 0.35)" : isHovered ? "rgba(56, 189, 248, 0.25)" : "transparent",
+                      stroke: isSelected ? "#00f5ff" : isHovered ? "#38bdf8" : "transparent",
+                      strokeWidth: isSelected ? 1.4 : 0.8,
+                      strokeDasharray: isSelected ? "2 2" : undefined,
+                    }}
                   />
                 );
               })}
@@ -962,26 +971,45 @@ export function InteractiveBodyMap({
 
         {/* Hover Tooltip */}
         {hoveredMuscle && !selectedMuscle && !isDragging && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3.5 py-1.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 text-[11px] font-bold text-cyan-300 backdrop-blur-sm z-30 pointer-events-none whitespace-nowrap shadow-lg shadow-cyan-500/15">
+          <div
+            style={{
+              position: "absolute",
+              top: "12px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              padding: "6px 14px",
+              borderRadius: "10px",
+              background: "rgba(7, 11, 20, 0.92)",
+              border: "1px solid rgba(0, 245, 255, 0.45)",
+              color: "#00f5ff",
+              fontSize: "11px",
+              fontWeight: 800,
+              backdropFilter: "blur(6px)",
+              zIndex: 30,
+              pointerEvents: "none",
+              whiteSpace: "nowrap",
+              boxShadow: "0 4px 14px rgba(0, 245, 255, 0.2)",
+            }}
+          >
             {MUSCLE_DEFINITIONS[hoveredMuscle].name}
           </div>
         )}
 
         {/* Selected Muscle HUD Callout */}
         {selectedMuscle && (
-          <div className="absolute bottom-3 left-3 right-3 py-2 px-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-cyan-500/50 flex items-center justify-between text-xs shadow-2xl shadow-cyan-500/20 z-30 pointer-events-none">
-            <div className="flex items-center gap-2">
-              <Crosshair size={15} className="text-cyan-400 animate-spin" style={{ animationDuration: "6s" }} />
+          <div className="anatomy-hud-overlay">
+            <div className="anatomy-hud-left">
+              <Crosshair size={16} style={{ color: "#00f5ff", animation: "spin 6s linear infinite" }} />
               <div>
-                <span className="font-black text-white text-[12px] block leading-tight">
+                <span className="anatomy-hud-name">
                   {MUSCLE_DEFINITIONS[selectedMuscle].name}
                 </span>
-                <span className="text-[10px] text-cyan-400 font-semibold">
+                <span className="anatomy-hud-sub">
                   {MUSCLE_DEFINITIONS[selectedMuscle].subMuscles[0]}
                 </span>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-cyan-500 text-slate-950 shadow-sm shadow-cyan-500/30">
+            <span className="anatomy-hud-badge">
               Selected
             </span>
           </div>
@@ -990,8 +1018,8 @@ export function InteractiveBodyMap({
 
       {/* 360° Rotation Slider (Available in 3D Mode) */}
       {viewMode === "3D" && (
-        <div className="w-full mt-3 px-2 flex items-center gap-3">
-          <RotateCw size={13} className="text-slate-500 shrink-0" />
+        <div className="anatomy-slider-wrap">
+          <RotateCw size={14} style={{ color: "var(--text-3)", flexShrink: 0 }} />
           <input
             type="range"
             min="0"
@@ -1001,16 +1029,16 @@ export function InteractiveBodyMap({
               setIsAutoRotating(false);
               setRotationAngle(Number(e.target.value));
             }}
-            className="w-full accent-cyan-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+            className="anatomy-slider"
           />
-          <span className="text-[11px] font-mono text-cyan-400 shrink-0 font-bold w-10 text-right">
+          <span className="anatomy-slider-value">
             {Math.round(rotationAngle)}°
           </span>
         </div>
       )}
 
       {/* Quick Selector Pills */}
-      <div className="w-full mt-4 pt-3.5 border-t border-slate-800/80 flex flex-wrap gap-1.5 justify-center">
+      <div className="anatomy-pills-container">
         {visiblePills.map((id) => {
           const muscle = MUSCLE_DEFINITIONS[id];
           const isSelected = selectedMuscle === id;
@@ -1023,15 +1051,11 @@ export function InteractiveBodyMap({
               onClick={() => handlePillClick(id)}
               onMouseEnter={() => onHoverMuscle?.(id)}
               onMouseLeave={() => onHoverMuscle?.(null)}
-              className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl border transition-all ${
-                isSelected
-                  ? "bg-cyan-500 text-slate-950 border-cyan-400 shadow-lg shadow-cyan-500/30 scale-105"
-                  : isHovered
-                  ? "bg-slate-800 text-cyan-300 border-cyan-500/40"
-                  : isDark
-                  ? "bg-slate-950/90 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
-                  : "bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200"
-              }`}
+              className={`anatomy-pill ${isSelected ? "active" : ""}`}
+              style={{
+                borderColor: isSelected ? undefined : isHovered ? "var(--primary)" : undefined,
+                color: isSelected ? undefined : isHovered ? "var(--primary)" : undefined,
+              }}
             >
               {muscle.shortLabel}
             </button>
