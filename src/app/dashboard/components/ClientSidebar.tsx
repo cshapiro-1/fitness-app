@@ -11,6 +11,7 @@ interface ClientSidebarProps {
   onSelectClient: (client: Client) => void;
   onOpenAddClient: () => void;
   onOpenEditClient: (client: Client) => void;
+  onOpenTrainerProfile?: () => void;
   onDeleteClient: (id: string) => void;
   onQuickInvite?: (client: Client) => void;
 }
@@ -22,6 +23,7 @@ export function ClientSidebar({
   onSelectClient,
   onOpenAddClient,
   onOpenEditClient,
+  onOpenTrainerProfile,
   onDeleteClient,
   onQuickInvite,
 }: ClientSidebarProps) {
@@ -63,7 +65,7 @@ export function ClientSidebar({
         )}
 
         {clients.map((client) => {
-          const isSelfProfile = (client as any).isSelf || client.name.includes("My Workouts");
+          const isSelfProfile = (client as any).isSelf || client.name.includes("(You)") || client.name.includes("My Workouts");
           const isAccepted = client.inviteStatus === "ACCEPTED";
           const isPending = client.inviteStatus === "PENDING";
 
@@ -91,7 +93,14 @@ export function ClientSidebar({
                   <span className="client-name" style={isSelfProfile ? { fontWeight: 700, color: "#0f172a" } : undefined}>
                     {client.name}
                   </span>
-                  {!isSelfProfile && (
+                  {isSelfProfile ? (
+                    <span
+                      className="client-status-badge"
+                      style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: 700, fontSize: "10px", padding: "1px 6px", borderRadius: "9999px" }}
+                    >
+                      You
+                    </span>
+                  ) : (
                     <span
                       className={`client-status-badge ${
                         isAccepted
@@ -134,9 +143,13 @@ export function ClientSidebar({
                   className="client-action-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onOpenEditClient(client);
+                    if (isSelfProfile && onOpenTrainerProfile) {
+                      onOpenTrainerProfile();
+                    } else {
+                      onOpenEditClient(client);
+                    }
                   }}
-                  title="Edit Profile"
+                  title={isSelfProfile ? "Edit Coach Profile & Settings" : "Edit Profile"}
                 >
                   <Edit3 size={13} />
                 </button>

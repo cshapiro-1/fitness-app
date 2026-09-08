@@ -51,12 +51,16 @@ export async function GET(req: NextRequest) {
         (targetClient.email && targetClient.email.toLowerCase().includes("collin"))
       );
 
-      if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal"))) {
+      if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal") || targetClient.name.includes("(You)") || targetClient.id === (session?.user as any)?.clientProfileId)) {
         isSelfQuery = true;
         const otherSelfClients = await prisma.client.findMany({
           where: {
             userId: targetClient.userId,
-            name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)"] },
+            OR: [
+              { name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)"] } },
+              { name: { contains: "(You)" } },
+              { id: targetClient.id },
+            ],
           },
           select: { id: true },
         });

@@ -202,6 +202,40 @@ export const authOptions: NextAuthOptions = {
                 } catch (e) {
                   console.error("Failed to auto-create solo client profile:", e);
                 }
+              } else if (dbUser.role === "TRAINER") {
+                try {
+                  let trainerSelfClient = await prisma.client.findFirst({
+                    where: {
+                      userId: dbUser.id,
+                      OR: [
+                        { name: { in: ["My Workouts", "My Workouts (Personal)", "Personal", "Self"] } },
+                        { name: { contains: "(You)" } },
+                      ],
+                    },
+                    orderBy: { createdAt: "asc" },
+                  });
+
+                  if (!trainerSelfClient) {
+                    trainerSelfClient = await prisma.client.create({
+                      data: {
+                        userId: dbUser.id,
+                        name: dbUser.name ? `${dbUser.name} (You)` : "Personal Workouts (You)",
+                        email: cleanEmail,
+                        image: incomingImage || dbUser.image,
+                        inviteStatus: "ACCEPTED",
+                        notes: "Personal workout tracking",
+                      },
+                    });
+                  }
+
+                  await prisma.user.update({
+                    where: { id: dbUser.id },
+                    data: { clientProfileId: trainerSelfClient.id },
+                  });
+                  dbUser.clientProfileId = trainerSelfClient.id;
+                } catch (e) {
+                  console.error("Failed to auto-link trainer personal client profile:", e);
+                }
               }
             }
 

@@ -50,7 +50,7 @@ export async function GET() {
     if (!userAvatar && user.clientProfile?.image) {
       userAvatar = user.clientProfile.image;
     }
-    if (!userAvatar && email) {
+    if (!userAvatar && email && prisma.client?.findFirst) {
       const matchedClient = await prisma.client.findFirst({
         where: { email: { equals: email, mode: "insensitive" } },
         select: { image: true },
@@ -74,37 +74,81 @@ export async function GET() {
       }
     }
 
-    // If client has no linked profile, resolve or auto-create self profile
-    if (!user.clientProfileId && user.role === "CLIENT") {
-      let matchedClient = email ? await prisma.client.findFirst({
-        where: { email: { equals: email, mode: "insensitive" } },
-      }) : null;
+    // If user has no linked clientProfileId, resolve or auto-create self profile
+    if (!user.clientProfileId && prisma.client) {
+      if (user.role === "CLIENT") {
+        let matchedClient = (email && prisma.client.findFirst) ? await prisma.client.findFirst({
+          where: { email: { equals: email, mode: "insensitive" } },
+        }) : null;
 
-      if (!matchedClient) {
-        try {
-          matchedClient = await prisma.client.create({
-            data: {
-              userId: user.id,
-              name: user.name || "Solo Athlete",
-              email: user.email,
-              image: userAvatar,
-              inviteStatus: "ACCEPTED",
-              notes: "Personal Solo Athlete Profile",
-            },
-          });
-        } catch (e) {
-          console.error("Auto self client creation failed:", e);
+        if (!matchedClient && prisma.client.create) {
+          try {
+            matchedClient = await prisma.client.create({
+              data: {
+                userId: user.id,
+                name: user.name || "Solo Athlete",
+                email: user.email,
+                image: userAvatar,
+                inviteStatus: "ACCEPTED",
+                notes: "Personal Solo Athlete Profile",
+              },
+            });
+          } catch (e) {
+            console.error("Auto self client creation failed:", e);
+          }
         }
-      }
 
-      if (matchedClient) {
-        try {
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { clientProfileId: matchedClient.id },
-          });
-          user.clientProfileId = matchedClient.id;
-        } catch (e) {}
+        if (matchedClient) {
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { clientProfileId: matchedClient.id },
+            });
+            user.clientProfileId = matchedClient.id;
+          } catch (e) {}
+        }
+      } else if (prisma.client.findFirst) {
+        // Trainer: find existing personal client record (e.g. My Workouts or personal profile)
+        let trainerSelfClient = await prisma.client.findFirst({
+          where: {
+            userId: user.id,
+            OR: [
+              { name: { in: ["My Workouts", "My Workouts (Personal)", "Personal", "Self"] } },
+              { name: { contains: "(You)" } },
+              ...(email ? [{ email: { equals: email, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          orderBy: { createdAt: "asc" },
+        });
+
+        if (!trainerSelfClient && prisma.client.create) {
+          try {
+            trainerSelfClient = await prisma.client.create({
+              data: {
+                userId: user.id,
+                name: user.name ? `${user.name} (You)` : "Personal Workouts (You)",
+                email: user.email,
+                image: userAvatar,
+                phone: user.phone,
+                notes: user.notes || "Personal workout tracking",
+                fitnessGoals: user.fitnessGoals || "Personal Performance & PRs",
+                inviteStatus: "ACCEPTED",
+              },
+            });
+          } catch (e) {
+            console.error("Auto trainer self client creation failed:", e);
+          }
+        }
+
+        if (trainerSelfClient) {
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { clientProfileId: trainerSelfClient.id },
+            });
+            user.clientProfileId = trainerSelfClient.id;
+          } catch (e) {}
+        }
       }
     }
 
@@ -179,21 +223,32 @@ export async function PATCH(req: NextRequest) {
     });
 
     // Also synchronize client table if linked
-    if (image !== undefined && (updated.clientProfileId || updated.email) && prisma.client && typeof prisma.client.updateMany === "function") {
+    if ((updated.clientProfileId || updated.email) && prisma.client && typeof prisma.client.updateMany === "function") {
       try {
-        await prisma.client.updateMany({
-          where: {
-            OR: [
-              ...(updated.clientProfileId ? [{ id: updated.clientProfileId }] : []),
-              ...(updated.email ? [{ email: { equals: updated.email, mode: "insensitive" as const } }] : []),
-            ],
-          },
-          data: {
-            image: image?.trim() || null,
-          },
-        });
+        const clientSyncData: any = {};
+        if (image !== undefined) clientSyncData.image = image?.trim() || null;
+        if (phone !== undefined) clientSyncData.phone = phone?.trim() || null;
+        if (notes !== undefined) clientSyncData.notes = notes?.trim() || null;
+        if (fitnessGoals !== undefined) clientSyncData.fitnessGoals = fitnessGoals?.trim() || null;
+        if (name !== undefined && updated.role === "TRAINER") {
+          clientSyncData.name = name?.trim() ? `${name.trim()} (You)` : "Personal Workouts (You)";
+        } else if (name !== undefined) {
+          clientSyncData.name = name?.trim() || null;
+        }
+
+        if (Object.keys(clientSyncData).length > 0) {
+          await prisma.client.updateMany({
+            where: {
+              OR: [
+                ...(updated.clientProfileId ? [{ id: updated.clientProfileId }] : []),
+                ...(updated.email ? [{ email: { equals: updated.email, mode: "insensitive" as const } }] : []),
+              ],
+            },
+            data: clientSyncData,
+          });
+        }
       } catch (clientErr) {
-        console.error("Failed to sync client avatar:", clientErr);
+        console.error("Failed to sync client profile details:", clientErr);
       }
     }
 

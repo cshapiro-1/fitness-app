@@ -62,16 +62,70 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Check if trainer has a self-profile ("My Workouts")
-    let hasSelfProfile = clients.some((c: any) => c.name === "My Workouts");
+    // Fetch full trainer user details for profile consolidation
+    const trainerUser = trainerId
+      ? await prisma.user.findUnique({
+          where: { id: trainerId },
+          select: { id: true, name: true, image: true, email: true, phone: true, notes: true, fitnessGoals: true, clientProfileId: true },
+        })
+      : null;
 
-    if (!hasSelfProfile && trainerId) {
+    // Resolve or consolidate trainer's self-profile
+    const isSelfMatch = (c: any) =>
+      c.id === trainerUser?.clientProfileId ||
+      c.name === "My Workouts" ||
+      c.name === "My Workouts (Personal)" ||
+      c.name === "Personal" ||
+      c.name === "Self" ||
+      c.name.includes("(You)") ||
+      Boolean(trainerEmail && c.email && c.email.toLowerCase() === trainerEmail.toLowerCase());
+
+    let selfClients = clients.filter(isSelfMatch);
+
+    let primarySelfClient: any = null;
+    if (trainerUser?.clientProfileId) {
+      primarySelfClient = clients.find((c: any) => c.id === trainerUser.clientProfileId);
+      if (!primarySelfClient) {
+        primarySelfClient = await prisma.client.findUnique({
+          where: { id: trainerUser.clientProfileId },
+          include: {
+            user: true,
+            loginUser: true,
+            workouts: true,
+            workoutSessions: {
+              include: { exercises: { include: { sets: true } } },
+              orderBy: { startedAt: "desc" },
+            },
+            _count: { select: { workoutSessions: true } },
+          },
+        });
+        if (primarySelfClient) clients.push(primarySelfClient);
+      }
+    }
+
+    if (!primarySelfClient && selfClients.length > 0) {
+      primarySelfClient = [...selfClients].sort((a: any, b: any) => {
+        const countA = (a._count?.workoutSessions || 0) + (a.workouts?.length || 0);
+        const countB = (b._count?.workoutSessions || 0) + (b.workouts?.length || 0);
+        return countB - countA;
+      })[0];
+    }
+
+    const selfDisplayName = trainerUser?.name
+      ? `${trainerUser.name} (You)`
+      : (primarySelfClient?.name || "My Workouts");
+
+    if (!primarySelfClient && trainerId) {
       try {
-        const selfClient = await prisma.client.create({
+        primarySelfClient = await prisma.client.create({
           data: {
             userId: trainerId,
-            name: "My Workouts",
-            notes: "Personal workout tracking",
+            name: selfDisplayName,
+            email: trainerUser?.email || null,
+            image: trainerUser?.image || null,
+            phone: trainerUser?.phone || null,
+            notes: trainerUser?.notes || "Personal workout tracking",
+            fitnessGoals: trainerUser?.fitnessGoals || "Personal Performance & PRs",
             inviteStatus: "ACCEPTED",
           },
           include: {
@@ -79,49 +133,103 @@ export async function GET(req: Request) {
             loginUser: true,
             workouts: true,
             workoutSessions: {
-              include: {
-                exercises: {
-                  include: {
-                    sets: true,
-                  },
-                },
-              },
+              include: { exercises: { include: { sets: true } } },
             },
             _count: { select: { workoutSessions: true } },
           },
         });
-        clients.unshift(selfClient);
+        clients.unshift(primarySelfClient);
       } catch (e) {
         console.error("Auto self client creation error:", e);
+      }
+    }
+
+    if (primarySelfClient && trainerUser) {
+      // Ensure trainerUser.clientProfileId is linked
+      if (trainerUser.clientProfileId !== primarySelfClient.id) {
+        try {
+          await prisma.user.update({
+            where: { id: trainerUser.id },
+            data: { clientProfileId: primarySelfClient.id },
+          });
+        } catch (e) {}
+      }
+
+      // Re-attribute all workouts, sessions, and logs from duplicate self records to primarySelfClient (ZERO DATA LOSS)
+      const duplicateSelfClients = selfClients.filter((c: any) => c.id !== primarySelfClient.id);
+      if (duplicateSelfClients.length > 0) {
+        const duplicateIds = duplicateSelfClients.map((c: any) => c.id);
+        try {
+          await prisma.workoutSession.updateMany({
+            where: { clientId: { in: duplicateIds } },
+            data: { clientId: primarySelfClient.id },
+          });
+          await prisma.workout.updateMany({
+            where: { clientId: { in: duplicateIds } },
+            data: { clientId: primarySelfClient.id },
+          });
+          await prisma.nutritionLog.updateMany({
+            where: { clientId: { in: duplicateIds } },
+            data: { clientId: primarySelfClient.id },
+          });
+          await prisma.supplementLog.updateMany({
+            where: { clientId: { in: duplicateIds } },
+            data: { clientId: primarySelfClient.id },
+          });
+          await prisma.client.deleteMany({
+            where: { id: { in: duplicateIds } },
+          });
+        } catch (mergeErr) {
+          console.error("Self client consolidation merge error:", mergeErr);
+        }
+        clients = clients.filter((c: any) => !duplicateIds.includes(c.id));
+      }
+
+      // Ensure primary self client's name and details mirror the trainer profile
+      if (primarySelfClient.name !== selfDisplayName) {
+        try {
+          await prisma.client.update({
+            where: { id: primarySelfClient.id },
+            data: {
+              name: selfDisplayName,
+              ...(trainerUser.image && { image: trainerUser.image }),
+              ...(trainerUser.phone && { phone: trainerUser.phone }),
+              ...(trainerUser.notes && { notes: trainerUser.notes }),
+              ...(trainerUser.fitnessGoals && { fitnessGoals: trainerUser.fitnessGoals }),
+            },
+          });
+          primarySelfClient.name = selfDisplayName;
+          if (trainerUser.image) primarySelfClient.image = trainerUser.image;
+        } catch (e) {}
       }
     }
 
     const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "";
 
     const formattedClients = clients.map((c: any) => {
-      const isSelfProfile = c.name === "My Workouts" || c.name === "My Workouts (Personal)";
+      const isSelfProfile = c.id === primarySelfClient?.id || isSelfMatch(c);
       return {
         id: c.id,
         userId: c.userId,
-        name: isSelfProfile ? "My Workouts" : (c.name || "Client"),
-        image: isSelfProfile ? (c.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
+        name: isSelfProfile ? (c.name.includes("(You)") ? c.name : selfDisplayName) : (c.name || "Client"),
+        image: isSelfProfile ? (c.image || trainerUser?.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
         email: isSelfProfile ? null : (c.email || c.loginUser?.email || null),
-        phone: isSelfProfile ? null : (c.phone || c.loginUser?.phone || null),
-        notes: isSelfProfile ? (c.notes || "Personal workout tracking") : (c.notes || null),
-        fitnessGoals: isSelfProfile ? (c.fitnessGoals || "Personal Performance") : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
+        phone: isSelfProfile ? (c.phone || trainerUser?.phone || null) : (c.phone || c.loginUser?.phone || null),
+        notes: isSelfProfile ? (c.notes || trainerUser?.notes || "Personal workout tracking") : (c.notes || null),
+        fitnessGoals: isSelfProfile ? (c.fitnessGoals || trainerUser?.fitnessGoals || "Personal Performance") : (c.fitnessGoals || c.loginUser?.fitnessGoals || null),
         emailNotifications: c.emailNotifications !== false,
         inviteStatus: isSelfProfile ? "ACCEPTED" : (c.inviteStatus || "NOT_SENT"),
-        inviteToken: c.inviteToken || null,
-        inviteUrl: c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null,
+        inviteToken: isSelfProfile ? null : (c.inviteToken || null),
+        inviteUrl: isSelfProfile ? null : (c.inviteToken ? (baseUrl ? `${baseUrl}/invite/${c.inviteToken}` : `/invite/${c.inviteToken}`) : null),
         createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
         workouts: c.workouts || [],
         workoutSessions: c.workoutSessions || [],
-        _count: c._count || { workoutSessions: 0 },
+        _count: c._count || { workoutSessions: c.workoutSessions?.length || 0 },
         isSelf: isSelfProfile,
       };
     });
 
-    // Pin "My Workouts (Personal)" to the very top of the list
+    // Pin consolidated personal profile to the very top of the list
     formattedClients.sort((a, b) => {
       if (a.isSelf) return -1;
       if (b.isSelf) return 1;

@@ -481,7 +481,7 @@ export function ClientModal({
 
           {/* Modal Footer */}
           <div className="client-modal-footer">
-            {mode === "edit" && client && onDelete && client.name !== "My Workouts" ? (
+            {mode === "edit" && client && onDelete && !(client as any).isSelf && client.name !== "My Workouts" && !client.name.includes("(You)") ? (
               <button
                 type="button"
                 onClick={() => onDelete(client.id)}

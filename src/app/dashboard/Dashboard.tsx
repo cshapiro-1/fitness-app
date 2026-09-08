@@ -72,6 +72,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
   const { data: session } = useSession();
   const [clients, setClients] = useState<Client[]>([]);
   const [selected, setSelected] = useState<Client | null>(null);
+  const isSelectedSelf = Boolean((selected as any)?.isSelf || selected?.name?.includes("(You)") || selected?.name === "My Workouts");
   const [workouts, setWorkouts] = useState<WorkoutSession[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
@@ -282,7 +283,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     if (res.ok) {
       const created = await res.json();
       setClients((prev) => {
-        const selfClient = prev.find((c: any) => c.name.includes("My Workouts") || (c as any).isSelf);
+        const selfClient = prev.find((c: any) => c.name.includes("(You)") || c.name.includes("My Workouts") || (c as any).isSelf);
         const others = prev.filter((c: any) => c.id !== created.id && c.id !== selfClient?.id);
         return selfClient ? [selfClient, created, ...others] : [created, ...others];
       });
@@ -805,6 +806,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
           onSelectClient={handleRequestSelectClient}
           onOpenAddClient={() => setIsAddModalOpen(true)}
           onOpenEditClient={(client) => setEditingClient(client)}
+          onOpenTrainerProfile={() => setIsProfileModalOpen(true)}
           onDeleteClient={deleteClient}
           onQuickInvite={handleQuickGenerateInvite}
         />
@@ -959,96 +961,108 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 300px" }}>
                   {/* Client Picture in Header */}
                   <div style={{ position: "relative", flexShrink: 0 }}>
-                    {selected.image ? (
-                      <img
-                        src={selected.image}
-                        alt={selected.name}
-                        referrerPolicy="no-referrer"
-                        style={{
-                          width: "52px",
-                          height: "52px",
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          border: "2px solid #2563eb",
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: "52px",
-                          height: "52px",
-                          borderRadius: "50%",
-                          background: selected.name.includes("My Workouts") ? "#eff6ff" : "#f1f5f9",
-                          color: selected.name.includes("My Workouts") ? "#2563eb" : "#64748b",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "18px",
-                          fontWeight: 700,
-                          border: "1px solid #cbd5e1",
-                        }}
-                      >
-                        {selected.name.includes("My Workouts") ? <Dumbbell size={22} /> : (selected.name ? selected.name.charAt(0).toUpperCase() : <User size={24} />)}
-                      </div>
-                    )}
-                    {!selected.name.includes("My Workouts") && (
-                      <button
-                        onClick={() => setEditingClient(selected)}
-                        style={{
-                          position: "absolute",
-                          bottom: "-2px",
-                          right: "-2px",
-                          background: "#2563eb",
-                          color: "#ffffff",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          border: "none",
-                          cursor: "pointer",
-                          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                        }}
-                        title="Edit client photo and profile"
-                      >
-                        <Camera size={11} />
-                      </button>
-                    )}
-                  </div>
-
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                      <h2 className="client-heading" style={{ margin: 0 }}>{selected.name}</h2>
-                      {selected.name !== "My Workouts" && (
-                        <>
+                          {selected.image ? (
+                            <img
+                              src={selected.image}
+                              alt={selected.name}
+                              referrerPolicy="no-referrer"
+                              style={{
+                                width: "52px",
+                                height: "52px",
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                border: "2px solid #2563eb",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "52px",
+                                height: "52px",
+                                borderRadius: "50%",
+                                background: isSelectedSelf ? "#eff6ff" : "#f1f5f9",
+                                color: isSelectedSelf ? "#2563eb" : "#64748b",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "18px",
+                                fontWeight: 700,
+                                border: "1px solid #cbd5e1",
+                              }}
+                            >
+                              {selected.name ? selected.name.charAt(0).toUpperCase() : <User size={24} />}
+                            </div>
+                          )}
                           <button
-                            type="button"
-                            onClick={() => handleQuickGenerateInvite(selected)}
-                            disabled={generatingQuickInvite}
-                            className="btn-edit-client"
-                            style={{
-                              background: copiedLink ? "#f0fdf4" : "#eff6ff",
-                              color: copiedLink ? "#16a34a" : "#2563eb",
-                              borderColor: copiedLink ? "#bbf7d0" : "#bfdbfe",
-                              fontWeight: 600,
+                            onClick={() => {
+                              if (isSelectedSelf) setIsProfileModalOpen(true);
+                              else setEditingClient(selected);
                             }}
-                            title="Generate and copy athlete invite link"
+                            style={{
+                              position: "absolute",
+                              bottom: "-2px",
+                              right: "-2px",
+                              background: "#2563eb",
+                              color: "#ffffff",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "none",
+                              cursor: "pointer",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                            }}
+                            title={isSelectedSelf ? "Edit Coach Profile & Settings" : "Edit client photo and profile"}
                           >
-                            <Link2 size={13} />
-                            <span>{copiedLink ? "Link Copied! ✓" : "Copy Invite Link"}</span>
+                            <Camera size={11} />
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingClient(selected)}
-                            className="btn-edit-client"
-                            title="Edit client profile and goals"
-                          >
-                            <Edit3 size={13} />
-                            <span>Edit Profile</span>
-                          </button>
-                        </>
-                      )}
+                        </div>
+
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                            <h2 className="client-heading" style={{ margin: 0 }}>{selected.name}</h2>
+                            {isSelectedSelf ? (
+                              <button
+                                type="button"
+                                onClick={() => setIsProfileModalOpen(true)}
+                                className="btn-edit-client"
+                                title="Edit Coach Profile & Settings"
+                                style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe", fontWeight: 600 }}
+                              >
+                                <Edit3 size={13} />
+                                <span>Edit Coach Profile</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickGenerateInvite(selected)}
+                                  disabled={generatingQuickInvite}
+                                  className="btn-edit-client"
+                                  style={{
+                                    background: copiedLink ? "#f0fdf4" : "#eff6ff",
+                                    color: copiedLink ? "#16a34a" : "#2563eb",
+                                    borderColor: copiedLink ? "#bbf7d0" : "#bfdbfe",
+                                    fontWeight: 600,
+                                  }}
+                                  title="Generate and copy athlete invite link"
+                                >
+                                  <Link2 size={13} />
+                                  <span>{copiedLink ? "Link Copied! ✓" : "Copy Invite Link"}</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingClient(selected)}
+                                  className="btn-edit-client"
+                                  title="Edit client profile and goals"
+                                >
+                                  <Edit3 size={13} />
+                                  <span>Edit Profile</span>
+                                </button>
+                              </>
+                            )}
 
                       {/* Weekly Adherence Streak Badge */}
                       <span
@@ -1149,7 +1163,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                     <span>Export Report</span>
                   </button>
 
-                  {selected.name !== "My Workouts" && (
+                  {!((selected as any)?.isSelf || selected?.name?.includes("(You)") || selected?.name === "My Workouts") && (
                     <div>
                       {selected.inviteStatus === "ACCEPTED" ? (
                         <span style={{ fontSize: "12px", fontWeight: 600, color: "#15803d", background: "#f0fdf4", padding: "6px 12px", borderRadius: "6px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "4px" }}>
@@ -1384,7 +1398,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
               <div style={{ maxHeight: "320px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
                 {filteredMobileClients.map((client) => {
                   const isSelected = selected?.id === client.id;
-                  const isSelfProfile = client.name === "My Workouts";
+                  const isSelfProfile = (client as any).isSelf || client.name.includes("(You)") || client.name === "My Workouts";
                   const isAccepted = client.inviteStatus === "ACCEPTED";
 
                   return (
