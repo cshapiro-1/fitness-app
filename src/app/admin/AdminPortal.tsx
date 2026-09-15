@@ -105,6 +105,7 @@ interface AdminStats {
   // Platform-wide combined metrics
   totalLogins?: number;
   totalSessions?: number;
+  totalActiveNowCount?: number;
   overallAvgSessionSeconds?: number;
   totalAppTimeSeconds?: number;
 
@@ -113,6 +114,7 @@ interface AdminStats {
   organicClientsCount?: number;
   organicTotalLogins?: number;
   organicTotalSessions?: number;
+  organicActiveNowCount?: number;
   organicAvgSessionSeconds?: number;
   organicTotalAppTimeSeconds?: number;
   organicDau?: number;
@@ -122,6 +124,7 @@ interface AdminStats {
   // Internal Admin & Developer Metrics (Collin's Isolated Usage)
   adminTotalLogins?: number;
   adminTotalSessions?: number;
+  adminActiveNowCount?: number;
   adminAvgSessionSeconds?: number;
   adminTotalAppTimeSeconds?: number;
 }
@@ -158,9 +161,11 @@ type TelemetryViewMode = "ORGANIC" | "ALL" | "ADMIN_ONLY";
 
 function formatSessionDuration(seconds?: number | null): string {
   if (seconds === undefined || seconds === null || seconds <= 0) return "-";
-  if (seconds < 60) return `${seconds}s`;
-  const mins = Math.floor(seconds / 60);
-  const remainingSecs = seconds % 60;
+  // Clamp display to realistic maximum (7200 seconds / 2 hours) to avoid visual glitch from legacy data
+  const clamped = Math.min(seconds, 7200);
+  if (clamped < 60) return `${clamped}s`;
+  const mins = Math.floor(clamped / 60);
+  const remainingSecs = clamped % 60;
   if (mins < 60) {
     return remainingSecs > 0 ? `${mins}m ${remainingSecs}s` : `${mins} mins`;
   }
@@ -178,25 +183,26 @@ function formatTotalAppTime(seconds?: number | null): string {
   return `${hours} hrs`;
 }
 
-function formatRelativeTime(dateStr?: string | null, seconds?: number | null): { text: string; full: string; isRecent: boolean } {
-  if (!dateStr) return { text: "Never", full: "No recorded activity", isRecent: false };
+function formatRelativeTime(dateStr?: string | null, seconds?: number | null): { text: string; full: string; isRecent: boolean; status: "active" | "idle" | "offline" } {
+  if (!dateStr) return { text: "Never", full: "No recorded activity", isRecent: false, status: "offline" };
   const date = new Date(dateStr);
   const full = date.toLocaleString();
   const diffMs = Date.now() - date.getTime();
-  if (isNaN(diffMs)) return { text: "Unknown", full: "Invalid Date", isRecent: false };
+  if (isNaN(diffMs)) return { text: "Unknown", full: "Invalid Date", isRecent: false, status: "offline" };
 
   const diffSecs = Math.floor(diffMs / 1000);
   const hasSession = (seconds || 0) > 0;
 
-  if (diffSecs < 120 && hasSession) return { text: "Active now", full, isRecent: true };
+  if (diffSecs < 120 && hasSession) return { text: "Active now", full, isRecent: true, status: "active" };
   const diffMins = Math.floor(diffSecs / 60);
-  if (diffMins < 60) return { text: `${diffMins}m ago`, full, isRecent: diffMins <= 5 && hasSession };
+  if (diffMins < 15 && hasSession) return { text: `Idle (${diffMins}m ago)`, full, isRecent: true, status: "idle" };
+  if (diffMins < 60) return { text: `${diffMins}m ago`, full, isRecent: false, status: "offline" };
   const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return { text: `${diffHours}h ago`, full, isRecent: false };
+  if (diffHours < 24) return { text: `${diffHours}h ago`, full, isRecent: false, status: "offline" };
   const diffDays = Math.floor(diffHours / 24);
-  if (diffDays === 1) return { text: "Yesterday", full, isRecent: false };
-  if (diffDays < 7) return { text: `${diffDays}d ago`, full, isRecent: false };
-  return { text: date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }), full, isRecent: false };
+  if (diffDays === 1) return { text: "Yesterday", full, isRecent: false, status: "offline" };
+  if (diffDays < 7) return { text: `${diffDays}d ago`, full, isRecent: false, status: "offline" };
+  return { text: date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }), full, isRecent: false, status: "offline" };
 }
 
 type TrainerSortField =
@@ -856,6 +862,13 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
       ? stats?.organicDau ?? 0
       : stats?.dau ?? 1;
 
+  const currentActiveNow =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicActiveNowCount ?? 0
+      : telemetryMode === "ADMIN_ONLY"
+      ? stats?.adminActiveNowCount ?? 0
+      : stats?.totalActiveNowCount ?? 0;
+
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", fontFamily: "system-ui, -apple-system, sans-serif" }}>
       {/* Top Admin Header */}
@@ -1026,14 +1039,14 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           {/* Average App Session Length */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>{telemetryMode === "ORGANIC" ? "ORGANIC AVG SESSION" : telemetryMode === "ADMIN_ONLY" ? "COLLIN AVG SESSION" : "COMBINED AVG SESSION"}</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC AVG ACTIVE SESSION" : telemetryMode === "ADMIN_ONLY" ? "COLLIN AVG ACTIVE SESSION" : "AVG ACTIVE SESSION"}</span>
               <Hourglass size={16} style={{ color: "#059669" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
               {formatSessionDuration(currentAvgSession)}
             </div>
             <div style={{ fontSize: "11px", color: "#059669", marginTop: "2px", fontWeight: 600 }}>
-              {formatTotalAppTime(currentTotalAppTime)} total time
+              {currentActiveNow > 0 ? `🟢 ${currentActiveNow} Active Now · ` : ""}{formatTotalAppTime(currentTotalAppTime)} active time
             </div>
           </div>
 
@@ -1334,15 +1347,16 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                               <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title={rel.full}>
                                 <span
                                   style={{
-                                    width: "7px",
-                                    height: "7px",
+                                    width: "8px",
+                                    height: "8px",
                                     borderRadius: "50%",
-                                    background: rel.isRecent ? "#16a34a" : "#94a3b8",
+                                    background: rel.status === "active" ? "#16a34a" : rel.status === "idle" ? "#eab308" : "#94a3b8",
                                     display: "inline-block",
                                     flexShrink: 0,
+                                    boxShadow: rel.status === "active" ? "0 0 6px rgba(22,163,74,0.6)" : "none",
                                   }}
                                 />
-                                <span style={{ fontWeight: 600, color: rel.isRecent ? "#16a34a" : "#0f172a", fontSize: "12px" }}>
+                                <span style={{ fontWeight: 600, color: rel.status === "active" ? "#16a34a" : rel.status === "idle" ? "#b45309" : "#0f172a", fontSize: "12px" }}>
                                   {rel.text}
                                 </span>
                               </div>
@@ -1362,6 +1376,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                                   padding: "2px 7px",
                                   borderRadius: "6px",
                                 }}
+                                title="Active engaged duration (pauses when idle or in background tab, max 2h)"
                               >
                                 <Timer size={12} />
                                 <span>{durationStr}</span>
@@ -1575,14 +1590,38 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: rel.isRecent ? "#16a34a" : "#94a3b8" }} />
-                                <span style={{ fontWeight: 600, color: rel.isRecent ? "#16a34a" : "#0f172a", fontSize: "12px" }}>{rel.text}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px" }} title={rel.full}>
+                                <span
+                                  style={{
+                                    width: "8px",
+                                    height: "8px",
+                                    borderRadius: "50%",
+                                    background: rel.status === "active" ? "#16a34a" : rel.status === "idle" ? "#eab308" : "#94a3b8",
+                                    display: "inline-block",
+                                    flexShrink: 0,
+                                    boxShadow: rel.status === "active" ? "0 0 6px rgba(22,163,74,0.6)" : "none",
+                                  }}
+                                />
+                                <span style={{ fontWeight: 600, color: rel.status === "active" ? "#16a34a" : rel.status === "idle" ? "#b45309" : "#0f172a", fontSize: "12px" }}>
+                                  {rel.text}
+                                </span>
                               </div>
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <span style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: 700, background: "#f1f5f9", padding: "2px 7px", borderRadius: "6px" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  background: "#f1f5f9",
+                                  padding: "2px 7px",
+                                  borderRadius: "6px",
+                                }}
+                                title="Active engaged duration (pauses when idle or in background tab, max 2h)"
+                              >
                                 <Timer size={12} />
                                 <span>{durationStr}</span>
                               </span>

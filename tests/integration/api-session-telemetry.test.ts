@@ -180,6 +180,113 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
         })
       );
     });
+
+    it("should clamp single session active duration at 7200 seconds (2 hours) max", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@strkyr.fit" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "trainer-1",
+        clientProfileId: null,
+      } as any);
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        id: "trainer-1",
+        lastActiveAt: new Date(),
+        lastSessionDurationSeconds: 7200,
+        totalSessionSeconds: 7200,
+      } as any);
+
+      // Client tab was left open overnight (8 hours = 28,800 seconds)
+      const req = new NextRequest("http://localhost:3000/api/user/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({ durationSeconds: 28800 }),
+      });
+
+      const res = await heartbeatPOST(req);
+      expect(res.status).toBe(200);
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "trainer-1" },
+          data: expect.objectContaining({
+            lastSessionDurationSeconds: 7200, // Clamped to 2 hours ceiling
+          }),
+        })
+      );
+    });
+
+    it("should not increment totalSessionSeconds when user is idle", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@strkyr.fit" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "trainer-1",
+        clientProfileId: null,
+      } as any);
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        id: "trainer-1",
+        lastActiveAt: new Date(),
+        lastSessionDurationSeconds: 120,
+        totalSessionSeconds: 120,
+      } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/user/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({
+          durationSeconds: 120,
+          isIdle: true,
+          deltaActiveSeconds: 30,
+        }),
+      });
+
+      const res = await heartbeatPOST(req);
+      expect(res.status).toBe(200);
+      const updateCall = vi.mocked(prisma.user.update).mock.calls[0][0];
+      // Should NOT contain totalSessionSeconds increment because isIdle is true
+      expect(updateCall.data.totalSessionSeconds).toBeUndefined();
+    });
+
+    it("should increment totalSessionSeconds by deltaActiveSeconds when actively engaged", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@strkyr.fit" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "trainer-1",
+        clientProfileId: null,
+      } as any);
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        id: "trainer-1",
+        lastActiveAt: new Date(),
+        lastSessionDurationSeconds: 150,
+        totalSessionSeconds: 150,
+      } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/user/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({
+          durationSeconds: 150,
+          isIdle: false,
+          deltaActiveSeconds: 30,
+        }),
+      });
+
+      const res = await heartbeatPOST(req);
+      expect(res.status).toBe(200);
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "trainer-1" },
+          data: expect.objectContaining({
+            lastSessionDurationSeconds: 150,
+            totalSessionSeconds: { increment: 30 },
+          }),
+        })
+      );
+    });
   });
 
   describe("GET /api/admin/stats with Organic vs Admin Usage Separation", () => {

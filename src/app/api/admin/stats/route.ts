@@ -244,7 +244,12 @@ export async function GET(req: NextRequest) {
 
       const loginCount = u.loginCount || 1;
       const sessionCount = u.sessionCount || u.loginCount || 1;
-      const totalSessionSeconds = u.totalSessionSeconds || u.lastSessionDurationSeconds || 0;
+      const rawLastDuration = u.lastSessionDurationSeconds || 0;
+      // Cap at 7200s (2 hours) max active time per session
+      const lastSessionDurationSeconds = Math.min(rawLastDuration, 7200);
+      const rawTotalSeconds = u.totalSessionSeconds || lastSessionDurationSeconds || 0;
+      // Cap legacy inflated seconds to max 5400s (90 mins) per session to eliminate background ghost accumulation
+      const totalSessionSeconds = Math.min(rawTotalSeconds, sessionCount * 5400);
       const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, sessionCount)) : 0;
 
       const userEmail = (u.email || "").toLowerCase().trim();
@@ -257,7 +262,7 @@ export async function GET(req: NextRequest) {
         workoutsLoggedForClients: u._count?.loggedWorkouts || 0,
         lastLoginAt: effectiveLastLogin,
         lastActiveAt: effectiveLastActive,
-        lastSessionDurationSeconds: u.lastSessionDurationSeconds || 0,
+        lastSessionDurationSeconds,
         loginCount,
         sessionCount,
         totalSessionSeconds,
@@ -275,7 +280,10 @@ export async function GET(req: NextRequest) {
 
       const loginCount = clientUser?.loginCount || c.loginCount || 1;
       const sessionCount = clientUser?.sessionCount || c.sessionCount || clientUser?.loginCount || c.loginCount || 1;
-      const totalSessionSeconds = clientUser?.totalSessionSeconds || c.totalSessionSeconds || clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0;
+      const rawLastDuration = clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0;
+      const lastSessionDurationSeconds = Math.min(rawLastDuration, 7200);
+      const rawTotalSeconds = clientUser?.totalSessionSeconds || c.totalSessionSeconds || lastSessionDurationSeconds || 0;
+      const totalSessionSeconds = Math.min(rawTotalSeconds, sessionCount * 5400);
       const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, sessionCount)) : 0;
 
       const clientEmail = (c.email || clientUser?.email || "").toLowerCase().trim();
@@ -294,7 +302,7 @@ export async function GET(req: NextRequest) {
         isRegistered: !!c.loginUser,
         lastLoginAt: clientLastLogin,
         lastActiveAt: clientLastActive,
-        lastSessionDurationSeconds: clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0,
+        lastSessionDurationSeconds,
         loginCount,
         sessionCount,
         totalSessionSeconds,
@@ -369,6 +377,19 @@ export async function GET(req: NextRequest) {
       ? Math.round(allActiveDurations.reduce((a, b) => a + b, 0) / allActiveDurations.length)
       : 0;
     const totalAppTimeSeconds = organicTotalAppTimeSeconds + adminTotalAppTimeSeconds;
+
+    // Live Active Now Presence (heartbeat received within last 2 minutes)
+    const isRecentlyActive = (dateStr?: string | null) => {
+      if (!dateStr) return false;
+      const diffMs = Date.now() - new Date(dateStr).getTime();
+      return diffMs >= 0 && diffMs <= 120_000;
+    };
+
+    const organicActiveNowCount = organicTrainers.filter((t) => isRecentlyActive(t.lastActiveAt)).length +
+                                  organicClients.filter((c) => isRecentlyActive(c.lastActiveAt)).length;
+    const adminActiveNowCount = adminTrainers.filter((t) => isRecentlyActive(t.lastActiveAt)).length +
+                                adminClients.filter((c) => isRecentlyActive(c.lastActiveAt)).length;
+    const totalActiveNowCount = organicActiveNowCount + adminActiveNowCount;
 
     // Real-time Live Stripe Billing Metrics
     let stripeBilling: any = {
@@ -487,6 +508,7 @@ export async function GET(req: NextRequest) {
         // Platform-wide combined metrics
         totalSessions,
         totalLogins,
+        totalActiveNowCount,
         overallAvgSessionSeconds,
         totalAppTimeSeconds,
 
@@ -495,6 +517,7 @@ export async function GET(req: NextRequest) {
         organicClientsCount: organicClients.length,
         organicTotalSessions,
         organicTotalLogins,
+        organicActiveNowCount,
         organicAvgSessionSeconds,
         organicTotalAppTimeSeconds,
         organicDau,
@@ -504,6 +527,7 @@ export async function GET(req: NextRequest) {
         // Internal Admin & Developer Metrics (Collin's Isolated Usage)
         adminTotalSessions,
         adminTotalLogins,
+        adminActiveNowCount,
         adminAvgSessionSeconds,
         adminTotalAppTimeSeconds,
       },

@@ -17,8 +17,25 @@ export async function POST(req: NextRequest) {
       body = await req.json();
     } catch {}
 
-    const durationSeconds = typeof body.durationSeconds === "number" ? Math.max(0, Math.min(body.durationSeconds, 86400)) : 0;
+    const rawDuration = typeof body.activeDurationSeconds === "number"
+      ? body.activeDurationSeconds
+      : typeof body.durationSeconds === "number"
+      ? body.durationSeconds
+      : 0;
+
+    // Hard ceiling: Cap single session active duration at 7,200 seconds (2 hours)
+    const durationSeconds = Math.max(0, Math.min(rawDuration, 7200));
+
+    const isIdle = body.isIdle === true;
+    const isExplicitNewSession = body.isNewSession === true;
     const now = new Date();
+
+    // Incremental active delta: capped at 60s per heartbeat, only accumulated when NOT idle
+    const deltaSeconds = !isIdle && typeof body.deltaActiveSeconds === "number"
+      ? Math.max(0, Math.min(body.deltaActiveSeconds, 60))
+      : !isIdle && durationSeconds > 0
+      ? Math.max(1, Math.min(durationSeconds, 60))
+      : 0;
 
     const userWhere = session.user.id
       ? { id: session.user.id }
@@ -41,11 +58,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const isExplicitNewSession = body.isNewSession === true;
     const minutesSinceLastActive = user.lastActiveAt
       ? (now.getTime() - new Date(user.lastActiveAt).getTime()) / (1000 * 60)
       : 999;
-    const shouldIncrementSession = isExplicitNewSession || minutesSinceLastActive >= 30;
+    const shouldIncrementSession = isExplicitNewSession || minutesSinceLastActive >= 15;
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
@@ -55,7 +71,11 @@ export async function POST(req: NextRequest) {
         ...(durationSeconds > 0
           ? {
               lastSessionDurationSeconds: durationSeconds,
-              totalSessionSeconds: { increment: Math.max(1, Math.min(durationSeconds, 60)) },
+            }
+          : {}),
+        ...(deltaSeconds > 0
+          ? {
+              totalSessionSeconds: { increment: deltaSeconds },
             }
           : {}),
       },
@@ -77,7 +97,11 @@ export async function POST(req: NextRequest) {
           ...(durationSeconds > 0
             ? {
                 lastSessionDurationSeconds: durationSeconds,
-                totalSessionSeconds: { increment: Math.max(1, Math.min(durationSeconds, 60)) },
+              }
+            : {}),
+          ...(deltaSeconds > 0
+            ? {
+                totalSessionSeconds: { increment: deltaSeconds },
               }
             : {}),
         },
@@ -90,6 +114,7 @@ export async function POST(req: NextRequest) {
       lastSessionDurationSeconds: updatedUser.lastSessionDurationSeconds,
       totalSessionSeconds: updatedUser.totalSessionSeconds,
       sessionCount: updatedUser.sessionCount,
+      isIdle,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Heartbeat error" }, { status: 500 });
