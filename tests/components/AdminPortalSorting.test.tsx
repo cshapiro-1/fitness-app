@@ -24,6 +24,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: "2026-09-01T00:00:00Z",
       lastSessionDurationSeconds: 120,
       loginCount: 15,
+      sessionCount: 25,
       totalSessionSeconds: 1800,
       avgSessionDurationSeconds: 120,
     },
@@ -46,6 +47,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: "2026-09-10T00:00:00Z",
       lastSessionDurationSeconds: 300,
       loginCount: 40,
+      sessionCount: 60,
       totalSessionSeconds: 12000,
       avgSessionDurationSeconds: 300,
     },
@@ -68,6 +70,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: "2026-08-01T00:00:00Z",
       lastSessionDurationSeconds: 60,
       loginCount: 5,
+      sessionCount: 8,
       totalSessionSeconds: 300,
       avgSessionDurationSeconds: 60,
     },
@@ -89,6 +92,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: "2026-09-05T00:00:00Z",
       lastSessionDurationSeconds: 180,
       loginCount: 10,
+      sessionCount: 18,
       totalSessionSeconds: 1800,
       avgSessionDurationSeconds: 180,
     },
@@ -107,6 +111,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: "2026-09-12T00:00:00Z",
       lastSessionDurationSeconds: 400,
       loginCount: 30,
+      sessionCount: 45,
       totalSessionSeconds: 12000,
       avgSessionDurationSeconds: 400,
     },
@@ -125,6 +130,7 @@ describe("AdminPortal Table Sorting at the Top", () => {
       lastActiveAt: null,
       lastSessionDurationSeconds: 0,
       loginCount: 1,
+      sessionCount: 2,
       totalSessionSeconds: 0,
       avgSessionDurationSeconds: 0,
     },
@@ -132,6 +138,8 @@ describe("AdminPortal Table Sorting at the Top", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    window.history.replaceState({}, "", "/");
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes("/api/admin/stats")) {
         return Promise.resolve({
@@ -142,6 +150,8 @@ describe("AdminPortal Table Sorting at the Top", () => {
               totalTrainers: 3,
               totalClients: 3,
               totalWorkouts: 210,
+              totalSessions: 158,
+              organicTotalSessions: 158,
               activeSubscriptions: 1,
               trialingUsers: 1,
               expiredUsers: 1,
@@ -294,5 +304,61 @@ describe("AdminPortal Table Sorting at the Top", () => {
     expect(rows[1]).toHaveTextContent("Chloe Smith");
     expect(rows[2]).toHaveTextContent("David Miller");
     expect(rows[3]).toHaveTextContent("Edward Norton");
+  });
+
+  it("should display ORGANIC SESSIONS in KPI card", async () => {
+    render(<AdminPortal userName="Admin" />);
+
+    expect(await screen.findByText("ORGANIC SESSIONS")).toBeInTheDocument();
+    expect(screen.getByText("158")).toBeInTheDocument();
+    expect(screen.getByText(/Active visits/i)).toBeInTheDocument();
+  });
+
+  it("should sort trainers by Sessions when Sessions header is clicked", async () => {
+    render(<AdminPortal userName="Admin" />);
+
+    expect(await screen.findByText("Alice Adams")).toBeInTheDocument();
+
+    const sessionsTh = screen.getByRole("columnheader", { name: /sessions/i });
+    fireEvent.click(sessionsTh);
+
+    const rows = screen.getAllByRole("row");
+    // Sessions desc by default: Alice Adams (60) -> Bob Builder (25) -> Charlie Clark (8)
+    expect(rows[1]).toHaveTextContent("Alice Adams");
+    expect(rows[2]).toHaveTextContent("Bob Builder");
+    expect(rows[3]).toHaveTextContent("Charlie Clark");
+
+    // Click again to toggle ascending: Charlie (8) -> Bob (25) -> Alice (60)
+    fireEvent.click(sessionsTh);
+    const rowsAsc = screen.getAllByRole("row");
+    expect(rowsAsc[1]).toHaveTextContent("Charlie Clark");
+    expect(rowsAsc[2]).toHaveTextContent("Bob Builder");
+    expect(rowsAsc[3]).toHaveTextContent("Alice Adams");
+  });
+
+  it("should sort clients by Sessions when Sessions header is clicked", async () => {
+    render(<AdminPortal userName="Admin" />);
+
+    // Switch to Clients tab
+    const clientsTabBtn = screen.getByRole("button", { name: /clients & athletes/i });
+    fireEvent.click(clientsTabBtn);
+
+    expect(await screen.findByText("David Miller")).toBeInTheDocument();
+
+    const sessionsTh = screen.getByRole("columnheader", { name: /sessions/i });
+    fireEvent.click(sessionsTh);
+
+    const rows = screen.getAllByRole("row");
+    // Sessions desc by default: Chloe Smith (45) -> David Miller (18) -> Edward Norton (2)
+    expect(rows[1]).toHaveTextContent("Chloe Smith");
+    expect(rows[2]).toHaveTextContent("David Miller");
+    expect(rows[3]).toHaveTextContent("Edward Norton");
+
+    // Click again to toggle ascending: Edward (2) -> David (18) -> Chloe (45)
+    fireEvent.click(sessionsTh);
+    const rowsAsc = screen.getAllByRole("row");
+    expect(rowsAsc[1]).toHaveTextContent("Edward Norton");
+    expect(rowsAsc[2]).toHaveTextContent("David Miller");
+    expect(rowsAsc[3]).toHaveTextContent("Chloe Smith");
   });
 });

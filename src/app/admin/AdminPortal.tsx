@@ -30,6 +30,7 @@ interface AdminTrainer {
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
   loginCount?: number;
+  sessionCount?: number;
   totalSessionSeconds?: number;
   avgSessionDurationSeconds?: number;
 }
@@ -50,6 +51,7 @@ interface AdminClient {
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
   loginCount?: number;
+  sessionCount?: number;
   totalSessionSeconds?: number;
   avgSessionDurationSeconds?: number;
 }
@@ -102,6 +104,7 @@ interface AdminStats {
 
   // Platform-wide combined metrics
   totalLogins?: number;
+  totalSessions?: number;
   overallAvgSessionSeconds?: number;
   totalAppTimeSeconds?: number;
 
@@ -109,6 +112,7 @@ interface AdminStats {
   organicTrainersCount?: number;
   organicClientsCount?: number;
   organicTotalLogins?: number;
+  organicTotalSessions?: number;
   organicAvgSessionSeconds?: number;
   organicTotalAppTimeSeconds?: number;
   organicDau?: number;
@@ -117,6 +121,7 @@ interface AdminStats {
 
   // Internal Admin & Developer Metrics (Collin's Isolated Usage)
   adminTotalLogins?: number;
+  adminTotalSessions?: number;
   adminAvgSessionSeconds?: number;
   adminTotalAppTimeSeconds?: number;
 }
@@ -199,6 +204,7 @@ type TrainerSortField =
   | "role"
   | "clientCount"
   | "workoutsLoggedForClients"
+  | "sessionCount"
   | "loginCount"
   | "avgSessionDurationSeconds"
   | "lastActiveAt"
@@ -210,6 +216,7 @@ type ClientSortField =
   | "name"
   | "trainerName"
   | "workoutsLogged"
+  | "sessionCount"
   | "loginCount"
   | "avgSessionDurationSeconds"
   | "lastActiveAt"
@@ -338,6 +345,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
         "createdAt",
         "clientCount",
         "workoutsLoggedForClients",
+        "sessionCount",
         "loginCount",
         "avgSessionDurationSeconds",
         "lastActiveAt",
@@ -355,6 +363,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
       const descFields: ClientSortField[] = [
         "createdAt",
         "workoutsLogged",
+        "sessionCount",
         "loginCount",
         "avgSessionDurationSeconds",
         "lastActiveAt",
@@ -706,8 +715,11 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           comparison = (a.workoutsLoggedForClients ?? 0) - (b.workoutsLoggedForClients ?? 0);
           break;
         }
+        case "sessionCount":
         case "loginCount": {
-          comparison = (a.loginCount ?? 1) - (b.loginCount ?? 1);
+          const valA = a.sessionCount ?? a.loginCount ?? 1;
+          const valB = b.sessionCount ?? b.loginCount ?? 1;
+          comparison = valA - valB;
           break;
         }
         case "avgSessionDurationSeconds": {
@@ -772,8 +784,11 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           comparison = (a.workoutsLogged ?? 0) - (b.workoutsLogged ?? 0);
           break;
         }
+        case "sessionCount":
         case "loginCount": {
-          comparison = (a.loginCount ?? 1) - (b.loginCount ?? 1);
+          const valA = a.sessionCount ?? a.loginCount ?? 1;
+          const valB = b.sessionCount ?? b.loginCount ?? 1;
+          comparison = valA - valB;
           break;
         }
         case "avgSessionDurationSeconds": {
@@ -821,6 +836,13 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
       : telemetryMode === "ADMIN_ONLY"
       ? stats?.adminTotalLogins ?? 0
       : stats?.totalLogins ?? 0;
+
+  const currentTotalSessions =
+    telemetryMode === "ORGANIC"
+      ? stats?.organicTotalSessions ?? stats?.organicTotalLogins ?? 0
+      : telemetryMode === "ADMIN_ONLY"
+      ? stats?.adminTotalSessions ?? stats?.adminTotalLogins ?? 0
+      : stats?.totalSessions ?? stats?.totalLogins ?? 0;
 
   const currentTotalAppTime =
     telemetryMode === "ORGANIC"
@@ -1015,17 +1037,17 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
             </div>
           </div>
 
-          {/* Total App Logins */}
+          {/* Total App Sessions */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>{telemetryMode === "ORGANIC" ? "ORGANIC LOGINS" : telemetryMode === "ADMIN_ONLY" ? "COLLIN LOGINS" : "TOTAL LOGINS"}</span>
-              <LogIn size={16} style={{ color: "#0284c7" }} />
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC SESSIONS" : telemetryMode === "ADMIN_ONLY" ? "COLLIN SESSIONS" : "TOTAL SESSIONS"}</span>
+              <Activity size={16} style={{ color: "#0284c7" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {currentTotalLogins}
+              {currentTotalSessions}
             </div>
             <div style={{ fontSize: "11px", color: "#0284c7", marginTop: "2px", fontWeight: 600 }}>
-              {currentDau} DAU
+              {currentDau} DAU · Active visits
             </div>
           </div>
 
@@ -1190,7 +1212,8 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                     <option value="name">Trainer Name</option>
                     <option value="clientCount">Clients Count</option>
                     <option value="workoutsLoggedForClients">Workouts Logged</option>
-                    <option value="loginCount">Total Logins</option>
+                    <option value="sessionCount">Total Sessions</option>
+                    <option value="loginCount" style={{ display: "none" }}>Total Logins</option>
                     <option value="avgSessionDurationSeconds">Avg Session</option>
                     <option value="lastActiveAt">Last Active</option>
                     <option value="lastSessionDurationSeconds">Last Session</option>
@@ -1230,7 +1253,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                       <SortableTh field="role" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Role</SortableTh>
                       <SortableTh field="clientCount" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Clients</SortableTh>
                       <SortableTh field="workoutsLoggedForClients" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Workouts Logged</SortableTh>
-                      <SortableTh field="loginCount" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Logins</SortableTh>
+                      <SortableTh field="sessionCount" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Sessions</SortableTh>
                       <SortableTh field="avgSessionDurationSeconds" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Avg Session</SortableTh>
                       <SortableTh field="lastActiveAt" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Last Active</SortableTh>
                       <SortableTh field="lastSessionDurationSeconds" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Last Session</SortableTh>
@@ -1259,7 +1282,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                               <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
                                 <span>{t.name || "Unnamed Trainer"}</span>
                                 {t.isInternalAdmin && (
-                                  <span style={{ fontSize: "10px", background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                                   <span style={{ fontSize: "10px", background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
                                     👑 DEV / ADMIN
                                   </span>
                                 )}
@@ -1280,9 +1303,23 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                <LogIn size={11} />
-                                <span>{t.loginCount ?? 1}</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: "#0284c7",
+                                  background: "#f0f9ff",
+                                  border: "1px solid #bae6fd",
+                                  padding: "2px 7px",
+                                  borderRadius: "6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                }}
+                                title={`${t.sessionCount ?? t.loginCount ?? 1} total app sessions (${t.loginCount ?? 1} sign-ins)`}
+                              >
+                                <Activity size={11} />
+                                <span>{t.sessionCount ?? t.loginCount ?? 1}</span>
                               </span>
                             </td>
 
@@ -1424,7 +1461,8 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                     <option value="name">Client / Athlete</option>
                     <option value="trainerName">Assigned Coach</option>
                     <option value="workoutsLogged">Workouts Logged</option>
-                    <option value="loginCount">Total Logins</option>
+                    <option value="sessionCount">Total Sessions</option>
+                    <option value="loginCount" style={{ display: "none" }}>Total Logins</option>
                     <option value="avgSessionDurationSeconds">Avg Session</option>
                     <option value="lastActiveAt">Last Active</option>
                     <option value="lastSessionDurationSeconds">Last Session</option>
@@ -1462,7 +1500,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                       <SortableTh field="name" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Client / Athlete</SortableTh>
                       <SortableTh field="trainerName" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Assigned Coach</SortableTh>
                       <SortableTh field="workoutsLogged" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Workouts Logged</SortableTh>
-                      <SortableTh field="loginCount" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Logins</SortableTh>
+                      <SortableTh field="sessionCount" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Sessions</SortableTh>
                       <SortableTh field="avgSessionDurationSeconds" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Avg Session</SortableTh>
                       <SortableTh field="lastActiveAt" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Last Active</SortableTh>
                       <SortableTh field="lastSessionDurationSeconds" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Last Session</SortableTh>
@@ -1511,9 +1549,23 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", border: "1px solid #bae6fd", padding: "2px 7px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                <LogIn size={11} />
-                                <span>{c.loginCount ?? 1}</span>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: "#0284c7",
+                                  background: "#f0f9ff",
+                                  border: "1px solid #bae6fd",
+                                  padding: "2px 7px",
+                                  borderRadius: "6px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                }}
+                                title={`${c.sessionCount ?? c.loginCount ?? 1} total app sessions (${c.loginCount ?? 1} sign-ins)`}
+                              >
+                                <Activity size={11} />
+                                <span>{c.sessionCount ?? c.loginCount ?? 1}</span>
                               </span>
                             </td>
 

@@ -26,17 +26,32 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: userWhere,
-      select: { id: true, clientProfileId: true, lastLoginAt: true, lastSessionDurationSeconds: true },
+      select: {
+        id: true,
+        clientProfileId: true,
+        lastLoginAt: true,
+        lastActiveAt: true,
+        lastSessionDurationSeconds: true,
+        sessionCount: true,
+        loginCount: true,
+      },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    const isExplicitNewSession = body.isNewSession === true;
+    const minutesSinceLastActive = user.lastActiveAt
+      ? (now.getTime() - new Date(user.lastActiveAt).getTime()) / (1000 * 60)
+      : 999;
+    const shouldIncrementSession = isExplicitNewSession || minutesSinceLastActive >= 30;
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         lastActiveAt: now,
+        ...(shouldIncrementSession ? { sessionCount: { increment: 1 } } : {}),
         ...(durationSeconds > 0
           ? {
               lastSessionDurationSeconds: durationSeconds,
@@ -44,7 +59,13 @@ export async function POST(req: NextRequest) {
             }
           : {}),
       },
-      select: { id: true, lastActiveAt: true, lastSessionDurationSeconds: true, totalSessionSeconds: true },
+      select: {
+        id: true,
+        lastActiveAt: true,
+        lastSessionDurationSeconds: true,
+        totalSessionSeconds: true,
+        sessionCount: true,
+      },
     });
 
     if (user.clientProfileId) {
@@ -52,6 +73,7 @@ export async function POST(req: NextRequest) {
         where: { id: user.clientProfileId },
         data: {
           lastActiveAt: now,
+          ...(shouldIncrementSession ? { sessionCount: { increment: 1 } } : {}),
           ...(durationSeconds > 0
             ? {
                 lastSessionDurationSeconds: durationSeconds,
@@ -67,6 +89,7 @@ export async function POST(req: NextRequest) {
       lastActiveAt: updatedUser.lastActiveAt,
       lastSessionDurationSeconds: updatedUser.lastSessionDurationSeconds,
       totalSessionSeconds: updatedUser.totalSessionSeconds,
+      sessionCount: updatedUser.sessionCount,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Heartbeat error" }, { status: 500 });

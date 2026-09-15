@@ -69,6 +69,63 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
       expect(res.status).toBe(401);
     });
 
+    it("should increment sessionCount when isNewSession is true", async () => {
+      vi.mocked(getServerSession).mockResolvedValue({
+        user: { id: "trainer-1", email: "trainer@strkyr.fit" },
+      } as any);
+
+      vi.mocked(prisma.user.findUnique).mockResolvedValue({
+        id: "trainer-1",
+        clientProfileId: "client-profile-1",
+        sessionCount: 5,
+        loginCount: 2,
+        lastActiveAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
+      } as any);
+
+      vi.mocked(prisma.user.update).mockResolvedValue({
+        id: "trainer-1",
+        sessionCount: 6,
+        lastActiveAt: new Date(),
+        lastSessionDurationSeconds: 15,
+        totalSessionSeconds: 1200,
+      } as any);
+
+      vi.mocked(prisma.client.update).mockResolvedValue({
+        id: "client-profile-1",
+        sessionCount: 6,
+        lastActiveAt: new Date(),
+        lastSessionDurationSeconds: 15,
+        totalSessionSeconds: 1200,
+      } as any);
+
+      const req = new NextRequest("http://localhost:3000/api/user/heartbeat", {
+        method: "POST",
+        body: JSON.stringify({ durationSeconds: 15, isNewSession: true }),
+      });
+
+      const res = await heartbeatPOST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.sessionCount).toBe(6);
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "trainer-1" },
+          data: expect.objectContaining({
+            sessionCount: { increment: 1 },
+          }),
+        })
+      );
+      expect(prisma.client.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "client-profile-1" },
+          data: expect.objectContaining({
+            sessionCount: { increment: 1 },
+          }),
+        })
+      );
+    });
+
     it("should update User and linked Client lastActiveAt and lastSessionDurationSeconds", async () => {
       vi.mocked(getServerSession).mockResolvedValue({
         user: { id: "trainer-1", email: "trainer@strkyr.fit" },
@@ -179,6 +236,7 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
           lastActiveAt: now,
           lastSessionDurationSeconds: 1800,
           loginCount: 4,
+          sessionCount: 12,
           totalSessionSeconds: 7200,
           createdAt: now,
           _count: { clients: 2, loggedWorkouts: 10 },
@@ -196,6 +254,7 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
           lastActiveAt: now,
           lastSessionDurationSeconds: 1200,
           loginCount: 2,
+          sessionCount: 8,
           totalSessionSeconds: 2400,
           createdAt: now,
           user: { id: "trainer-tim", name: "Coach Tim", email: "tim@gym.com" },
@@ -208,6 +267,7 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
             lastActiveAt: now,
             lastSessionDurationSeconds: 1200,
             loginCount: 2,
+            sessionCount: 8,
             totalSessionSeconds: 2400,
           },
           _count: { workoutSessions: 5 },
@@ -228,11 +288,14 @@ describe("User Session Telemetry & Activity Tracking Suite", () => {
       expect(data.stats.organicTrainersCount).toBe(1);
       expect(data.stats.organicClientsCount).toBe(1);
       expect(data.stats.organicTotalLogins).toBe(6); // Tim (4) + Sarah (2)
-      expect(data.stats.organicAvgSessionSeconds).toBe(1500); // (1800 + 1200) / 2
+      expect(data.stats.organicTotalSessions).toBe(20); // Tim (12) + Sarah (8)
+      expect(data.trainers[1].sessionCount).toBe(12);
+      expect(data.clients[0].sessionCount).toBe(8);
 
       // Check Admin Isolated Metrics
       expect(data.stats.adminTotalLogins).toBe(50); // Collin's 50 logins isolated
-      expect(data.stats.adminAvgSessionSeconds).toBe(2880); // 144000 / 50
+      expect(data.stats.adminTotalSessions).toBe(50); // Collin's sessions (falls back to loginCount 50)
+      expect(data.stats.totalSessions).toBe(70); // 20 organic + 50 admin
     });
   });
 

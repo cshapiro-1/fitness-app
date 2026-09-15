@@ -261,6 +261,7 @@ export const authOptions: NextAuthOptions = {
                     lastLoginAt: new Date(),
                     lastActiveAt: new Date(),
                     loginCount: { increment: 1 },
+                    sessionCount: { increment: 1 },
                   },
                 });
                 if (dbUser.clientProfileId) {
@@ -269,6 +270,7 @@ export const authOptions: NextAuthOptions = {
                     data: {
                       lastActiveAt: new Date(),
                       loginCount: { increment: 1 },
+                      sessionCount: { increment: 1 },
                     },
                   }).catch(() => null);
                 }

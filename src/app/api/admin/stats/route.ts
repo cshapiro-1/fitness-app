@@ -33,10 +33,12 @@ export async function GET(req: NextRequest) {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lastSessionDurationSeconds" INTEGER DEFAULT 0;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "loginCount" INTEGER DEFAULT 1;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "sessionCount" INTEGER DEFAULT 1;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "totalSessionSeconds" INTEGER DEFAULT 0;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "lastSessionDurationSeconds" INTEGER DEFAULT 0;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "loginCount" INTEGER DEFAULT 1;`);
+      await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "sessionCount" INTEGER DEFAULT 1;`);
       await prisma.$executeRawUnsafe(`ALTER TABLE "Client" ADD COLUMN IF NOT EXISTS "totalSessionSeconds" INTEGER DEFAULT 0;`);
 
       // Delete legacy FitCoach service admin accounts
@@ -110,6 +112,7 @@ export async function GET(req: NextRequest) {
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
           loginCount: true,
+          sessionCount: true,
           totalSessionSeconds: true,
           createdAt: true,
           loggedWorkouts: {
@@ -137,13 +140,14 @@ export async function GET(req: NextRequest) {
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
           loginCount: true,
+          sessionCount: true,
           totalSessionSeconds: true,
           createdAt: true,
           user: {
             select: { id: true, name: true, email: true },
           },
           loginUser: {
-            select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, lastActiveAt: true, lastSessionDurationSeconds: true, loginCount: true, totalSessionSeconds: true },
+            select: { id: true, name: true, email: true, createdAt: true, lastLoginAt: true, lastActiveAt: true, lastSessionDurationSeconds: true, loginCount: true, sessionCount: true, totalSessionSeconds: true },
           },
           workoutSessions: {
             select: { completedAt: true, startedAt: true, createdAt: true },
@@ -174,6 +178,7 @@ export async function GET(req: NextRequest) {
           lastActiveAt: true,
           lastSessionDurationSeconds: true,
           loginCount: true,
+          sessionCount: true,
           totalSessionSeconds: true,
           createdAt: true,
           _count: {
@@ -238,8 +243,9 @@ export async function GET(req: NextRequest) {
       const effectiveLastLogin = hasRealSession ? (u.lastLoginAt || effectiveLastActive) : (latestWorkoutDate || u.createdAt);
 
       const loginCount = u.loginCount || 1;
+      const sessionCount = u.sessionCount || u.loginCount || 1;
       const totalSessionSeconds = u.totalSessionSeconds || u.lastSessionDurationSeconds || 0;
-      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
+      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, sessionCount)) : 0;
 
       const userEmail = (u.email || "").toLowerCase().trim();
       const isInternalAdmin = !!u.isAdmin || userEmail === "collin.shapiro1@gmail.com" || userEmail === "collin@strkyr.fit" || userEmail === "admin@strkyr.fit" || userEmail === "service@strkyr.fit";
@@ -253,6 +259,7 @@ export async function GET(req: NextRequest) {
         lastActiveAt: effectiveLastActive,
         lastSessionDurationSeconds: u.lastSessionDurationSeconds || 0,
         loginCount,
+        sessionCount,
         totalSessionSeconds,
         avgSessionDurationSeconds,
         isInternalAdmin,
@@ -267,8 +274,9 @@ export async function GET(req: NextRequest) {
       const clientLastLogin = clientHasRealSession ? (clientUser?.lastLoginAt || clientLastActive) : (clientWorkoutDate || c.createdAt);
 
       const loginCount = clientUser?.loginCount || c.loginCount || 1;
+      const sessionCount = clientUser?.sessionCount || c.sessionCount || clientUser?.loginCount || c.loginCount || 1;
       const totalSessionSeconds = clientUser?.totalSessionSeconds || c.totalSessionSeconds || clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0;
-      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, loginCount)) : 0;
+      const avgSessionDurationSeconds = totalSessionSeconds > 0 ? Math.round(totalSessionSeconds / Math.max(1, sessionCount)) : 0;
 
       const clientEmail = (c.email || clientUser?.email || "").toLowerCase().trim();
       const isInternalAdmin = clientEmail === "collin.shapiro1@gmail.com" || clientEmail === "collin@strkyr.fit" || clientEmail === "admin@strkyr.fit" || clientEmail === "service@strkyr.fit";
@@ -288,6 +296,7 @@ export async function GET(req: NextRequest) {
         lastActiveAt: clientLastActive,
         lastSessionDurationSeconds: clientUser?.lastSessionDurationSeconds || c.lastSessionDurationSeconds || 0,
         loginCount,
+        sessionCount,
         totalSessionSeconds,
         avgSessionDurationSeconds,
         isInternalAdmin,
@@ -305,6 +314,8 @@ export async function GET(req: NextRequest) {
     // 1. Organic Customer Metrics (Excluding Collin's Dev Usage)
     const organicTotalLogins = organicTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
                                organicClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
+    const organicTotalSessions = organicTrainers.reduce((acc, t) => acc + (t.sessionCount || 1), 0) +
+                                 organicClients.reduce((acc, c) => acc + (c.sessionCount || 1), 0);
     const organicActiveDurations = [
       ...organicTrainers.map((t) => t.avgSessionDurationSeconds || 0),
       ...organicClients.map((c) => c.avgSessionDurationSeconds || 0),
@@ -338,6 +349,8 @@ export async function GET(req: NextRequest) {
     // 2. Internal Admin / Developer Metrics (Collin's isolated usage)
     const adminTotalLogins = adminTrainers.reduce((acc, t) => acc + (t.loginCount || 1), 0) +
                              adminClients.reduce((acc, c) => acc + (c.loginCount || 1), 0);
+    const adminTotalSessions = adminTrainers.reduce((acc, t) => acc + (t.sessionCount || 1), 0) +
+                               adminClients.reduce((acc, c) => acc + (c.sessionCount || 1), 0);
     const adminActiveDurations = [
       ...adminTrainers.map((t) => t.avgSessionDurationSeconds || 0),
       ...adminClients.map((c) => c.avgSessionDurationSeconds || 0),
@@ -350,6 +363,7 @@ export async function GET(req: NextRequest) {
 
     // 3. Combined Total Metrics
     const totalLogins = organicTotalLogins + adminTotalLogins;
+    const totalSessions = organicTotalSessions + adminTotalSessions;
     const allActiveDurations = [...organicActiveDurations, ...adminActiveDurations];
     const overallAvgSessionSeconds = allActiveDurations.length > 0
       ? Math.round(allActiveDurations.reduce((a, b) => a + b, 0) / allActiveDurations.length)
@@ -471,6 +485,7 @@ export async function GET(req: NextRequest) {
         conversionRate,
 
         // Platform-wide combined metrics
+        totalSessions,
         totalLogins,
         overallAvgSessionSeconds,
         totalAppTimeSeconds,
@@ -478,6 +493,7 @@ export async function GET(req: NextRequest) {
         // Organic Customer Metrics (Excluding Admin Dev Usage)
         organicTrainersCount: organicTrainers.length,
         organicClientsCount: organicClients.length,
+        organicTotalSessions,
         organicTotalLogins,
         organicAvgSessionSeconds,
         organicTotalAppTimeSeconds,
@@ -486,6 +502,7 @@ export async function GET(req: NextRequest) {
         organicStickinessRatio,
 
         // Internal Admin & Developer Metrics (Collin's Isolated Usage)
+        adminTotalSessions,
         adminTotalLogins,
         adminAvgSessionSeconds,
         adminTotalAppTimeSeconds,
