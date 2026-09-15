@@ -6,7 +6,8 @@ import {
   Award, CheckCircle2, UserCheck, Lock, Edit3, ArrowLeft, Dumbbell, Activity,
   Briefcase, User, Timer, Calendar, LogIn, Trash2, Hourglass, Sparkles, Filter,
   Eye, EyeOff, ShieldAlert, Cpu, HeartPulse, ChevronLeft, ChevronRight, Check,
-  AlertCircle, RotateCcw, Image, Save, ExternalLink, Wand2
+  AlertCircle, RotateCcw, Image, Save, ExternalLink, Wand2,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from "lucide-react";
 import Link from "next/link";
 
@@ -193,6 +194,97 @@ function formatRelativeTime(dateStr?: string | null, seconds?: number | null): {
   return { text: date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" }), full, isRecent: false };
 }
 
+type TrainerSortField =
+  | "name"
+  | "role"
+  | "clientCount"
+  | "workoutsLoggedForClients"
+  | "loginCount"
+  | "avgSessionDurationSeconds"
+  | "lastActiveAt"
+  | "lastSessionDurationSeconds"
+  | "computedStatus"
+  | "createdAt";
+
+type ClientSortField =
+  | "name"
+  | "trainerName"
+  | "workoutsLogged"
+  | "loginCount"
+  | "avgSessionDurationSeconds"
+  | "lastActiveAt"
+  | "lastSessionDurationSeconds"
+  | "isRegistered"
+  | "createdAt";
+
+function SortableTh<T extends string>({
+  field,
+  currentField,
+  currentDirection,
+  onSort,
+  children,
+  align = "left",
+  style,
+}: {
+  field: T;
+  currentField: T;
+  currentDirection: "asc" | "desc";
+  onSort: (field: T) => void;
+  children: React.ReactNode;
+  align?: "left" | "right" | "center";
+  style?: React.CSSProperties;
+}) {
+  const isActive = currentField === field;
+  return (
+    <th
+      onClick={() => onSort(field)}
+      style={{
+        padding: "10px 12px",
+        cursor: "pointer",
+        userSelect: "none",
+        textAlign: align,
+        color: isActive ? "#1d4ed8" : "#475569",
+        background: isActive ? "#eff6ff" : "transparent",
+        borderRadius: "4px",
+        transition: "background 0.15s ease, color 0.15s ease",
+        whiteSpace: "nowrap",
+        ...style,
+      }}
+      title={`Click to sort by ${typeof children === "string" ? children : field} (${isActive ? (currentDirection === "asc" ? "Ascending" : "Descending") : "click to sort"})`}
+      aria-sort={isActive ? (currentDirection === "asc" ? "ascending" : "descending") : "none"}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSort(field);
+        }
+      }}
+    >
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "5px",
+          justifyContent: align === "right" ? "flex-end" : align === "center" ? "center" : "flex-start",
+        }}
+      >
+        <span>{children}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", opacity: isActive ? 1 : 0.4 }}>
+          {isActive ? (
+            currentDirection === "asc" ? (
+              <ArrowUp size={12} style={{ color: "#2563eb" }} />
+            ) : (
+              <ArrowDown size={12} style={{ color: "#2563eb" }} />
+            )
+          ) : (
+            <ArrowUpDown size={11} />
+          )}
+        </span>
+      </div>
+    </th>
+  );
+}
+
 export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [stripeBilling, setStripeBilling] = useState<StripeBillingData | null>(null);
@@ -229,6 +321,48 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
   const [excludeAdminAccounts, setExcludeAdminAccounts] = useState(true);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Sorting State
+  const [trainerSortField, setTrainerSortField] = useState<TrainerSortField>("createdAt");
+  const [trainerSortDirection, setTrainerSortDirection] = useState<"asc" | "desc">("desc");
+
+  const [clientSortField, setClientSortField] = useState<ClientSortField>("createdAt");
+  const [clientSortDirection, setClientSortDirection] = useState<"asc" | "desc">("desc");
+
+  const handleTrainerSort = (field: TrainerSortField) => {
+    if (trainerSortField === field) {
+      setTrainerSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setTrainerSortField(field);
+      const descFields: TrainerSortField[] = [
+        "createdAt",
+        "clientCount",
+        "workoutsLoggedForClients",
+        "loginCount",
+        "avgSessionDurationSeconds",
+        "lastActiveAt",
+        "lastSessionDurationSeconds",
+      ];
+      setTrainerSortDirection(descFields.includes(field) ? "desc" : "asc");
+    }
+  };
+
+  const handleClientSort = (field: ClientSortField) => {
+    if (clientSortField === field) {
+      setClientSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setClientSortField(field);
+      const descFields: ClientSortField[] = [
+        "createdAt",
+        "workoutsLogged",
+        "loginCount",
+        "avgSessionDurationSeconds",
+        "lastActiveAt",
+        "lastSessionDurationSeconds",
+      ];
+      setClientSortDirection(descFields.includes(field) ? "desc" : "asc");
+    }
+  };
 
   // ==========================================
   // Anatomy Studio & Review Queue State
@@ -537,7 +671,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
   };
 
   const filteredTrainers = useMemo(() => {
-    return trainers.filter((t) => {
+    const list = trainers.filter((t) => {
       if (excludeAdminAccounts && t.isInternalAdmin) return false;
 
       const query = searchQuery.toLowerCase();
@@ -548,10 +682,70 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
       const matchesStatus = statusFilter === "ALL" || t.computedStatus === statusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     });
-  }, [trainers, searchQuery, statusFilter, excludeAdminAccounts]);
+
+    return [...list].sort((a, b) => {
+      let comparison = 0;
+      switch (trainerSortField) {
+        case "name": {
+          const valA = (a.name || a.email || "").toLowerCase();
+          const valB = (b.name || b.email || "").toLowerCase();
+          comparison = valA.localeCompare(valB);
+          break;
+        }
+        case "role": {
+          const valA = a.isAdmin ? "ADMIN" : (a.role || "");
+          const valB = b.isAdmin ? "ADMIN" : (b.role || "");
+          comparison = valA.localeCompare(valB);
+          break;
+        }
+        case "clientCount": {
+          comparison = (a.clientCount ?? 0) - (b.clientCount ?? 0);
+          break;
+        }
+        case "workoutsLoggedForClients": {
+          comparison = (a.workoutsLoggedForClients ?? 0) - (b.workoutsLoggedForClients ?? 0);
+          break;
+        }
+        case "loginCount": {
+          comparison = (a.loginCount ?? 1) - (b.loginCount ?? 1);
+          break;
+        }
+        case "avgSessionDurationSeconds": {
+          comparison = (a.avgSessionDurationSeconds ?? 0) - (b.avgSessionDurationSeconds ?? 0);
+          break;
+        }
+        case "lastActiveAt": {
+          const timeA = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
+          const timeB = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+        case "lastSessionDurationSeconds": {
+          comparison = (a.lastSessionDurationSeconds ?? 0) - (b.lastSessionDurationSeconds ?? 0);
+          break;
+        }
+        case "computedStatus": {
+          const statusRank: Record<string, number> = { active: 3, trial: 2, expired: 1, client_free: 0 };
+          const rankA = statusRank[a.computedStatus] ?? 0;
+          const rankB = statusRank[b.computedStatus] ?? 0;
+          comparison = rankA - rankB;
+          break;
+        }
+        case "createdAt":
+        default: {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+      }
+
+      return trainerSortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [trainers, searchQuery, statusFilter, excludeAdminAccounts, trainerSortField, trainerSortDirection]);
 
   const filteredClients = useMemo(() => {
-    return clients.filter((c) => {
+    const list = clients.filter((c) => {
       if (excludeAdminAccounts && c.isInternalAdmin) return false;
 
       const query = searchQuery.toLowerCase();
@@ -560,7 +754,58 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
       const trainerMatch = c.trainerName.toLowerCase().includes(query);
       return nameMatch || emailMatch || trainerMatch;
     });
-  }, [clients, searchQuery, excludeAdminAccounts]);
+
+    return [...list].sort((a, b) => {
+      let comparison = 0;
+      switch (clientSortField) {
+        case "name": {
+          const valA = (a.name || a.email || "").toLowerCase();
+          const valB = (b.name || b.email || "").toLowerCase();
+          comparison = valA.localeCompare(valB);
+          break;
+        }
+        case "trainerName": {
+          comparison = (a.trainerName || "").toLowerCase().localeCompare((b.trainerName || "").toLowerCase());
+          break;
+        }
+        case "workoutsLogged": {
+          comparison = (a.workoutsLogged ?? 0) - (b.workoutsLogged ?? 0);
+          break;
+        }
+        case "loginCount": {
+          comparison = (a.loginCount ?? 1) - (b.loginCount ?? 1);
+          break;
+        }
+        case "avgSessionDurationSeconds": {
+          comparison = (a.avgSessionDurationSeconds ?? 0) - (b.avgSessionDurationSeconds ?? 0);
+          break;
+        }
+        case "lastActiveAt": {
+          const timeA = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
+          const timeB = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+        case "lastSessionDurationSeconds": {
+          comparison = (a.lastSessionDurationSeconds ?? 0) - (b.lastSessionDurationSeconds ?? 0);
+          break;
+        }
+        case "isRegistered": {
+          comparison = (a.isRegistered ? 1 : 0) - (b.isRegistered ? 1 : 0);
+          break;
+        }
+        case "createdAt":
+        default: {
+          const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          comparison = timeA - timeB;
+          break;
+        }
+      }
+
+      return clientSortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [clients, searchQuery, excludeAdminAccounts, clientSortField, clientSortDirection]);
 
   // Display values based on selected telemetry view mode
   const currentAvgSession =
@@ -906,44 +1151,91 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           {/* ========================================================= */}
           {activeTab === "trainers" && (
             <div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
-                <div style={{ position: "relative", flex: "1 1 240px" }}>
-                  <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-                  <input
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", flex: "1 1 300px" }}>
+                  <div style={{ position: "relative", flex: "1 1 220px" }}>
+                    <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                    <input
+                      className="input"
+                      placeholder="Search trainer name or email..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
+                    />
+                  </div>
+                  <select
                     className="input"
-                    placeholder="Search trainer name or email..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
-                  />
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    style={{ fontSize: "12px", padding: "6px 10px" }}
+                    aria-label="Filter by membership status"
+                  >
+                    <option value="ALL">All Memberships</option>
+                    <option value="ACTIVE">Active Paid</option>
+                    <option value="TRIAL">Trialing</option>
+                    <option value="EXPIRED">Expired</option>
+                  </select>
                 </div>
-                <select
-                  className="input"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ fontSize: "12px", padding: "6px 10px" }}
-                >
-                  <option value="ALL">All Memberships</option>
-                  <option value="ACTIVE">Active Paid</option>
-                  <option value="TRIAL">Trialing</option>
-                  <option value="EXPIRED">Expired</option>
-                </select>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", whiteSpace: "nowrap" }}>Sort:</span>
+                  <select
+                    className="input"
+                    value={trainerSortField}
+                    onChange={(e) => handleTrainerSort(e.target.value as TrainerSortField)}
+                    style={{ fontSize: "12px", padding: "6px 10px" }}
+                    aria-label="Sort trainers table by"
+                  >
+                    <option value="createdAt">Joined Date</option>
+                    <option value="name">Trainer Name</option>
+                    <option value="clientCount">Clients Count</option>
+                    <option value="workoutsLoggedForClients">Workouts Logged</option>
+                    <option value="loginCount">Total Logins</option>
+                    <option value="avgSessionDurationSeconds">Avg Session</option>
+                    <option value="lastActiveAt">Last Active</option>
+                    <option value="lastSessionDurationSeconds">Last Session</option>
+                    <option value="computedStatus">Membership Status</option>
+                    <option value="role">Role</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setTrainerSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                    title={`Sort direction: ${trainerSortDirection === "asc" ? "Ascending (click to switch to Descending)" : "Descending (click to switch to Ascending)"}`}
+                    aria-label={`Sort direction: ${trainerSortDirection === "asc" ? "Ascending" : "Descending"}`}
+                  >
+                    {trainerSortDirection === "asc" ? <ArrowUp size={13} style={{ color: "#2563eb" }} /> : <ArrowDown size={13} style={{ color: "#2563eb" }} />}
+                    <span>{trainerSortDirection === "asc" ? "Asc" : "Desc"}</span>
+                  </button>
+                </div>
               </div>
 
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
-                      <th style={{ padding: "10px 12px" }}>Trainer</th>
-                      <th style={{ padding: "10px 12px" }}>Role</th>
-                      <th style={{ padding: "10px 12px" }}>Clients</th>
-                      <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
-                      <th style={{ padding: "10px 12px" }}>Logins</th>
-                      <th style={{ padding: "10px 12px" }}>Avg Session</th>
-                      <th style={{ padding: "10px 12px" }}>Last Active</th>
-                      <th style={{ padding: "10px 12px" }}>Last Session</th>
-                      <th style={{ padding: "10px 12px" }}>Membership</th>
-                      <th style={{ padding: "10px 12px" }}>Joined</th>
+                      <SortableTh field="name" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Trainer</SortableTh>
+                      <SortableTh field="role" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Role</SortableTh>
+                      <SortableTh field="clientCount" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Clients</SortableTh>
+                      <SortableTh field="workoutsLoggedForClients" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Workouts Logged</SortableTh>
+                      <SortableTh field="loginCount" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Logins</SortableTh>
+                      <SortableTh field="avgSessionDurationSeconds" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Avg Session</SortableTh>
+                      <SortableTh field="lastActiveAt" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Last Active</SortableTh>
+                      <SortableTh field="lastSessionDurationSeconds" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Last Session</SortableTh>
+                      <SortableTh field="computedStatus" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Membership</SortableTh>
+                      <SortableTh field="createdAt" currentField={trainerSortField} currentDirection={trainerSortDirection} onSort={handleTrainerSort}>Joined</SortableTh>
                       <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
@@ -1107,30 +1399,75 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           {/* ========================================================= */}
           {activeTab === "clients" && (
             <div>
-              <div style={{ position: "relative", marginBottom: "16px" }}>
-                <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-                <input
-                  className="input"
-                  placeholder="Search client or coach name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
-                />
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                <div style={{ position: "relative", flex: "1 1 240px" }}>
+                  <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                  <input
+                    className="input"
+                    placeholder="Search client or coach name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", whiteSpace: "nowrap" }}>Sort:</span>
+                  <select
+                    className="input"
+                    value={clientSortField}
+                    onChange={(e) => handleClientSort(e.target.value as ClientSortField)}
+                    style={{ fontSize: "12px", padding: "6px 10px" }}
+                    aria-label="Sort clients table by"
+                  >
+                    <option value="createdAt">Account Created</option>
+                    <option value="name">Client / Athlete</option>
+                    <option value="trainerName">Assigned Coach</option>
+                    <option value="workoutsLogged">Workouts Logged</option>
+                    <option value="loginCount">Total Logins</option>
+                    <option value="avgSessionDurationSeconds">Avg Session</option>
+                    <option value="lastActiveAt">Last Active</option>
+                    <option value="lastSessionDurationSeconds">Last Session</option>
+                    <option value="isRegistered">Access Tier</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setClientSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      padding: "6px 10px",
+                      fontSize: "12px",
+                      background: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                    }}
+                    title={`Sort direction: ${clientSortDirection === "asc" ? "Ascending (click to switch to Descending)" : "Descending (click to switch to Ascending)"}`}
+                    aria-label={`Sort direction: ${clientSortDirection === "asc" ? "Ascending" : "Descending"}`}
+                  >
+                    {clientSortDirection === "asc" ? <ArrowUp size={13} style={{ color: "#2563eb" }} /> : <ArrowDown size={13} style={{ color: "#2563eb" }} />}
+                    <span>{clientSortDirection === "asc" ? "Asc" : "Desc"}</span>
+                  </button>
+                </div>
               </div>
 
               <div style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569", fontSize: "11px", textTransform: "uppercase" }}>
-                      <th style={{ padding: "10px 12px" }}>Client / Athlete</th>
-                      <th style={{ padding: "10px 12px" }}>Assigned Coach</th>
-                      <th style={{ padding: "10px 12px" }}>Workouts Logged</th>
-                      <th style={{ padding: "10px 12px" }}>Logins</th>
-                      <th style={{ padding: "10px 12px" }}>Avg Session</th>
-                      <th style={{ padding: "10px 12px" }}>Last Active</th>
-                      <th style={{ padding: "10px 12px" }}>Last Session</th>
-                      <th style={{ padding: "10px 12px" }}>Access Tier</th>
-                      <th style={{ padding: "10px 12px" }}>Account Created</th>
+                      <SortableTh field="name" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Client / Athlete</SortableTh>
+                      <SortableTh field="trainerName" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Assigned Coach</SortableTh>
+                      <SortableTh field="workoutsLogged" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Workouts Logged</SortableTh>
+                      <SortableTh field="loginCount" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Logins</SortableTh>
+                      <SortableTh field="avgSessionDurationSeconds" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Avg Session</SortableTh>
+                      <SortableTh field="lastActiveAt" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Last Active</SortableTh>
+                      <SortableTh field="lastSessionDurationSeconds" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Last Session</SortableTh>
+                      <SortableTh field="isRegistered" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Access Tier</SortableTh>
+                      <SortableTh field="createdAt" currentField={clientSortField} currentDirection={clientSortDirection} onSort={handleClientSort}>Account Created</SortableTh>
                       <th style={{ padding: "10px 12px", textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
