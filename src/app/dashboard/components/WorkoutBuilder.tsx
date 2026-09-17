@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame, Edit3, Check, Info } from "lucide-react";
+import { Plus, Trash2, Dumbbell, History, Award, Timer, Copy, Sparkles, BookmarkPlus, CheckCircle2, Flame, Edit3, Check, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { DraftWorkout, DraftSet, DraftExercise, WorkoutSession } from "../types";
 import { RestTimer } from "./RestTimer";
 import { ExerciseLibraryModal } from "./ExerciseLibraryModal";
@@ -100,6 +100,7 @@ export function WorkoutBuilder({
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [showRemoveAllModal, setShowRemoveAllModal] = useState(false);
   const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
+  const [collapsedExercises, setCollapsedExercises] = useState<Record<number, boolean>>({});
 
   // Ensure planned workouts are always displayed chronologically: next assigned workout first
   const sortedPlannedWorkouts = useMemo(() => {
@@ -231,6 +232,18 @@ export function WorkoutBuilder({
       if (!current) return current;
       return { ...current, exercises: current.exercises.filter((_, index) => index !== exerciseIndex) };
     });
+    setCollapsedExercises((prev) => {
+      const next: Record<number, boolean> = {};
+      Object.entries(prev).forEach(([key, val]) => {
+        const idx = parseInt(key, 10);
+        if (idx < exerciseIndex) {
+          next[idx] = val;
+        } else if (idx > exerciseIndex) {
+          next[idx - 1] = val;
+        }
+      });
+      return next;
+    });
   };
 
   const updateExerciseName = (exerciseIndex: number, value: string) => {
@@ -346,6 +359,54 @@ export function WorkoutBuilder({
         // Auto-suggest 30s rest timer on completing a set
         setActiveRestSeconds(30);
       }
+      return updated;
+    });
+  };
+
+  const toggleCollapseExercise = (exerciseIndex: number) => {
+    setCollapsedExercises((prev) => ({
+      ...prev,
+      [exerciseIndex]: !prev[exerciseIndex],
+    }));
+  };
+
+  const toggleAllExercisesCollapse = (collapse: boolean) => {
+    if (!activeWorkout) return;
+    const next: Record<number, boolean> = {};
+    activeWorkout.exercises.forEach((_, idx) => {
+      next[idx] = collapse;
+    });
+    setCollapsedExercises(next);
+  };
+
+  const toggleCompleteAllExerciseSets = (exerciseIndex: number) => {
+    setActiveWorkout((current) => {
+      if (!current) return current;
+      const targetExercise = current.exercises[exerciseIndex];
+      if (!targetExercise || !targetExercise.sets.length) return current;
+
+      const allCurrentlyCompleted = targetExercise.sets.every((s) => !!s.completed);
+      const newCompletedStatus = !allCurrentlyCompleted;
+
+      const updated = {
+        ...current,
+        exercises: current.exercises.map((exercise, index) => {
+          if (index !== exerciseIndex) return exercise;
+          return {
+            ...exercise,
+            sets: exercise.sets.map((setEntry) => ({
+              ...setEntry,
+              completed: newCompletedStatus,
+            })),
+          };
+        }),
+      };
+
+      if (newCompletedStatus) {
+        // Auto-suggest 30s rest timer on completing all sets of an exercise
+        setActiveRestSeconds(30);
+      }
+
       return updated;
     });
   };
@@ -738,15 +799,97 @@ export function WorkoutBuilder({
                 Add your first exercise to begin logging sets.
               </div>
             )}
+            {activeWorkout.exercises.length > 1 && (
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => toggleAllExercisesCollapse(true)}
+                  data-testid="collapse-all-exercises-btn"
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "#64748b",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                  title="Collapse all exercises to reduce scrolling"
+                >
+                  Collapse All
+                </button>
+                <span style={{ color: "#cbd5e1" }}>•</span>
+                <button
+                  type="button"
+                  onClick={() => toggleAllExercisesCollapse(false)}
+                  data-testid="expand-all-exercises-btn"
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "#2563eb",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                  }}
+                  title="Expand all exercises"
+                >
+                  Expand All
+                </button>
+              </div>
+            )}
             {activeWorkout.exercises.map((exercise, exerciseIndex) => {
               const normName = exercise.name.trim().toLowerCase();
               const prev = previousPerformanceMap[normName];
               const allTimePR = allTimePRMap[normName] || 0;
+              const isCollapsed = !!collapsedExercises[exerciseIndex];
+              const completedSetsCount = exercise.sets.filter((s) => !!s.completed).length;
+              const isExerciseComplete = exercise.sets.length > 0 && completedSetsCount === exercise.sets.length;
 
               return (
                 <div className="exercise-card" key={`${exercise.name}-${exerciseIndex}`}>
                   {/* Exercise Header */}
                   <div className="exercise-card-header" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    {/* Exercise Complete Checkbox */}
+                    <label
+                      data-testid={`exercise-complete-label-${exerciseIndex}`}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        cursor: "pointer",
+                        background: isExerciseComplete ? "#dcfce7" : "#f8fafc",
+                        border: isExerciseComplete ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
+                        color: isExerciseComplete ? "#15803d" : "#475569",
+                        padding: "6px 10px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        userSelect: "none",
+                        transition: "all 0.15s ease",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={isExerciseComplete ? "Mark exercise incomplete (unchecks all sets)" : "Mark exercise complete (checks all sets)"}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isExerciseComplete}
+                        onChange={() => toggleCompleteAllExerciseSets(exerciseIndex)}
+                        aria-label={`Mark ${exercise.name || "exercise"} complete`}
+                        data-testid={`exercise-complete-checkbox-${exerciseIndex}`}
+                        style={{
+                          width: "16px",
+                          height: "16px",
+                          accentColor: "#16a34a",
+                          cursor: "pointer",
+                          margin: 0,
+                        }}
+                      />
+                      <span>{isExerciseComplete ? "Complete ✓" : "Mark Complete"}</span>
+                    </label>
+
                     <ExercisePickerDropdown
                       value={exercise.name}
                       onSelectExercise={(name) => updateExerciseName(exerciseIndex, name)}
@@ -754,66 +897,154 @@ export function WorkoutBuilder({
                       style={{ flex: 1, minWidth: "200px" }}
                     />
 
-                    {/* Body Resistance / Bodyweight Toggle Checkbox */}
-                    <label
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        cursor: "pointer",
-                        background: exercise.isBodyweight ? "#f0fdf4" : "#f8fafc",
-                        border: exercise.isBodyweight ? "1px solid #86efac" : "1px solid #e2e8f0",
-                        color: exercise.isBodyweight ? "#166534" : "#64748b",
-                        padding: "6px 10px",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        userSelect: "none",
-                        transition: "all 0.15s ease",
-                        whiteSpace: "nowrap",
-                      }}
-                      title="Check if this is a body resistance or bodyweight exercise (pushups, back extensions, pullups, jumping jacks, etc.)"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!!exercise.isBodyweight}
-                        onChange={(e) => toggleExerciseBodyweight(exerciseIndex, e.target.checked)}
-                        style={{ width: "15px", height: "15px", accentColor: "#16a34a", cursor: "pointer" }}
-                      />
-                      <span>Bodyweight / Resistance</span>
-                    </label>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                      {/* Collapse / Expand Toggle Button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCollapseExercise(exerciseIndex)}
+                        aria-expanded={!isCollapsed}
+                        data-testid={`exercise-collapse-btn-${exerciseIndex}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          background: isCollapsed ? "#f1f5f9" : "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          color: "#334155",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={isCollapsed ? "Expand exercise and sets" : "Collapse exercise"}
+                      >
+                        {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                        <span>{isCollapsed ? "Expand" : "Collapse"}</span>
+                        {isCollapsed && (
+                          <span
+                            style={{
+                              marginLeft: "2px",
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              padding: "1px 5px",
+                              borderRadius: "10px",
+                              background: isExerciseComplete ? "#dcfce7" : "#e2e8f0",
+                              color: isExerciseComplete ? "#15803d" : "#475569",
+                            }}
+                          >
+                            {completedSetsCount}/{exercise.sets.length}
+                          </span>
+                        )}
+                      </button>
 
-                    {/* 3D Anatomy Muscle Guide Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAnatomyGuide(exercise.name)}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "5px",
-                        background: "#f0f9ff",
-                        border: "1px solid #bae6fd",
-                        color: "#0284c7",
-                        padding: "6px 10px",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        whiteSpace: "nowrap",
-                      }}
-                      title="View 3D Anatomical Muscle Recruitment Chart"
-                    >
-                      <Sparkles size={13} style={{ color: "#0284c7" }} />
-                      <span>Anatomy Guide</span>
-                    </button>
+                      {/* Body Resistance / Bodyweight Toggle Checkbox */}
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          background: exercise.isBodyweight ? "#f0fdf4" : "#f8fafc",
+                          border: exercise.isBodyweight ? "1px solid #86efac" : "1px solid #e2e8f0",
+                          color: exercise.isBodyweight ? "#166534" : "#64748b",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          userSelect: "none",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Check if this is a body resistance or bodyweight exercise (pushups, back extensions, pullups, jumping jacks, etc.)"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!!exercise.isBodyweight}
+                          onChange={(e) => toggleExerciseBodyweight(exerciseIndex, e.target.checked)}
+                          style={{ width: "15px", height: "15px", accentColor: "#16a34a", cursor: "pointer" }}
+                        />
+                        <span>Bodyweight</span>
+                      </label>
 
-                    <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
-                      <Trash2 size={14} />
-                    </button>
+                      {/* 3D Anatomy Muscle Guide Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAnatomyGuide(exercise.name)}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          background: "#f0f9ff",
+                          border: "1px solid #bae6fd",
+                          color: "#0284c7",
+                          padding: "6px 10px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="View 3D Anatomical Muscle Recruitment Chart"
+                      >
+                        <Sparkles size={13} style={{ color: "#0284c7" }} />
+                        <span>Anatomy Guide</span>
+                      </button>
+
+                      <button className="btn-ghost-danger" onClick={() => removeExercise(exerciseIndex)} title="Remove exercise">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Previous Performance Ghost Banner */}
-                  {prev && (
+                  {isCollapsed ? (
+                    <div
+                      onClick={() => toggleCollapseExercise(exerciseIndex)}
+                      data-testid={`exercise-collapsed-summary-${exerciseIndex}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        background: isExerciseComplete ? "#f0fdf4" : "#f8fafc",
+                        border: isExerciseComplete ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
+                        borderRadius: "8px",
+                        padding: "8px 12px",
+                        cursor: "pointer",
+                        gap: "8px",
+                        flexWrap: "wrap",
+                        transition: "all 0.15s ease",
+                      }}
+                      title="Click to expand sets"
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: isExerciseComplete ? "#15803d" : "#475569",
+                            background: isExerciseComplete ? "#dcfce7" : "#e2e8f0",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                          }}
+                        >
+                          {completedSetsCount}/{exercise.sets.length} Sets Completed
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#334155", fontWeight: 500 }}>
+                          {exercise.sets.map((s) => `${s.weight ? `${s.weight}${exercise.isBodyweight ? " BW" : " lbs"}` : (exercise.isBodyweight ? "0 BW" : "-")} × ${s.reps || "0"}`).join("  •  ")}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: "11px", color: "#64748b", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                        <span>Tap to expand</span>
+                        <ChevronDown size={13} />
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Previous Performance Ghost Banner */}
+                      {prev && (
                     <div
                       style={{
                         background: "#f8fafc",
@@ -996,7 +1227,9 @@ export function WorkoutBuilder({
                     <Plus size={13} />
                     <span>Add Set</span>
                   </button>
-                </div>
+                </>
+              )}
+            </div>
               );
             })}
           </div>

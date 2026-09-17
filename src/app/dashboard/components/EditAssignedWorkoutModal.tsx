@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar, Check, Timer } from "lucide-react";
+import { X, Plus, Trash2, Dumbbell, Save, CheckCircle2, AlertCircle, Calendar, Check, Timer, ChevronDown, ChevronUp } from "lucide-react";
 import { isDefaultBodyweight } from "../utils/exerciseLibrary";
 import { ExercisePickerDropdown } from "./ExercisePickerDropdown";
 import { getWeightClarification } from "./WorkoutBuilder";
@@ -23,6 +23,7 @@ export function EditAssignedWorkoutModal({
   const [sessionDate, setSessionDate] = useState("");
   const [notes, setNotes] = useState("");
   const [exercises, setExercises] = useState<any[]>([]);
+  const [collapsedExercises, setCollapsedExercises] = useState<Record<number, boolean>>({});
   const [activeRestSeconds, setActiveRestSeconds] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -78,6 +79,47 @@ export function EditAssignedWorkoutModal({
 
   const handleRemoveExercise = (idx: number) => {
     setExercises((prev) => prev.filter((_, i) => i !== idx));
+    setCollapsedExercises((prev) => {
+      const next: Record<number, boolean> = {};
+      Object.entries(prev).forEach(([key, val]) => {
+        const i = parseInt(key, 10);
+        if (i < idx) {
+          next[i] = val;
+        } else if (i > idx) {
+          next[i - 1] = val;
+        }
+      });
+      return next;
+    });
+  };
+
+  const toggleCollapseExercise = (exIdx: number) => {
+    setCollapsedExercises((prev) => ({
+      ...prev,
+      [exIdx]: !prev[exIdx],
+    }));
+  };
+
+  const handleToggleCompleteAllExerciseSets = (exIdx: number) => {
+    setExercises((prev) => {
+      const targetEx = prev[exIdx];
+      if (!targetEx || !targetEx.sets?.length) return prev;
+      const allCompleted = targetEx.sets.every((s: any) => !!s.completed);
+      const newStatus = !allCompleted;
+      if (newStatus) {
+        setActiveRestSeconds(30);
+      }
+      return prev.map((ex, i) => {
+        if (i !== exIdx) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((s: any) => ({
+            ...s,
+            completed: newStatus,
+          })),
+        };
+      });
+    });
   };
 
   const handleUpdateExerciseName = (idx: number, name: string) => {
@@ -345,185 +387,321 @@ export function EditAssignedWorkoutModal({
               </button>
             </div>
 
-            {exercises.map((ex, exIdx) => (
-              <div
-                key={ex.id || exIdx}
-                style={{
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  padding: "12px 14px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
-                  <ExercisePickerDropdown
-                    value={ex.name}
-                    onSelectExercise={(name, isBW, cat) => {
-                      setExercises((prev) =>
-                        prev.map((item, i) =>
-                          i === exIdx
-                            ? {
-                                ...item,
-                                name,
-                                isBodyweight: isBW,
-                                category: cat,
-                              }
-                            : item
-                        )
-                      );
-                    }}
-                    placeholder="Search 120+ exercise library..."
-                    style={{ flex: 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveExercise(exIdx)}
-                    className="btn-ghost-danger"
-                    title="Remove exercise"
-                    style={{ padding: "6px", borderRadius: "6px" }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+            {exercises.map((ex, exIdx) => {
+              const isCollapsed = !!collapsedExercises[exIdx];
+              const completedSetsCount = (ex.sets || []).filter((s: any) => !!s.completed).length;
+              const isExerciseComplete = (ex.sets || []).length > 0 && completedSetsCount === ex.sets.length;
 
-                {/* Weight Mode & Equipment Guidance Badge */}
-                {(() => {
-                  const weightInfo = getWeightClarification(ex.name, ex.isBodyweight, ex.category);
-                  return (
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", padding: "0 2px" }}>
-                      <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "5px", background: weightInfo.bg, color: weightInfo.badgeColor, border: `1px solid ${weightInfo.badgeColor}33` }}>
-                        {weightInfo.badge}
-                      </span>
-                      <span style={{ fontSize: "11px", color: "#64748b" }}>
-                        {weightInfo.hint}
-                      </span>
-                    </div>
-                  );
-                })()}
-
-                {/* Sets Header & Rows */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
-                    <span>Set</span>
-                    <span>{getWeightClarification(ex.name, ex.isBodyweight, ex.category).header.split("•")[0].trim()}</span>
-                    <span>Reps</span>
-                    <span>Notes</span>
-                    <span style={{ textAlign: "center" }}>Done</span>
-                    <span style={{ textAlign: "center" }}>Rest</span>
-                    <span />
-                  </div>
-
-                  {ex.sets.map((s: any, sIdx: number) => (
-                    <div
-                      key={sIdx}
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto",
-                        gap: "6px",
-                        alignItems: "center",
-                        background: s.completed ? "#f0fdf4" : undefined,
-                        border: s.completed ? "1px solid #86efac" : "1px solid transparent",
-                        borderRadius: "8px",
-                        padding: "2px 4px",
-                        transition: "all 0.15s ease",
-                      }}
-                    >
-                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", textAlign: "center" }}>
-                        {sIdx + 1}
-                      </span>
-                      <input
-                        type="number"
-                        className="input"
-                        value={s.weight}
-                        onChange={(e) => handleUpdateSet(exIdx, sIdx, "weight", e.target.value)}
-                        placeholder="0"
-                        style={{ padding: "4px 8px", fontSize: "12px", textAlign: "center" }}
-                      />
-                      <input
-                        type="number"
-                        className="input"
-                        value={s.reps}
-                        onChange={(e) => handleUpdateSet(exIdx, sIdx, "reps", e.target.value)}
-                        placeholder="10"
-                        style={{ padding: "4px 8px", fontSize: "12px", textAlign: "center" }}
-                      />
-                      <input
-                        type="text"
-                        className="input"
-                        value={s.notes || ""}
-                        onChange={(e) => handleUpdateSet(exIdx, sIdx, "notes", e.target.value)}
-                        placeholder="e.g. Superset..."
-                        style={{ padding: "4px 8px", fontSize: "11px" }}
-                      />
-
-                      {/* Complete Set Toggle Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleCompleteSet(exIdx, sIdx)}
+              return (
+                <div
+                  key={ex.id || exIdx}
+                  style={{
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "10px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1, minWidth: "200px" }}>
+                      {/* Exercise Complete Checkbox */}
+                      <label
+                        data-testid={`modal-exercise-complete-label-${exIdx}`}
                         style={{
-                          padding: "4px 8px",
-                          fontSize: "11px",
-                          borderRadius: "6px",
-                          fontWeight: 700,
                           display: "inline-flex",
                           alignItems: "center",
-                          gap: "3px",
+                          gap: "6px",
                           cursor: "pointer",
-                          border: "1px solid",
-                          borderColor: s.completed ? "#16a34a" : "#cbd5e1",
-                          background: s.completed ? "#16a34a" : "#ffffff",
-                          color: s.completed ? "#ffffff" : "#475569",
+                          background: isExerciseComplete ? "#dcfce7" : "#ffffff",
+                          border: isExerciseComplete ? "1.5px solid #16a34a" : "1px solid #cbd5e1",
+                          color: isExerciseComplete ? "#15803d" : "#475569",
+                          padding: "5px 9px",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          userSelect: "none",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
                         }}
-                        title={s.completed ? "Mark set incomplete" : "Complete set & start 30s rest timer"}
+                        title={isExerciseComplete ? "Mark exercise incomplete" : "Mark exercise complete"}
                       >
-                        <Check size={12} strokeWidth={s.completed ? 3 : 2} />
-                        <span>{s.completed ? "Done" : "Log"}</span>
-                      </button>
+                        <input
+                          type="checkbox"
+                          checked={isExerciseComplete}
+                          onChange={() => handleToggleCompleteAllExerciseSets(exIdx)}
+                          aria-label={`Mark ${ex.name || "exercise"} complete`}
+                          data-testid={`modal-exercise-complete-checkbox-${exIdx}`}
+                          style={{
+                            width: "15px",
+                            height: "15px",
+                            accentColor: "#16a34a",
+                            cursor: "pointer",
+                            margin: 0,
+                          }}
+                        />
+                        <span>{isExerciseComplete ? "Complete ✓" : "Done"}</span>
+                      </label>
 
-                      {/* 30s Rest Trigger */}
+                      <ExercisePickerDropdown
+                        value={ex.name}
+                        onSelectExercise={(name, isBW, cat) => {
+                          setExercises((prev) =>
+                            prev.map((item, i) =>
+                              i === exIdx
+                                ? {
+                                    ...item,
+                                    name,
+                                    isBodyweight: isBW,
+                                    category: cat,
+                                  }
+                                : item
+                            )
+                          );
+                        }}
+                        placeholder="Search 120+ exercise library..."
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      {/* Collapse / Expand Toggle Button */}
                       <button
                         type="button"
-                        onClick={() => setActiveRestSeconds(30)}
-                        style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", cursor: "pointer", padding: "5px 7px" }}
-                        title="Start 30s rest timer"
+                        onClick={() => toggleCollapseExercise(exIdx)}
+                        aria-expanded={!isCollapsed}
+                        data-testid={`modal-exercise-collapse-btn-${exIdx}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          background: isCollapsed ? "#ffffff" : "transparent",
+                          border: "1px solid #cbd5e1",
+                          color: "#334155",
+                          padding: "5px 8px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          userSelect: "none",
+                          transition: "all 0.15s ease",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={isCollapsed ? "Expand exercise" : "Collapse exercise"}
                       >
-                        <Timer size={12} />
+                        {isCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                        <span>{isCollapsed ? "Expand" : "Collapse"}</span>
+                        {isCollapsed && (
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: 700,
+                              padding: "1px 4px",
+                              borderRadius: "8px",
+                              background: isExerciseComplete ? "#dcfce7" : "#e2e8f0",
+                              color: isExerciseComplete ? "#15803d" : "#475569",
+                            }}
+                          >
+                            {completedSetsCount}/{ex.sets.length}
+                          </span>
+                        )}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => handleRemoveSet(exIdx, sIdx)}
-                        style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", padding: "4px" }}
-                        title="Remove set"
+                        onClick={() => handleRemoveExercise(exIdx)}
+                        className="btn-ghost-danger"
+                        title="Remove exercise"
+                        style={{ padding: "6px", borderRadius: "6px" }}
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
-                  ))}
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleAddSet(exIdx)}
+                {isCollapsed ? (
+                  <div
+                    onClick={() => toggleCollapseExercise(exIdx)}
+                    data-testid={`modal-exercise-collapsed-summary-${exIdx}`}
                     style={{
-                      background: "transparent",
-                      border: "1px dashed #cbd5e1",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      background: isExerciseComplete ? "#f0fdf4" : "#ffffff",
+                      border: isExerciseComplete ? "1px solid #bbf7d0" : "1px solid #e2e8f0",
                       borderRadius: "6px",
-                      padding: "4px 8px",
-                      fontSize: "11px",
-                      fontWeight: 600,
-                      color: "#2563eb",
+                      padding: "8px 12px",
                       cursor: "pointer",
-                      marginTop: "4px",
+                      gap: "8px",
+                      flexWrap: "wrap",
+                      transition: "all 0.15s ease",
                     }}
+                    title="Click to expand sets"
                   >
-                    + Add Set
-                  </button>
-                </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          color: isExerciseComplete ? "#15803d" : "#475569",
+                          background: isExerciseComplete ? "#dcfce7" : "#e2e8f0",
+                          padding: "2px 6px",
+                          borderRadius: "10px",
+                        }}
+                      >
+                        {completedSetsCount}/{ex.sets.length} Sets Completed
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#334155", fontWeight: 500 }}>
+                        {ex.sets.map((s: any) => `${s.weight ? `${s.weight}${ex.isBodyweight ? " BW" : " lbs"}` : (ex.isBodyweight ? "0 BW" : "-")} × ${s.reps || "0"}`).join("  •  ")}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: "10px", color: "#64748b", display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                      <span>Tap to expand</span>
+                      <ChevronDown size={12} />
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    {/* Weight Mode & Equipment Guidance Badge */}
+                    {(() => {
+                      const weightInfo = getWeightClarification(ex.name, ex.isBodyweight, ex.category);
+                      return (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", padding: "0 2px" }}>
+                          <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "5px", background: weightInfo.bg, color: weightInfo.badgeColor, border: `1px solid ${weightInfo.badgeColor}33` }}>
+                            {weightInfo.badge}
+                          </span>
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>
+                            {weightInfo.hint}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Sets Header & Rows */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto", gap: "6px", fontSize: "10px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", padding: "0 4px" }}>
+                        <span>Set</span>
+                        <span>{getWeightClarification(ex.name, ex.isBodyweight, ex.category).header.split("•")[0].trim()}</span>
+                        <span>Reps</span>
+                        <span>Notes</span>
+                        <span style={{ textAlign: "center" }}>Done</span>
+                        <span style={{ textAlign: "center" }}>Rest</span>
+                        <span />
+                      </div>
+
+                      {ex.sets.map((s: any, sIdx: number) => (
+                        <div
+                          key={sIdx}
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "32px 1fr 1fr 1.3fr auto auto auto",
+                            gap: "6px",
+                            alignItems: "center",
+                            background: s.completed ? "#f0fdf4" : undefined,
+                            border: s.completed ? "1px solid #86efac" : "1px solid transparent",
+                            borderRadius: "8px",
+                            padding: "2px 4px",
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", textAlign: "center" }}>
+                            {sIdx + 1}
+                          </span>
+                          <input
+                            type="number"
+                            className="input"
+                            value={s.weight}
+                            onChange={(e) => handleUpdateSet(exIdx, sIdx, "weight", e.target.value)}
+                            placeholder="0"
+                            style={{ padding: "4px 8px", fontSize: "12px", textAlign: "center" }}
+                          />
+                          <input
+                            type="number"
+                            className="input"
+                            value={s.reps}
+                            onChange={(e) => handleUpdateSet(exIdx, sIdx, "reps", e.target.value)}
+                            placeholder="10"
+                            style={{ padding: "4px 8px", fontSize: "12px", textAlign: "center" }}
+                          />
+                          <input
+                            type="text"
+                            className="input"
+                            value={s.notes || ""}
+                            onChange={(e) => handleUpdateSet(exIdx, sIdx, "notes", e.target.value)}
+                            placeholder="e.g. Superset..."
+                            style={{ padding: "4px 8px", fontSize: "11px" }}
+                          />
+
+                          {/* Complete Set Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCompleteSet(exIdx, sIdx)}
+                            style={{
+                              padding: "4px 8px",
+                              fontSize: "11px",
+                              borderRadius: "6px",
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "3px",
+                              cursor: "pointer",
+                              border: "1px solid",
+                              borderColor: s.completed ? "#16a34a" : "#cbd5e1",
+                              background: s.completed ? "#16a34a" : "#ffffff",
+                              color: s.completed ? "#ffffff" : "#475569",
+                            }}
+                            title={s.completed ? "Mark set incomplete" : "Complete set & start 30s rest timer"}
+                          >
+                            <Check size={12} strokeWidth={s.completed ? 3 : 2} />
+                            <span>{s.completed ? "Done" : "Log"}</span>
+                          </button>
+
+                          {/* 30s Rest Trigger */}
+                          <button
+                            type="button"
+                            onClick={() => setActiveRestSeconds(30)}
+                            style={{ background: "#f1f5f9", border: "1px solid #cbd5e1", borderRadius: "6px", color: "#475569", cursor: "pointer", padding: "5px 7px" }}
+                            title="Start 30s rest timer"
+                          >
+                            <Timer size={12} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSet(exIdx, sIdx)}
+                            style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", padding: "4px" }}
+                            title="Remove set"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddSet(exIdx)}
+                        style={{
+                          background: "transparent",
+                          border: "1px dashed #cbd5e1",
+                          borderRadius: "6px",
+                          padding: "4px 8px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          color: "#2563eb",
+                          cursor: "pointer",
+                          marginTop: "4px",
+                        }}
+                      >
+                        + Add Set
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
 

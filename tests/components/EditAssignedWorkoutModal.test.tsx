@@ -180,4 +180,34 @@ describe("EditAssignedWorkoutModal Component Tests", () => {
     expect(screen.getByText("Save Workout Updates")).toBeDefined();
     expect(screen.getByDisplayValue("Heavy bench and accessories")).toBeDefined();
   });
+
+  it("should support exercise complete checkbox and collapse/expand in EditAssignedWorkoutModal", () => {
+    render(
+      <EditAssignedWorkoutModal
+        isOpen={true}
+        workout={mockWorkout}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+      />
+    );
+
+    const chk = screen.getByTestId("modal-exercise-complete-checkbox-0") as HTMLInputElement;
+    expect(chk.checked).toBe(false);
+
+    // Toggle exercise complete
+    fireEvent.click(chk);
+    expect(chk.checked).toBe(true);
+
+    // Collapse exercise
+    const collapseBtn = screen.getByTestId("modal-exercise-collapse-btn-0");
+    fireEvent.click(collapseBtn);
+
+    // Collapsed summary should be visible
+    expect(screen.getByTestId("modal-exercise-collapsed-summary-0")).toBeInTheDocument();
+    expect(screen.getByTestId("modal-exercise-collapsed-summary-0")).toHaveTextContent("2/2 Sets Completed");
+
+    // Click summary to expand
+    fireEvent.click(screen.getByTestId("modal-exercise-collapsed-summary-0"));
+    expect(screen.queryByTestId("modal-exercise-collapsed-summary-0")).not.toBeInTheDocument();
+  });
 });
