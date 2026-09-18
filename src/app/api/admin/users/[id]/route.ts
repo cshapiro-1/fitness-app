@@ -113,6 +113,25 @@ export async function DELETE(
     // Also check if id is a Client record
     const client = await prisma.client.findUnique({ where: { id } });
     if (client) {
+      const linkedTrainer = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { clientProfileId: id },
+            ...(client.email ? [{ id: client.userId, email: { equals: client.email, mode: "insensitive" as const } }] : []),
+          ],
+        },
+        select: { id: true, name: true, email: true },
+      });
+
+      if (linkedTrainer) {
+        return NextResponse.json(
+          {
+            error: `Cannot delete primary personal workout profile for coach ${linkedTrainer.name || linkedTrainer.email}. Personal coach profiles are protected from accidental deletion.`,
+          },
+          { status: 400 }
+        );
+      }
+
       await prisma.client.delete({ where: { id } });
       return NextResponse.json({ success: true, message: `Deleted client ${client.name}` });
     }

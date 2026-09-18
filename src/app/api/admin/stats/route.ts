@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       recent30dWorkouts,
       totalSetsCount,
       allTrainers,
-      allClients,
+      allClientsRaw,
       allUsers,
     ] = await Promise.all([
       prisma.user.count(),
@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
           image: true,
           role: true,
           isAdmin: true,
+          clientProfileId: true,
           subscriptionStatus: true,
           trialEndsAt: true,
           subscribedUntil: true,
@@ -133,6 +134,7 @@ export async function GET(req: NextRequest) {
       prisma.client.findMany({
         select: {
           id: true,
+          userId: true,
           name: true,
           email: true,
           phone: true,
@@ -192,6 +194,107 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    // -------------------------------------------------------------
+    // SELF-HEALING CONSOLIDATION FOR TRAINER SELF-PROFILES (ZERO DATA LOSS)
+    // -------------------------------------------------------------
+    let allClients = [...(allClientsRaw as any[])];
+    const trainerIdMap = new Map<string, any>();
+    (allTrainers as any[]).forEach((t: any) => {
+      trainerIdMap.set(t.id, t);
+    });
+
+    const isClientSelfProfile = (c: any, trainer: any) => {
+      if (!trainer) return false;
+      const cEmail = (c.email || "").toLowerCase().trim();
+      const tEmail = (trainer.email || "").toLowerCase().trim();
+      const cName = (c.name || "").trim();
+      return Boolean(
+        (trainer.clientProfileId && c.id === trainer.clientProfileId) ||
+        (c.loginUser?.id && c.loginUser.id === trainer.id) ||
+        (tEmail && cEmail && cEmail === tEmail) ||
+        cName.includes("(You)") ||
+        cName === "My Workouts" ||
+        cName === "My Workouts (Personal)" ||
+        cName === "Personal" ||
+        cName === "Self"
+      );
+    };
+
+    for (const trainer of (allTrainers as any[])) {
+      const selfClients = allClients.filter(
+        (c: any) => (c.userId === trainer.id || c.user?.id === trainer.id) && isClientSelfProfile(c, trainer)
+      );
+
+      if (selfClients.length > 1) {
+        let primarySelfClient = selfClients.find((c: any) => c.id === trainer.clientProfileId);
+        if (!primarySelfClient) {
+          primarySelfClient = [...selfClients].sort((a: any, b: any) => {
+            const countA = a._count?.workoutSessions || 0;
+            const countB = b._count?.workoutSessions || 0;
+            return countB - countA;
+          })[0];
+        }
+
+        const duplicateClients = selfClients.filter((c: any) => c.id !== primarySelfClient.id);
+        const duplicateIds = duplicateClients.map((c: any) => c.id);
+
+        if (duplicateIds.length > 0) {
+          try {
+            await prisma.workoutSession.updateMany({
+              where: { clientId: { in: duplicateIds } },
+              data: { clientId: primarySelfClient.id },
+            });
+            await prisma.workout.updateMany({
+              where: { clientId: { in: duplicateIds } },
+              data: { clientId: primarySelfClient.id },
+            });
+            if (prisma.nutritionLog?.updateMany) {
+              await prisma.nutritionLog.updateMany({
+                where: { clientId: { in: duplicateIds } },
+                data: { clientId: primarySelfClient.id },
+              }).catch(() => null);
+            }
+            if (prisma.supplementLog?.updateMany) {
+              await prisma.supplementLog.updateMany({
+                where: { clientId: { in: duplicateIds } },
+                data: { clientId: primarySelfClient.id },
+              }).catch(() => null);
+            }
+            await prisma.client.deleteMany({
+              where: { id: { in: duplicateIds } },
+            });
+
+            const movedSessions = duplicateClients.reduce((acc: number, cur: any) => acc + (cur._count?.workoutSessions || 0), 0);
+            if (primarySelfClient._count) {
+              primarySelfClient._count.workoutSessions = (primarySelfClient._count.workoutSessions || 0) + movedSessions;
+            }
+
+            allClients = allClients.filter((c: any) => !duplicateIds.includes(c.id));
+          } catch (mergeErr) {
+            console.error("Self client consolidation in admin stats error:", mergeErr);
+          }
+        }
+
+        if (trainer.clientProfileId !== primarySelfClient.id) {
+          try {
+            await prisma.user.update({
+              where: { id: trainer.id },
+              data: { clientProfileId: primarySelfClient.id },
+            });
+            trainer.clientProfileId = primarySelfClient.id;
+          } catch {}
+        }
+      } else if (selfClients.length === 1 && !trainer.clientProfileId) {
+        try {
+          await prisma.user.update({
+            where: { id: trainer.id },
+            data: { clientProfileId: selfClients[0].id },
+          });
+          trainer.clientProfileId = selfClients[0].id;
+        } catch {}
+      }
+    }
+
     // Compute unique user IDs for DAU, WAU, MAU
     const dauSet = new Set<string>();
     recent24hWorkouts.forEach((w: any) => {
@@ -216,7 +319,6 @@ export async function GET(req: NextRequest) {
 
     const stickinessRatio = mau > 0 ? Math.round((dau / mau) * 100) : 100;
     const completionRate = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
-    const avgClientsPerTrainer = totalTrainers > 0 ? Number((totalClients / totalTrainers).toFixed(1)) : 0;
 
     let activeSubscriptions = 0;
     let trialingUsers = 0;
@@ -255,11 +357,22 @@ export async function GET(req: NextRequest) {
       const userEmail = (u.email || "").toLowerCase().trim();
       const isInternalAdmin = !!u.isAdmin || userEmail === "collin.shapiro1@gmail.com" || userEmail === "collin@strkyr.fit" || userEmail === "admin@strkyr.fit" || userEmail === "service@strkyr.fit";
 
+      const trainerSelfClient = allClients.find((c: any) => (c.userId === u.id || c.user?.id === u.id) && isClientSelfProfile(c, u));
+      const personalWorkoutsCount = trainerSelfClient?._count?.workoutSessions || 0;
+      const realCoachedClients = allClients.filter((c: any) => (c.userId === u.id || c.user?.id === u.id) && !isClientSelfProfile(c, u));
+      const realClientCount = realCoachedClients.length;
+      const totalLoggedWorkouts = u._count?.loggedWorkouts || 0;
+      const workoutsLoggedForClients = Math.max(0, totalLoggedWorkouts - personalWorkoutsCount);
+
       return {
         ...u,
         computedStatus,
-        clientCount: u._count?.clients || 0,
-        workoutsLoggedForClients: u._count?.loggedWorkouts || 0,
+        clientCount: realClientCount,
+        totalClientsWithSelf: u._count?.clients || 0,
+        personalWorkoutsCount,
+        workoutsLoggedForClients,
+        totalWorkoutsLogged: totalLoggedWorkouts,
+        clientProfileId: u.clientProfileId || trainerSelfClient?.id || null,
         lastLoginAt: effectiveLastLogin,
         lastActiveAt: effectiveLastActive,
         lastSessionDurationSeconds,
@@ -289,6 +402,10 @@ export async function GET(req: NextRequest) {
       const clientEmail = (c.email || clientUser?.email || "").toLowerCase().trim();
       const isInternalAdmin = clientEmail === "collin.shapiro1@gmail.com" || clientEmail === "collin@strkyr.fit" || clientEmail === "admin@strkyr.fit" || clientEmail === "service@strkyr.fit";
 
+      const clientTrainerId = c.userId || c.user?.id;
+      const trainerForClient = clientTrainerId ? trainerIdMap.get(clientTrainerId) : null;
+      const isTrainerSelfProfile = Boolean(trainerForClient && isClientSelfProfile(c, trainerForClient));
+
       return {
         id: c.id,
         name: c.name,
@@ -296,10 +413,15 @@ export async function GET(req: NextRequest) {
         phone: c.phone,
         image: c.image,
         createdAt: c.createdAt,
-        trainerId: c.user?.id,
-        trainerName: c.user?.name || c.user?.email || "Unassigned",
+        trainerId: clientTrainerId,
+        trainerName: isTrainerSelfProfile
+          ? `${trainerForClient?.name || "Coach"} (Self)`
+          : (c.user?.name || c.user?.email || "Unassigned"),
         workoutsLogged: c._count?.workoutSessions || 0,
         isRegistered: !!c.loginUser,
+        isTrainerSelfProfile,
+        linkedTrainerId: isTrainerSelfProfile ? (trainerForClient?.id || null) : null,
+        linkedTrainerName: isTrainerSelfProfile ? (trainerForClient?.name || trainerForClient?.email || null) : null,
         lastLoginAt: clientLastLogin,
         lastActiveAt: clientLastActive,
         lastSessionDurationSeconds,
@@ -311,11 +433,15 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const trainerSelfProfilesCount = formattedClients.filter((c) => c.isTrainerSelfProfile).length;
+    const rosterAthletesCount = formattedClients.filter((c) => !c.isTrainerSelfProfile).length;
+    const avgClientsPerTrainer = totalTrainers > 0 ? Number((rosterAthletesCount / totalTrainers).toFixed(1)) : 0;
+
     const formattedUsers = formattedTrainers;
 
     // Separate Organic Customers vs Internal Developer / Admin Accounts
     const organicTrainers = formattedTrainers.filter((t) => !t.isInternalAdmin);
-    const organicClients = formattedClients.filter((c) => !c.isInternalAdmin);
+    const organicClients = formattedClients.filter((c) => !c.isInternalAdmin && !c.isTrainerSelfProfile);
     const adminTrainers = formattedTrainers.filter((t) => t.isInternalAdmin);
     const adminClients = formattedClients.filter((c) => c.isInternalAdmin);
 
@@ -484,7 +610,9 @@ export async function GET(req: NextRequest) {
       stats: {
         totalUsers,
         totalTrainers,
-        totalClients,
+        totalClients: allClients.length,
+        rosterAthletesCount,
+        trainerSelfProfilesCount,
         totalWorkouts,
         totalCompletedWorkouts: completedWorkouts,
         inProgressSessions,

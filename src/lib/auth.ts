@@ -240,14 +240,13 @@ export const authOptions: NextAuthOptions = {
             }
 
             if (cleanEmail === "collin.shapiro1@gmail.com") {
-              if (!dbUser.isAdmin || dbUser.role !== "TRAINER") {
+              if (!dbUser.isAdmin) {
                 try {
                   await prisma.user.update({
                     where: { id: dbUser.id },
-                    data: { isAdmin: true, role: "TRAINER" },
+                    data: { isAdmin: true },
                   });
                   dbUser.isAdmin = true;
-                  dbUser.role = "TRAINER";
                 } catch {}
               }
             }

@@ -25,7 +25,11 @@ interface AdminTrainer {
   subscribedUntil: string | null;
   createdAt: string;
   clientCount: number;
+  totalClientsWithSelf?: number;
+  personalWorkoutsCount?: number;
   workoutsLoggedForClients: number;
+  totalWorkoutsLogged?: number;
+  clientProfileId?: string | null;
   lastLoginAt?: string | null;
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
@@ -47,6 +51,9 @@ interface AdminClient {
   workoutsLogged: number;
   isRegistered: boolean;
   isInternalAdmin?: boolean;
+  isTrainerSelfProfile?: boolean;
+  linkedTrainerId?: string | null;
+  linkedTrainerName?: string | null;
   lastLoginAt?: string | null;
   lastActiveAt?: string | null;
   lastSessionDurationSeconds?: number | null;
@@ -82,6 +89,8 @@ interface AdminStats {
   totalUsers: number;
   totalTrainers: number;
   totalClients: number;
+  rosterAthletesCount?: number;
+  trainerSelfProfilesCount?: number;
   totalWorkouts: number;
   totalCompletedWorkouts?: number;
   inProgressSessions?: number;
@@ -331,6 +340,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
   const [telemetryMode, setTelemetryMode] = useState<TelemetryViewMode>("ORGANIC");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [clientTypeFilter, setClientTypeFilter] = useState<"ALL" | "COACHED" | "TRAINER_SELF">("ALL");
   const [excludeAdminAccounts, setExcludeAdminAccounts] = useState(true);
   const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -762,9 +772,20 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
     });
   }, [trainers, searchQuery, statusFilter, excludeAdminAccounts, trainerSortField, trainerSortDirection]);
 
+  const coachedClientsCount = useMemo(() => {
+    return clients.filter((c) => !c.isTrainerSelfProfile && (!excludeAdminAccounts || !c.isInternalAdmin)).length;
+  }, [clients, excludeAdminAccounts]);
+
+  const trainerSelfProfilesCount = useMemo(() => {
+    return clients.filter((c) => c.isTrainerSelfProfile && (!excludeAdminAccounts || !c.isInternalAdmin)).length;
+  }, [clients, excludeAdminAccounts]);
+
   const filteredClients = useMemo(() => {
     const list = clients.filter((c) => {
       if (excludeAdminAccounts && c.isInternalAdmin) return false;
+
+      if (clientTypeFilter === "COACHED" && c.isTrainerSelfProfile) return false;
+      if (clientTypeFilter === "TRAINER_SELF" && !c.isTrainerSelfProfile) return false;
 
       const query = searchQuery.toLowerCase();
       const nameMatch = c.name.toLowerCase().includes(query);
@@ -826,7 +847,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
 
       return clientSortDirection === "asc" ? comparison : -comparison;
     });
-  }, [clients, searchQuery, excludeAdminAccounts, clientSortField, clientSortDirection]);
+  }, [clients, searchQuery, excludeAdminAccounts, clientTypeFilter, clientSortField, clientSortDirection]);
 
   // Display values based on selected telemetry view mode
   const currentAvgSession =
@@ -1025,14 +1046,18 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           {/* Total Managed Athletes / Clients */}
           <div style={{ background: "#ffffff", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#64748b", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>
-              <span>{telemetryMode === "ORGANIC" ? "ORGANIC ATHLETES" : "TOTAL CLIENTS"}</span>
+              <span>{telemetryMode === "ORGANIC" ? "ORGANIC ATHLETES" : "COACHED ATHLETES"}</span>
               <Users size={16} style={{ color: "#7c3aed" }} />
             </div>
             <div style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginTop: "4px" }}>
-              {telemetryMode === "ORGANIC" ? stats?.organicClientsCount ?? 0 : clients.length || stats?.totalClients || 0}
+              {telemetryMode === "ORGANIC"
+                ? stats?.organicClientsCount ?? 0
+                : stats?.rosterAthletesCount ?? coachedClientsCount}
             </div>
             <div style={{ fontSize: "11px", color: "#7c3aed", marginTop: "2px", fontWeight: 600 }}>
-              {stats?.avgClientsPerTrainer ?? 0} clients / coach
+              {(stats?.trainerSelfProfilesCount ?? trainerSelfProfilesCount) > 0
+                ? `${stats?.trainerSelfProfilesCount ?? trainerSelfProfilesCount} coach self-logs separated`
+                : `${stats?.avgClientsPerTrainer ?? 0} clients / coach`}
             </div>
           </div>
 
@@ -1128,7 +1153,12 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                 }}
               >
                 <Users size={15} />
-                <span>Clients &amp; Athletes ({filteredClients.length})</span>
+                <span>Clients &amp; Athletes ({coachedClientsCount})</span>
+                {trainerSelfProfilesCount > 0 && (
+                  <span style={{ fontSize: "10px", background: activeTab === "clients" ? "#1d4ed8" : "#f1f5f9", color: activeTab === "clients" ? "#bfdbfe" : "#64748b", padding: "1px 6px", borderRadius: "9999px", fontWeight: 600 }}>
+                    +{trainerSelfProfilesCount} Logs
+                  </span>
+                )}
               </button>
 
               <button
@@ -1309,10 +1339,23 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                               </span>
                             </td>
 
-                            <td style={{ padding: "12px", fontWeight: 700 }}>{t.clientCount}</td>
                             <td style={{ padding: "12px" }}>
-                              <span style={{ fontWeight: 800, color: "#0f172a" }}>{t.workoutsLoggedForClients}</span>{" "}
-                              <span style={{ fontSize: "11px", color: "#64748b" }}>workouts</span>
+                              <div style={{ fontWeight: 700, color: "#0f172a" }}>{t.clientCount} clients</div>
+                              {t.personalWorkoutsCount !== undefined && t.personalWorkoutsCount > 0 && (
+                                <div style={{ fontSize: "10px", color: "#64748b" }}>+ self-log active</div>
+                              )}
+                            </td>
+                            <td style={{ padding: "12px" }}>
+                              <div style={{ fontWeight: 800, color: "#0f172a" }}>
+                                {t.totalWorkoutsLogged ?? (t.workoutsLoggedForClients + (t.personalWorkoutsCount || 0))} workouts
+                              </div>
+                              {t.personalWorkoutsCount !== undefined && t.personalWorkoutsCount > 0 ? (
+                                <div style={{ fontSize: "10px", color: "#64748b" }}>
+                                  {t.personalWorkoutsCount} personal • {t.workoutsLoggedForClients} for clients
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: "10px", color: "#64748b" }}>for clients</div>
+                              )}
                             </td>
 
                             <td style={{ padding: "12px" }}>
@@ -1375,7 +1418,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                                   border: `1px solid ${(t.lastSessionDurationSeconds || 0) >= 300 ? "#bbf7d0" : "#e2e8f0"}`,
                                   padding: "2px 7px",
                                   borderRadius: "6px",
-                                }}
+                                  }}
                                 title="Active engaged duration (pauses when idle or in background tab, max 2h)"
                               >
                                 <Timer size={12} />
@@ -1405,6 +1448,18 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
 
                             <td style={{ padding: "12px", textAlign: "right" }}>
                               <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setClientTypeFilter("TRAINER_SELF");
+                                    setSearchQuery(t.name || t.email);
+                                    handleTabChange("clients");
+                                  }}
+                                  style={{ fontSize: "11px", padding: "4px 8px", background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+                                  title="View Coach Personal Workout Log"
+                                >
+                                  Self-Log
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handleUpdateUser(t.id, { extendTrialDays: 14 })}
@@ -1452,59 +1507,116 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           {activeTab === "clients" && (
             <div>
               <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-                <div style={{ position: "relative", flex: "1 1 240px" }}>
-                  <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
-                  <input
-                    className="input"
-                    placeholder="Search client or coach name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
-                  />
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", whiteSpace: "nowrap" }}>Sort:</span>
-                  <select
-                    className="input"
-                    value={clientSortField}
-                    onChange={(e) => handleClientSort(e.target.value as ClientSortField)}
-                    style={{ fontSize: "12px", padding: "6px 10px" }}
-                    aria-label="Sort clients table by"
-                  >
-                    <option value="createdAt">Account Created</option>
-                    <option value="name">Client / Athlete</option>
-                    <option value="trainerName">Assigned Coach</option>
-                    <option value="workoutsLogged">Workouts Logged</option>
-                    <option value="sessionCount">Total Sessions</option>
-                    <option value="loginCount" style={{ display: "none" }}>Total Logins</option>
-                    <option value="avgSessionDurationSeconds">Avg Session</option>
-                    <option value="lastActiveAt">Last Active</option>
-                    <option value="lastSessionDurationSeconds">Last Session</option>
-                    <option value="isRegistered">Access Tier</option>
-                  </select>
+                {/* Segment Filter: Coached Athletes vs Trainer Self-Logs vs All */}
+                <div style={{ display: "flex", background: "#f1f5f9", borderRadius: "8px", padding: "3px", gap: "4px", flexWrap: "wrap" }}>
                   <button
                     type="button"
-                    onClick={() => setClientSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                    onClick={() => setClientTypeFilter("COACHED")}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "4px",
-                      padding: "6px 10px",
+                      padding: "6px 12px",
                       fontSize: "12px",
-                      background: "#ffffff",
-                      border: "1px solid #cbd5e1",
-                      borderRadius: "6px",
-                      cursor: "pointer",
                       fontWeight: 700,
-                      color: "#1e293b",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: clientTypeFilter === "COACHED" ? "#2563eb" : "transparent",
+                      color: clientTypeFilter === "COACHED" ? "#ffffff" : "#475569",
+                      transition: "all 0.15s ease",
                     }}
-                    title={`Sort direction: ${clientSortDirection === "asc" ? "Ascending (click to switch to Descending)" : "Descending (click to switch to Ascending)"}`}
-                    aria-label={`Sort direction: ${clientSortDirection === "asc" ? "Ascending" : "Descending"}`}
                   >
-                    {clientSortDirection === "asc" ? <ArrowUp size={13} style={{ color: "#2563eb" }} /> : <ArrowDown size={13} style={{ color: "#2563eb" }} />}
-                    <span>{clientSortDirection === "asc" ? "Asc" : "Desc"}</span>
+                    🏃 Coached Athletes ({coachedClientsCount})
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setClientTypeFilter("TRAINER_SELF")}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: clientTypeFilter === "TRAINER_SELF" ? "#7c3aed" : "transparent",
+                      color: clientTypeFilter === "TRAINER_SELF" ? "#ffffff" : "#475569",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    🏋️ Coach Personal Logs ({trainerSelfProfilesCount})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClientTypeFilter("ALL")}
+                    style={{
+                      padding: "6px 12px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: clientTypeFilter === "ALL" ? "#0f172a" : "transparent",
+                      color: clientTypeFilter === "ALL" ? "#ffffff" : "#475569",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    All Records ({coachedClientsCount + trainerSelfProfilesCount})
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", flex: "1 1 auto", justifyContent: "flex-end" }}>
+                  <div style={{ position: "relative", minWidth: "220px", flex: "1 1 220px", maxWidth: "320px" }}>
+                    <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                    <input
+                      className="input"
+                      placeholder="Search client or coach name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", whiteSpace: "nowrap" }}>Sort:</span>
+                    <select
+                      className="input"
+                      value={clientSortField}
+                      onChange={(e) => handleClientSort(e.target.value as ClientSortField)}
+                      style={{ fontSize: "12px", padding: "6px 10px" }}
+                      aria-label="Sort clients table by"
+                    >
+                      <option value="createdAt">Account Created</option>
+                      <option value="name">Client / Athlete</option>
+                      <option value="trainerName">Assigned Coach</option>
+                      <option value="workoutsLogged">Workouts Logged</option>
+                      <option value="sessionCount">Total Sessions</option>
+                      <option value="loginCount" style={{ display: "none" }}>Total Logins</option>
+                      <option value="avgSessionDurationSeconds">Avg Session</option>
+                      <option value="lastActiveAt">Last Active</option>
+                      <option value="lastSessionDurationSeconds">Last Session</option>
+                      <option value="isRegistered">Access Tier</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setClientSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "6px 10px",
+                        fontSize: "12px",
+                        background: "#ffffff",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                      }}
+                      title={`Sort direction: ${clientSortDirection === "asc" ? "Ascending (click to switch to Descending)" : "Descending (click to switch to Ascending)"}`}
+                      aria-label={`Sort direction: ${clientSortDirection === "asc" ? "Ascending" : "Descending"}`}
+                    >
+                      {clientSortDirection === "asc" ? <ArrowUp size={13} style={{ color: "#2563eb" }} /> : <ArrowDown size={13} style={{ color: "#2563eb" }} />}
+                      <span>{clientSortDirection === "asc" ? "Asc" : "Desc"}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1539,23 +1651,40 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                         const totalTimeStr = formatTotalAppTime(c.totalSessionSeconds);
 
                         return (
-                          <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9", background: c.isTrainerSelfProfile ? "#faf5ff" : undefined }}>
                             <td style={{ padding: "12px" }}>
-                              <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                              <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                                 <span>{c.name}</span>
+                                {c.isTrainerSelfProfile && (
+                                  <span style={{ fontSize: "10px", background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
+                                    🏋️ COACH SELF-LOG
+                                  </span>
+                                )}
                                 {c.isInternalAdmin && (
                                   <span style={{ fontSize: "10px", background: "#fef3c7", color: "#92400e", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
                                     👑 DEV / ADMIN
                                   </span>
                                 )}
                               </div>
-                              <div style={{ fontSize: "11px", color: "#64748b" }}>{c.email}</div>
+                              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                                {c.isTrainerSelfProfile ? (
+                                  <span>Personal workout tracking profile for coach <strong>{c.linkedTrainerName || c.trainerName}</strong></span>
+                                ) : (
+                                  c.email
+                                )}
+                              </div>
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
-                                🏋️ {c.trainerName}
-                              </span>
+                              {c.isTrainerSelfProfile ? (
+                                <span style={{ fontSize: "12px", fontWeight: 600, color: "#6d28d9", background: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 8px", borderRadius: "6px" }}>
+                                  👤 Self (Coach Log)
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
+                                  🏋️ {c.trainerName}
+                                </span>
+                              )}
                             </td>
 
                             <td style={{ padding: "12px" }}>
@@ -1628,9 +1757,15 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                             </td>
 
                             <td style={{ padding: "12px" }}>
-                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd" }}>
-                                ✓ Free Athlete Access
-                              </span>
+                              {c.isTrainerSelfProfile ? (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#6d28d9", background: "#f5f3ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #ddd6fe" }}>
+                                  ⭐ Coach Personal Profile
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", background: "#f0f9ff", padding: "3px 9px", borderRadius: "6px", border: "1px solid #bae6fd" }}>
+                                  ✓ Free Athlete Access
+                                </span>
+                              )}
                             </td>
 
                             <td style={{ padding: "12px", color: "#64748b", fontSize: "12px" }}>
@@ -1638,14 +1773,23 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                             </td>
 
                             <td style={{ padding: "12px", textAlign: "right" }}>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteUser(c.id, c.name)}
-                                disabled={actionUserId === c.id}
-                                style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
-                              >
-                                <Trash2 size={12} />
-                              </button>
+                              {c.isTrainerSelfProfile ? (
+                                <span
+                                  style={{ fontSize: "11px", color: "#94a3b8", fontWeight: 600 }}
+                                  title="Primary coach profile is protected from deletion to preserve personal workout history"
+                                >
+                                  🔒 Protected
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteUser(c.id, c.name)}
+                                  disabled={actionUserId === c.id}
+                                  style={{ fontSize: "11px", padding: "4px 8px", background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: "6px", cursor: "pointer", fontWeight: 700 }}
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
