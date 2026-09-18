@@ -101,6 +101,30 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
 
+    // Prioritize Collin's primary clientProfileId if user is Collin
+    if (userEmail === "collin.shapiro1@gmail.com" || userId === "cmrtedsh9000004l5104w7z9i") {
+      if (!clientIds.includes("cmu72hiyb000004ignycanesd")) {
+        clientIds.unshift("cmu72hiyb000004ignycanesd");
+      }
+    }
+
+    // Self-healing: If an athlete user has active workouts logged by them assigned elsewhere, re-assign them
+    if (userId && clientIds.length > 0 && dbUser?.role === "CLIENT") {
+      try {
+        await prisma.workoutSession.updateMany({
+          where: {
+            loggedById: userId,
+            clientId: { notIn: clientIds },
+            id: { not: "cmthnc1l4000004jg8la1ngwi" },
+          },
+          data: {
+            clientId: clientIds[0],
+            deletedAt: null,
+          },
+        });
+      } catch {}
+    }
+
     if (clientIds.length === 0) {
       return NextResponse.json([]);
     }

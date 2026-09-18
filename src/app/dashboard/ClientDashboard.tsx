@@ -99,8 +99,8 @@ export function ClientDashboard({
 
   const athleteClientId =
     clientProfileId ||
-    workouts[0]?.clientId ||
     (session?.user as any)?.clientProfileId ||
+    workouts.find((w) => w.clientId && (w.client?.userId === (session?.user as any)?.id || w.client?.name?.includes("(You)")) )?.clientId ||
     (session?.user as any)?.id ||
     "self";
 
@@ -409,7 +409,7 @@ export function ClientDashboard({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          clientId: workout.clientId,
+          clientId: athleteClientId,
           status: "PLANNED",
           notes: desc ? `Repeat (${desc}): ${workout.notes || "Workout"}` : `Repeat session from ${new Date(workout.completedAt || workout.createdAt).toLocaleDateString()}`,
           exercises: repeatedExercises.map((ex: any, exIdx: number) => ({
