@@ -26,6 +26,8 @@ import {
   Trash2,
   Edit3,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import Link from "next/link";
 import { isDefaultBodyweight } from "./utils/exerciseLibrary";
@@ -749,6 +751,41 @@ export function ClientDashboard({
 
   const hasActiveFilters = startDate || endDate || selectedMuscleGroup !== "ALL" || selectedExercise !== "ALL" || searchQuery.trim() !== "";
 
+  const [collapsedWorkoutIds, setCollapsedWorkoutIds] = useState<Set<string>>(new Set());
+  const [collapsedExerciseIds, setCollapsedExerciseIds] = useState<Set<string>>(new Set());
+
+  const toggleWorkoutCollapse = (id: string) => {
+    setCollapsedWorkoutIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleExerciseCollapse = (workoutId: string, exerciseId: string) => {
+    const key = `${workoutId}-${exerciseId}`;
+    setCollapsedExerciseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const areAllWorkoutsCollapsed = useMemo(() => {
+    if (filteredCompletedWorkouts.length === 0) return false;
+    return filteredCompletedWorkouts.every((w: any) => collapsedWorkoutIds.has(w.id));
+  }, [filteredCompletedWorkouts, collapsedWorkoutIds]);
+
+  const toggleAllWorkouts = () => {
+    if (areAllWorkoutsCollapsed) {
+      setCollapsedWorkoutIds(new Set());
+    } else {
+      setCollapsedWorkoutIds(new Set(filteredCompletedWorkouts.map((w: any) => w.id)));
+    }
+  };
+
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedExercise("ALL");
@@ -1246,251 +1283,493 @@ export function ClientDashboard({
               </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {filteredCompletedWorkouts.map((workout: any) => (
-                <div
-                  key={workout.id}
+            {!loading && filteredCompletedWorkouts.length > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 2px" }}>
+                <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
+                  {filteredCompletedWorkouts.length} workout{filteredCompletedWorkouts.length !== 1 ? "s" : ""} logged
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleAllWorkouts}
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "12px",
-                    padding: "14px 16px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    color: "#2563eb",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    padding: "4px 10px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
                   }}
+                  title={areAllWorkoutsCollapsed ? "Expand all workouts" : "Collapse all workouts"}
                 >
-                  {/* Card Top Row: Date & Status Badge */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "10px", marginBottom: "8px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                        <Calendar size={14} style={{ color: "#2563eb", flexShrink: 0 }} />
-                        <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
-                          {new Date(workout.completedAt || workout.createdAt).toLocaleDateString(undefined, {
-                            weekday: "short",
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                        <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
-                          · {new Date(workout.completedAt || workout.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#64748b", fontWeight: 500, marginTop: "1px" }}>
-                        {workout.loggedByRole === "CLIENT"
-                          ? `👤 Logged by You${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`
-                          : `🏋️ Logged by Coach${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`}
-                      </div>
-                    </div>
+                  {areAllWorkoutsCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                  <span>{areAllWorkoutsCollapsed ? "Expand All Workouts" : "Collapse All Workouts"}</span>
+                </button>
+              </div>
+            )}
 
-                    <div style={{ flexShrink: 0 }}>
-                      {workout.deletedAt ? (
-                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
-                          🗑️ Deleted
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
-                          ✓ Finished
-                        </span>
-                      )}
-                    </div>
-                  </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {filteredCompletedWorkouts.map((workout: any) => {
+                const isWorkoutCollapsed = collapsedWorkoutIds.has(workout.id);
+                const totalWorkoutSets = (workout.exercises || []).reduce((sum: number, ex: any) => sum + (ex.sets || []).length, 0);
+                const totalWorkoutVolume = (workout.exercises || []).reduce(
+                  (sum: number, ex: any) => sum + (ex.sets || []).reduce((sSum: number, s: any) => sSum + ((parseFloat(s.weight) || 0) * (parseInt(s.reps, 10) || 0)), 0),
+                  0
+                );
 
-                  {/* Actions Toolbar - Never overflows */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                      {!workout.deletedAt && (
+                return (
+                  <div
+                    key={workout.id}
+                    style={{
+                      background: "#ffffff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "12px",
+                      padding: "14px 16px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {/* Card Top Row: Date, Status Badge & Collapse Toggle */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "flex-start",
+                        gap: "10px",
+                        marginBottom: isWorkoutCollapsed ? "4px" : "8px",
+                        cursor: "pointer",
+                        userSelect: "none",
+                      }}
+                      onClick={() => toggleWorkoutCollapse(workout.id)}
+                      title={isWorkoutCollapsed ? "Click to expand workout" : "Click to collapse workout"}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                          <Calendar size={14} style={{ color: "#2563eb", flexShrink: 0 }} />
+                          <span style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", letterSpacing: "-0.01em" }}>
+                            {new Date(workout.completedAt || workout.createdAt).toLocaleDateString(undefined, {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                          <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>
+                            · {new Date(workout.completedAt || workout.createdAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", fontSize: "11px", color: "#64748b", fontWeight: 500, marginTop: "1px" }}>
+                          <span>
+                            {workout.loggedByRole === "CLIENT"
+                              ? `👤 Logged by You${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`
+                              : `🏋️ Logged by Coach${workout.loggedByName ? ` (${workout.loggedByName})` : ""}`}
+                          </span>
+                          <span>· {(workout.exercises || []).length} exercises ({totalWorkoutSets} sets)</span>
+                          {totalWorkoutVolume > 0 && (
+                            <span style={{ fontWeight: 600 }}>· {totalWorkoutVolume.toLocaleString()} lbs vol</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                        {workout.deletedAt ? (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#991b1b", background: "#fef2f2", border: "1px solid #fecaca", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
+                            🗑️ Deleted
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "3px 7px", borderRadius: "6px", display: "inline-block" }}>
+                            ✓ Finished
+                          </span>
+                        )}
                         <button
                           type="button"
-                          onClick={() => setEditingWorkout(workout)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleWorkoutCollapse(workout.id);
+                          }}
+                          aria-label={isWorkoutCollapsed ? "Expand workout" : "Collapse workout"}
                           style={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "4px",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            background: "#ffffff",
-                            color: "#0f172a",
-                            border: "1px solid #cbd5e1",
-                            padding: "4px 8px",
+                            justifyContent: "center",
+                            width: "28px",
+                            height: "28px",
                             borderRadius: "6px",
+                            border: "1px solid #cbd5e1",
+                            background: "#ffffff",
+                            color: "#334155",
                             cursor: "pointer",
                             transition: "all 0.15s ease",
                           }}
-                          title="Edit exercises, weights, sets, or date for this workout"
                         >
-                          <Edit3 size={12} style={{ color: "#2563eb" }} />
-                          <span>Edit</span>
+                          {isWorkoutCollapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
                         </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => handleRepeatWorkout(workout)}
-                        disabled={repeatingWorkoutId === workout.id}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "11px",
-                          fontWeight: 700,
-                          background: "#ffffff",
-                          color: "#2563eb",
-                          border: "1px solid #bfdbfe",
-                          padding: "4px 8px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                        }}
-                        title="Re-assign this workout to your assigned list"
-                      >
-                        <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
-                        <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => copyWorkoutToClipboard(workout)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "4px",
-                          fontSize: "11px",
-                          fontWeight: 600,
-                          background: copiedId === workout.id ? "#dcfce7" : "#ffffff",
-                          color: copiedId === workout.id ? "#16a34a" : "#475569",
-                          border: "1px solid",
-                          borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
-                          padding: "4px 8px",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                        }}
-                        title="Copy session details to clipboard"
-                      >
-                        {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
-                        <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
-                      </button>
+                      </div>
                     </div>
 
-                    {!workout.deletedAt && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteWorkout(workout.id)}
-                        className="btn-ghost-danger"
-                        title="Delete workout from history"
-                        style={{ padding: "4px 8px", borderRadius: "6px" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    )}
-                  </div>
+                    {isWorkoutCollapsed ? (
+                      /* Collapsed Workout Summary & Toolbar */
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", alignItems: "center" }}>
+                          {(workout.exercises || []).map((ex: any) => (
+                            <span
+                              key={ex.id}
+                              style={{
+                                fontSize: "11px",
+                                background: "#f8fafc",
+                                color: "#334155",
+                                padding: "2px 8px",
+                                borderRadius: "6px",
+                                border: "1px solid #e2e8f0",
+                                fontWeight: 600,
+                              }}
+                            >
+                              {ex.name} <span style={{ color: "#64748b", fontWeight: 500 }}>({(ex.sets || []).length})</span>
+                            </span>
+                          ))}
+                        </div>
 
-                  {workout.deletedAt && (
-                    <div
-                      style={{
-                        background: "#fef2f2",
-                        border: "1px solid #fecaca",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                        marginBottom: "10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        color: "#991b1b",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <Trash2 size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
-                      <span>
-                        Workout deleted by <b>{workout.deletedByName || "User"}</b> on{" "}
-                        {new Date(workout.deletedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
-                      </span>
-                    </div>
-                  )}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", background: "#f8fafc", padding: "5px 8px", borderRadius: "6px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            {!workout.deletedAt && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingWorkout(workout)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "3px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  background: "#ffffff",
+                                  color: "#0f172a",
+                                  border: "1px solid #cbd5e1",
+                                  padding: "3px 7px",
+                                  borderRadius: "5px",
+                                  cursor: "pointer",
+                                }}
+                                title="Edit workout"
+                              >
+                                <Edit3 size={11} style={{ color: "#2563eb" }} />
+                                <span>Edit</span>
+                              </button>
+                            )}
 
-                  {workout.notes && (
-                    <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", marginBottom: "8px" }}>
-                      &ldquo;{workout.notes}&rdquo;
-                    </div>
-                  )}
+                            <button
+                              type="button"
+                              onClick={() => handleRepeatWorkout(workout)}
+                              disabled={repeatingWorkoutId === workout.id}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "3px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                background: "#ffffff",
+                                color: "#2563eb",
+                                border: "1px solid #bfdbfe",
+                                padding: "3px 7px",
+                                borderRadius: "5px",
+                                cursor: "pointer",
+                              }}
+                              title="Repeat workout"
+                            >
+                              <RotateCcw size={11} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
+                              <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
+                            </button>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                    {(workout.exercises || []).map((ex: any) => {
-                      const isBW = ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name);
-                      const mg = getMuscleGroup(ex.name);
-                      const isHighlighted = selectedExercise === ex.name;
+                            <button
+                              type="button"
+                              onClick={() => copyWorkoutToClipboard(workout)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "3px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                background: copiedId === workout.id ? "#dcfce7" : "#ffffff",
+                                color: copiedId === workout.id ? "#16a34a" : "#475569",
+                                border: "1px solid",
+                                borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
+                                padding: "3px 7px",
+                                borderRadius: "5px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {copiedId === workout.id ? <Check size={11} /> : <Copy size={11} />}
+                              <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
+                            </button>
+                          </div>
 
-                      return (
-                        <div
-                          key={ex.id}
-                          style={{
-                            background: isHighlighted ? "#eff6ff" : "#fafafa",
-                            borderRadius: "8px",
-                            padding: "8px 10px",
-                            border: "1px solid",
-                            borderColor: isHighlighted ? "#bfdbfe" : "#f1f5f9",
-                          }}
-                        >
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                              <span style={{ fontWeight: 700, fontSize: "12px", color: isHighlighted ? "#1e40af" : "#0f172a" }}>
-                                {ex.name}
-                              </span>
-                              <span style={{ fontSize: "10px", color: "#64748b" }}>({mg})</span>
-                              {isBW && (
-                                <span
-                                  style={{
-                                    fontSize: "9px",
-                                    fontWeight: 700,
-                                    background: "#f0fdf4",
-                                    color: "#166534",
-                                    border: "1px solid #bbf7d0",
-                                    padding: "1px 5px",
-                                    borderRadius: "4px",
-                                  }}
-                                >
-                                  Bodyweight
-                                </span>
-                              )}
-                            </div>
-                            <span style={{ fontSize: "11px", color: "#64748b" }}>
-                              {(ex.sets || []).length} sets
+                          {!workout.deletedAt && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteWorkout(workout.id)}
+                              className="btn-ghost-danger"
+                              title="Delete workout from history"
+                              style={{ padding: "3px 6px", borderRadius: "5px", marginLeft: "auto" }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Expanded Workout Content */
+                      <>
+                        {/* Actions Toolbar - Never overflows */}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#f8fafc", padding: "6px 10px", borderRadius: "8px", marginBottom: "10px", border: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            {!workout.deletedAt && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingWorkout(workout)}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  background: "#ffffff",
+                                  color: "#0f172a",
+                                  border: "1px solid #cbd5e1",
+                                  padding: "4px 8px",
+                                  borderRadius: "6px",
+                                  cursor: "pointer",
+                                  transition: "all 0.15s ease",
+                                }}
+                                title="Edit exercises, weights, sets, or date for this workout"
+                              >
+                                <Edit3 size={12} style={{ color: "#2563eb" }} />
+                                <span>Edit</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleRepeatWorkout(workout)}
+                              disabled={repeatingWorkoutId === workout.id}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                background: "#ffffff",
+                                color: "#2563eb",
+                                border: "1px solid #bfdbfe",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                              }}
+                              title="Re-assign this workout to your assigned list"
+                            >
+                              <RotateCcw size={12} className={repeatingWorkoutId === workout.id ? "spin" : ""} />
+                              <span>{repeatingWorkoutId === workout.id ? "Repeating..." : "Repeat"}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => copyWorkoutToClipboard(workout)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px",
+                                fontSize: "11px",
+                                fontWeight: 600,
+                                background: copiedId === workout.id ? "#dcfce7" : "#ffffff",
+                                color: copiedId === workout.id ? "#16a34a" : "#475569",
+                                border: "1px solid",
+                                borderColor: copiedId === workout.id ? "#bbf7d0" : "#cbd5e1",
+                                padding: "4px 8px",
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                              }}
+                              title="Copy session details to clipboard"
+                            >
+                              {copiedId === workout.id ? <Check size={12} /> : <Copy size={12} />}
+                              <span>{copiedId === workout.id ? "Copied!" : "Copy"}</span>
+                            </button>
+                          </div>
+
+                          {!workout.deletedAt && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteWorkout(workout.id)}
+                              className="btn-ghost-danger"
+                              title="Delete workout from history"
+                              style={{ padding: "4px 8px", borderRadius: "6px" }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+
+                        {workout.deletedAt && (
+                          <div
+                            style={{
+                              background: "#fef2f2",
+                              border: "1px solid #fecaca",
+                              borderRadius: "8px",
+                              padding: "8px 12px",
+                              marginBottom: "10px",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              color: "#991b1b",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            <Trash2 size={13} style={{ color: "#dc2626", flexShrink: 0 }} />
+                            <span>
+                              Workout deleted by <b>{workout.deletedByName || "User"}</b> on{" "}
+                              {new Date(workout.deletedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
                             </span>
                           </div>
+                        )}
 
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
-                            {(ex.sets || []).map((st: any) => (
-                              <span
-                                key={st.id}
+                        {workout.notes && (
+                          <div style={{ fontSize: "12px", color: "#64748b", fontStyle: "italic", marginBottom: "8px" }}>
+                            &ldquo;{workout.notes}&rdquo;
+                          </div>
+                        )}
+
+                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                          {(workout.exercises || []).map((ex: any) => {
+                            const isBW = ex.isBodyweight || ex.category === "BODYWEIGHT" || isDefaultBodyweight(ex.name);
+                            const mg = getMuscleGroup(ex.name);
+                            const isHighlighted = selectedExercise === ex.name;
+                            const isExCollapsed = collapsedExerciseIds.has(`${workout.id}-${ex.id}`);
+
+                            const topWeight = Math.max(...(ex.sets || []).map((s: any) => parseFloat(s.weight) || 0), 0);
+                            const topReps = Math.max(...(ex.sets || []).map((s: any) => parseInt(s.reps, 10) || 0), 0);
+
+                            return (
+                              <div
+                                key={ex.id}
                                 style={{
-                                  background: "#ffffff",
-                                  border: "1px solid #e2e8f0",
-                                  padding: "2px 6px",
-                                  borderRadius: "4px",
-                                  fontSize: "11px",
-                                  color: "#334155",
+                                  background: isHighlighted ? "#eff6ff" : "#fafafa",
+                                  borderRadius: "8px",
+                                  padding: isExCollapsed ? "6px 10px" : "8px 10px",
+                                  border: "1px solid",
+                                  borderColor: isHighlighted ? "#bfdbfe" : "#f1f5f9",
+                                  transition: "all 0.15s ease",
                                 }}
                               >
-                                Set {st.order + 1}:{" "}
-                                {ex.category === "STRETCHING" || ex.name.toLowerCase().includes("stretch") || ex.name.toLowerCase().includes("warm") || ex.name.toLowerCase().includes("pose") || ex.name.toLowerCase().includes("roll") ? (
-                                  <><b>{st.reps}s</b> hold</>
-                                ) : isBW ? (
-                                  st.weight > 0 ? (
-                                    <><b>BW + {st.weight} lbs</b> × <b>{st.reps}</b></>
-                                  ) : (
-                                    <><b>BW</b> × <b>{st.reps}</b></>
-                                  )
-                                ) : (
-                                  <><b>{st.weight}</b> lbs × <b>{st.reps}</b></>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    marginBottom: isExCollapsed ? "0" : "4px",
+                                    cursor: "pointer",
+                                    userSelect: "none",
+                                  }}
+                                  onClick={() => toggleExerciseCollapse(workout.id, ex.id)}
+                                  title={isExCollapsed ? "Click to expand exercise" : "Click to collapse exercise"}
+                                >
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                    <span style={{ fontWeight: 700, fontSize: "12px", color: isHighlighted ? "#1e40af" : "#0f172a" }}>
+                                      {ex.name}
+                                    </span>
+                                    <span style={{ fontSize: "10px", color: "#64748b" }}>({mg})</span>
+                                    {isBW && (
+                                      <span
+                                        style={{
+                                          fontSize: "9px",
+                                          fontWeight: 700,
+                                          background: "#f0fdf4",
+                                          color: "#166534",
+                                          border: "1px solid #bbf7d0",
+                                          padding: "1px 5px",
+                                          borderRadius: "4px",
+                                        }}
+                                      >
+                                        Bodyweight
+                                      </span>
+                                    )}
+                                    {isExCollapsed && (
+                                      <span style={{ fontSize: "11px", color: "#64748b", marginLeft: "4px" }}>
+                                        · {(ex.sets || []).length} sets
+                                        {topWeight > 0 ? ` · Top: ${topWeight} lbs${topReps > 0 ? ` × ${topReps}` : ""}` : ""}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    {!isExCollapsed && (
+                                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                                        {(ex.sets || []).length} sets
+                                      </span>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleExerciseCollapse(workout.id, ex.id);
+                                      }}
+                                      aria-label={isExCollapsed ? "Expand exercise" : "Collapse exercise"}
+                                      style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "20px",
+                                        height: "20px",
+                                        borderRadius: "4px",
+                                        border: "1px solid #e2e8f0",
+                                        background: "#ffffff",
+                                        color: "#475569",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      {isExCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {!isExCollapsed && (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" }}>
+                                    {(ex.sets || []).map((st: any) => (
+                                      <span
+                                        key={st.id}
+                                        style={{
+                                          background: "#ffffff",
+                                          border: "1px solid #e2e8f0",
+                                          padding: "2px 6px",
+                                          borderRadius: "4px",
+                                          fontSize: "11px",
+                                          color: "#334155",
+                                        }}
+                                      >
+                                        Set {st.order + 1}:{" "}
+                                        {ex.category === "STRETCHING" || ex.name.toLowerCase().includes("stretch") || ex.name.toLowerCase().includes("warm") || ex.name.toLowerCase().includes("pose") || ex.name.toLowerCase().includes("roll") ? (
+                                          <><b>{st.reps}s</b> hold</>
+                                        ) : isBW ? (
+                                          st.weight > 0 ? (
+                                            <><b>BW + {st.weight} lbs</b> × <b>{st.reps}</b></>
+                                          ) : (
+                                            <><b>BW</b> × <b>{st.reps}</b></>
+                                          )
+                                        ) : (
+                                          <><b>{st.weight}</b> lbs × <b>{st.reps}</b></>
+                                        )}
+                                      </span>
+                                    ))}
+                                  </div>
                                 )}
-                              </span>
-                            ))}
-                          </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
