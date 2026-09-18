@@ -107,4 +107,66 @@ describe("GET /api/workouts/client - Name Variation & Multi-Client Resolution", 
     expect(clientInClause.clientId.in).toContain("client-collin-1");
     expect(clientInClause.clientId.in).toContain("client-collin-2");
   });
+
+  it("should match self client named 'Collin (You)' and retrieve personal workouts even if clientProfileId is initially unlinked", async () => {
+    (getServerSession as any).mockResolvedValue({
+      user: {
+        id: "user-collin",
+        name: "Collin",
+        email: "collin@example.com",
+        role: "CLIENT",
+      },
+    });
+
+    (prisma.user.findFirst as any).mockResolvedValue({
+      id: "user-collin",
+      name: "Collin",
+      email: "collin@example.com",
+      clientProfileId: null, // Unlinked initially
+    });
+
+    (prisma.user.update as any) = vi.fn().mockResolvedValue({});
+
+    (prisma.client.findMany as any).mockImplementation((args: any) => {
+      // Searching self clients by userId and OR conditions
+      if (args.where?.userId === "user-collin") {
+        return Promise.resolve([
+          { id: "client-collin-you", name: "Collin (You)" },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const mockSessions = [
+      {
+        id: "session-you-1",
+        clientId: "client-collin-you",
+        status: "COMPLETED",
+        notes: "Heavy Deadlift PR",
+        completedAt: new Date("2026-09-15T10:00:00Z"),
+        exercises: [{ name: "Deadlift", sets: [{ weight: 455, reps: 3 }] }],
+        client: { id: "client-collin-you", name: "Collin (You)", email: "collin@example.com" },
+      },
+    ];
+
+    (prisma.workoutSession.findMany as any).mockResolvedValue(mockSessions);
+    (prisma.workout.findMany as any).mockResolvedValue([]);
+
+    const req = new NextRequest("http://localhost/api/workouts/client");
+    const res = await getClientWorkouts(req);
+    expect(res.status).toBe(200);
+
+    const data = await res.json();
+    expect(data.length).toBe(1);
+    expect(data[0].id).toBe("session-you-1");
+    expect(data[0].notes).toBe("Heavy Deadlift PR");
+
+    // Verify clientProfileId was auto-linked
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "user-collin" },
+        data: { clientProfileId: "client-collin-you" },
+      })
+    );
+  });
 });

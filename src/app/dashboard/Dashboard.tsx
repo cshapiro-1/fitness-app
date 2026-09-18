@@ -393,7 +393,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       .filter((w) => {
         if (w.deletedAt) return false;
         const s = (w.status || "").toUpperCase();
-        return s === "COMPLETED" || (!w.status && !!w.completedAt);
+        return s === "COMPLETED" || (!["PLANNED", "IN_PROGRESS"].includes(s) && (!!w.completedAt || !!w.createdAt));
       })
       .sort((a, b) => {
         const timeA = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
@@ -1285,6 +1285,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                   onAssignWorkout={(workout) => setAssigningWorkout(workout)}
                   onEditWorkout={(workout) => setEditingWorkout(workout)}
                   onOpenTextImport={() => setIsTextImportOpen(true)}
+                  clientName={selected.name}
+                  isSelfProfile={isSelectedSelf}
+                  onSwitchToSelfProfile={() => {
+                    const selfClient = clients.find((c: any) => c.isSelf || c.name.includes("(You)") || c.name === "My Workouts");
+                    if (selfClient) handleRequestSelectClient(selfClient);
+                  }}
                 />
               )}
 

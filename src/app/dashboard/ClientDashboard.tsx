@@ -607,7 +607,7 @@ export function ClientDashboard({
       .filter((w) => {
         if (w.deletedAt) return false;
         const s = (w.status || "").toUpperCase();
-        return s === "COMPLETED" || (!w.status && !!w.completedAt);
+        return s === "COMPLETED" || (!["PLANNED", "IN_PROGRESS"].includes(s) && (!!w.completedAt || !!w.createdAt));
       })
       .sort((a, b) => {
         const timeA = a.completedAt ? new Date(a.completedAt).getTime() : new Date(a.createdAt).getTime();
@@ -724,6 +724,13 @@ export function ClientDashboard({
           if (selectedExercise !== "ALL" && ex.name !== selectedExercise) return false;
           return true;
         });
+
+        if ((workout.exercises || []).length === 0 && selectedMuscleGroup === "ALL" && selectedExercise === "ALL") {
+          return {
+            ...workout,
+            exercises: [],
+          };
+        }
 
         if (matchingExercises.length === 0) return null;
 

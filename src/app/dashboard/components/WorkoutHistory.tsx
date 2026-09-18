@@ -17,6 +17,9 @@ interface WorkoutHistoryProps {
   onAssignWorkout?: (workout: WorkoutSession) => void;
   onEditWorkout?: (workout: WorkoutSession) => void;
   onOpenTextImport?: () => void;
+  clientName?: string;
+  isSelfProfile?: boolean;
+  onSwitchToSelfProfile?: () => void;
 }
 
 const MUSCLE_GROUPS = ["ALL", "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Other"];
@@ -29,6 +32,9 @@ export function WorkoutHistory({
   onAssignWorkout,
   onEditWorkout,
   onOpenTextImport,
+  clientName,
+  isSelfProfile = false,
+  onSwitchToSelfProfile,
 }: WorkoutHistoryProps) {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -236,6 +242,50 @@ export function WorkoutHistory({
         </div>
       </div>
 
+      {/* Profile Context Banner */}
+      {clientName && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: "8px",
+            padding: "8px 12px",
+            borderRadius: "8px",
+            background: isSelfProfile ? "#eff6ff" : "#f8fafc",
+            border: isSelfProfile ? "1px solid #bfdbfe" : "1px solid #e2e8f0",
+            fontSize: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontWeight: 700, color: isSelfProfile ? "#1d4ed8" : "#334155" }}>
+              {isSelfProfile ? "👤 Viewing Your Personal Workout History" : `📋 Viewing History for ${clientName}`}
+            </span>
+            <span style={{ color: "#64748b" }}>({completedWorkouts.length} session{completedWorkouts.length !== 1 ? "s" : ""})</span>
+          </div>
+
+          {!isSelfProfile && onSwitchToSelfProfile && (
+            <button
+              type="button"
+              onClick={onSwitchToSelfProfile}
+              style={{
+                background: "#eff6ff",
+                color: "#2563eb",
+                border: "1px solid #bfdbfe",
+                borderRadius: "6px",
+                padding: "3px 8px",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Switch to My Workouts →
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Filter Control Bar */}
       <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px", display: "flex", flexDirection: "column", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600, color: "#475569" }}>
@@ -334,8 +384,24 @@ export function WorkoutHistory({
       {loadingWorkouts && <div className="empty-state">Loading history...</div>}
 
       {!loadingWorkouts && !filteredWorkouts.length && (
-        <div className="empty-state">
-          {hasActiveFilters ? "No workouts found matching the selected dates, exercises, or notes." : "No workouts logged yet"}
+        <div className="empty-state" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", padding: "28px 16px" }}>
+          <span>
+            {hasActiveFilters
+              ? "No workouts found matching the selected dates, exercises, or notes."
+              : isSelfProfile
+              ? "No personal workouts logged yet. Start a session in the Workout Logger to build your training history!"
+              : `No workouts logged yet for ${clientName || "this client"}.`}
+          </span>
+          {!hasActiveFilters && !isSelfProfile && onSwitchToSelfProfile && (
+            <button
+              type="button"
+              onClick={onSwitchToSelfProfile}
+              className="btn-primary"
+              style={{ fontSize: "12px", padding: "6px 14px", marginTop: "4px" }}
+            >
+              View My Personal Workouts
+            </button>
+          )}
         </div>
       )}
 

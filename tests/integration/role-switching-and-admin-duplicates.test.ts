@@ -258,7 +258,8 @@ describe("Role Switching & Admin Duplicates Resolution", () => {
 
       (prisma.client.findMany as any).mockResolvedValue(rawClients);
 
-      const res = await getAdminStats();
+      const req = new NextRequest("http://localhost/api/admin/stats");
+      const res = await getAdminStats(req);
       const data = await res.json();
 
       expect(res.status).toBe(200);

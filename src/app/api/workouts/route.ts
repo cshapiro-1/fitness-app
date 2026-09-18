@@ -67,8 +67,10 @@ export async function GET(req: NextRequest) {
         otherSelfClients.forEach((c) => {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
-      } else if (isTargetCollin && (isUserCollin || isAdmin)) {
-        // Only consolidate Collin's personal client records when Collin/Admin is viewing Collin's personal profile
+      }
+
+      if (isTargetCollin && (isUserCollin || isAdmin)) {
+        // Also consolidate Collin's personal client records when Collin/Admin is viewing Collin's personal profile
         const otherCollinClients = await prisma.client.findMany({
           where: {
             OR: [

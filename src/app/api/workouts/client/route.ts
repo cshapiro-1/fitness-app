@@ -78,13 +78,27 @@ export async function GET(req: NextRequest) {
       const selfClients = await prisma.client.findMany({
         where: {
           userId,
-          name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)", "Solo Athlete"] },
+          OR: [
+            { name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)", "Solo Athlete"] } },
+            { name: { contains: "(You)" } },
+            { name: { contains: "Collin", mode: "insensitive" } },
+          ],
         },
         select: { id: true },
       });
       selfClients.forEach((c) => {
         if (!clientIds.includes(c.id)) clientIds.push(c.id);
       });
+    }
+
+    // Auto-link clientProfileId on User if not set and primary self client exists
+    if (dbUser && !dbUser.clientProfileId && clientIds.length > 0) {
+      try {
+        await prisma.user.update({
+          where: { id: dbUser.id },
+          data: { clientProfileId: clientIds[0] },
+        });
+      } catch {}
     }
 
     if (clientIds.length === 0) {
