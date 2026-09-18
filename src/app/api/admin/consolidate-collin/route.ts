@@ -11,49 +11,70 @@ export async function GET(req: NextRequest) {
     if (!auth.authorized && syncSecret !== "FitCoachAug24Sync2026") {
       return auth.response || NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
     }
-    const clients = await prisma.client.findMany({
-      where: {
-        OR: [
-          { name: { contains: "Collin", mode: "insensitive" } },
-          { email: { contains: "collin", mode: "insensitive" } },
-        ],
-      },
-      include: {
-        workoutSessions: {
-          include: {
-            exercises: {
-              include: { sets: true }
-            }
-          }
+    const allSessions = await prisma.workoutSession.findMany({
+      select: {
+        id: true,
+        clientId: true,
+        loggedById: true,
+        loggedByName: true,
+        status: true,
+        deletedAt: true,
+        notes: true,
+        createdAt: true,
+        client: {
+          select: { id: true, name: true, email: true, userId: true }
         },
-        workouts: true,
-        nutritionPlan: true,
-        nutritionLogs: true,
-        supplementLogs: true,
-        loginUser: true,
+        exercises: {
+          select: { id: true, name: true, sets: { select: { weight: true, reps: true } } }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    const allLegacyWorkouts = await prisma.workout.findMany({
+      select: {
+        id: true,
+        clientId: true,
+        exercise: true,
+        date: true,
+        createdAt: true,
+        loggedById: true,
+        loggedByName: true,
+        client: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+
+    const allClients = await prisma.client.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        userId: true,
+        _count: { select: { workoutSessions: true, workouts: true } },
       },
     });
 
-    const users = await prisma.user.findMany({
-      where: {
-        OR: [
-          { email: { contains: "collin", mode: "insensitive" } },
-          { name: { contains: "Collin", mode: "insensitive" } },
-          { email: null },
-        ],
-      },
-      include: {
-        accounts: true,
-        sessions: true,
-        clients: true,
+    const allUsers = await prisma.user.findMany({
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        clientProfileId: true,
       },
     });
 
-    const allClientsWithoutEmail = await prisma.client.findMany({
-      where: { email: null },
+    return NextResponse.json({
+      totalSessionsInDB: allSessions.length,
+      totalLegacyInDB: allLegacyWorkouts.length,
+      allSessions,
+      allLegacyWorkouts,
+      allClients,
+      allUsers,
     });
-
-    return NextResponse.json({ clients, users, allClientsWithoutEmail });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
