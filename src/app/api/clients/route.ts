@@ -77,8 +77,8 @@ export async function GET(req: Request) {
       c.name === "My Workouts (Personal)" ||
       c.name === "Personal" ||
       c.name === "Self" ||
-      c.name.includes("(You)") ||
-      Boolean(trainerEmail && c.email && c.email.toLowerCase() === trainerEmail.toLowerCase());
+      Boolean(trainerUser?.name && c.name?.toLowerCase().startsWith(trainerUser.name.toLowerCase()) && c.name.includes("(You)")) ||
+      Boolean(trainerEmail && c.email && c.email.toLowerCase() === trainerEmail.toLowerCase() && (!c.userId || c.userId === trainerId));
 
     let selfClients = clients.filter(isSelfMatch);
 
@@ -186,7 +186,8 @@ export async function GET(req: Request) {
       }
 
       // Ensure primary self client's name and details mirror the trainer profile
-      if (primarySelfClient.name !== selfDisplayName) {
+      // Only modify client name in DB if it actually belongs directly to this trainer (not coached by someone else)
+      if (primarySelfClient.name !== selfDisplayName && (!primarySelfClient.userId || primarySelfClient.userId === trainerId)) {
         try {
           await prisma.client.update({
             where: { id: primarySelfClient.id },

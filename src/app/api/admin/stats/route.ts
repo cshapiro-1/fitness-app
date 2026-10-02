@@ -50,6 +50,48 @@ export async function GET(req: NextRequest) {
           ],
         },
       }).catch(() => null);
+
+      // Self-heal: Ensure Collin Shapiro is attributed as a client of Coach Jose Dildine
+      const joseTrainer = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: { equals: "chisailor87@gmail.com", mode: "insensitive" } },
+            { id: "cmrtjiy4u000004l4cxexlvdz" },
+            { name: { contains: "Jose", mode: "insensitive" } },
+          ],
+        },
+      });
+      const collinClientRecord = await prisma.client.findFirst({
+        where: {
+          OR: [
+            { id: "cmu72hiyb000004ignycanesd" },
+            { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
+          ],
+        },
+      });
+      if (joseTrainer && collinClientRecord && collinClientRecord.userId !== joseTrainer.id) {
+        await prisma.client.update({
+          where: { id: collinClientRecord.id },
+          data: {
+            userId: joseTrainer.id,
+            name: "Collin Shapiro",
+            email: "collin.shapiro1@gmail.com",
+            fitnessGoals: collinClientRecord.fitnessGoals || "Strength, Hypertrophy & L5-S1 Spine Integrity",
+          },
+        });
+        await prisma.user.updateMany({
+          where: {
+            OR: [
+              { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
+              { id: "cmrtedsh9000004l5104w7z9i" },
+            ],
+          },
+          data: {
+            clientProfileId: collinClientRecord.id,
+            trainerId: joseTrainer.id,
+          },
+        });
+      }
     } catch (schemaErr) {
       console.warn("Schema self-heal warning:", schemaErr);
     }
@@ -211,12 +253,14 @@ export async function GET(req: NextRequest) {
       return Boolean(
         (trainer.clientProfileId && c.id === trainer.clientProfileId) ||
         (c.loginUser?.id && c.loginUser.id === trainer.id) ||
-        (tEmail && cEmail && cEmail === tEmail) ||
-        cName.includes("(You)") ||
-        cName === "My Workouts" ||
-        cName === "My Workouts (Personal)" ||
-        cName === "Personal" ||
-        cName === "Self"
+        (tEmail && cEmail && cEmail === tEmail && (!c.userId || c.userId === trainer.id)) ||
+        (trainer.name && cName.toLowerCase().startsWith(trainer.name.toLowerCase()) && cName.includes("(You)")) ||
+        ((!c.userId || c.userId === trainer.id) && (
+          cName === "My Workouts" ||
+          cName === "My Workouts (Personal)" ||
+          cName === "Personal" ||
+          cName === "Self"
+        ))
       );
     };
 

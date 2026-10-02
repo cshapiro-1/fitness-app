@@ -240,24 +240,49 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Locate Jose Dildine's User record (Coach)
+    const joseUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: { equals: "chisailor87@gmail.com", mode: "insensitive" } },
+          { id: "cmrtjiy4u000004l4cxexlvdz" },
+          { name: { contains: "Jose", mode: "insensitive" } },
+        ],
+      },
+    });
+
     // 2. Locate Collin's primary Client record
     let primaryClient = await prisma.client.findFirst({
       where: {
         OR: [
           { id: "cmu72hiyb000004ignycanesd" },
           { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
-          ...(collinUser?.id ? [{ userId: collinUser.id }] : []),
+          ...(collinUser?.clientProfileId ? [{ id: collinUser.clientProfileId }] : []),
         ],
       },
     });
 
-    if (!primaryClient && collinUser) {
+    const targetTrainerId = joseUser?.id || collinUser?.id || "cmrtjiy4u000004l4cxexlvdz";
+
+    if (!primaryClient) {
       primaryClient = await prisma.client.create({
         data: {
-          name: "Collin Shapiro (You)",
+          name: "Collin Shapiro",
           email: "collin.shapiro1@gmail.com",
-          userId: collinUser.id,
+          userId: targetTrainerId,
           inviteStatus: "ACCEPTED",
+          fitnessGoals: "Strength, Hypertrophy & L5-S1 Spine Integrity",
+        },
+      });
+    } else {
+      // Ensure primaryClient is assigned to Coach Jose and has clean name "Collin Shapiro"
+      primaryClient = await prisma.client.update({
+        where: { id: primaryClient.id },
+        data: {
+          name: "Collin Shapiro",
+          email: "collin.shapiro1@gmail.com",
+          userId: targetTrainerId,
+          fitnessGoals: primaryClient.fitnessGoals || "Strength, Hypertrophy & L5-S1 Spine Integrity",
         },
       });
     }
@@ -266,11 +291,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Could not locate or create Collin client record" }, { status: 404 });
     }
 
-    // Ensure collinUser clientProfileId points to primaryClient
-    if (collinUser && collinUser.clientProfileId !== primaryClient.id) {
+    // Ensure collinUser clientProfileId points to primaryClient and trainerId points to Coach Jose
+    if (collinUser) {
       await prisma.user.update({
         where: { id: collinUser.id },
-        data: { clientProfileId: primaryClient.id },
+        data: {
+          clientProfileId: primaryClient.id,
+          trainerId: targetTrainerId,
+        },
       });
     }
 
