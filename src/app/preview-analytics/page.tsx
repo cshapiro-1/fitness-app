@@ -188,9 +188,9 @@ const collinAnalytics: DashboardAnalytics = {
     totalSets: 176,
     totalVolume: 142850,
     weeklyAvgWorkouts: 3.8,
-    heaviestSet: { exercise: "Conventional Deadlift", weight: 405, reps: 3 },
-    highestRepSet: { exercise: "Barbell Bench Press", weight: 225, reps: 8 },
-    best1RM: { exercise: "Conventional Deadlift", weight: 405, reps: 3, estimated1RM: 429 },
+    heaviestSet: { exercise: "Conventional Deadlift", weight: 405, reps: 3, completedAt: "2026-10-23T12:00:00Z" },
+    highestRepSet: { exercise: "Barbell Bench Press", weight: 225, reps: 8, completedAt: "2026-10-01T10:00:00Z" },
+    best1RM: { exercise: "Conventional Deadlift", weight: 405, reps: 3, estimated1RM: 429, completedAt: "2026-10-23T12:00:00Z" },
     mostTrainedExercise: { exercise: "Barbell Bench Press", sessions: 18 },
   },
 };

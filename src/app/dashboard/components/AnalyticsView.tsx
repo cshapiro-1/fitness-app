@@ -1162,9 +1162,9 @@ export function AnalyticsView({ analytics }: AnalyticsViewProps) {
   );
 
   const activeExercise: ExerciseAnalytics | undefined = useMemo(() => {
-    const found = filteredExercises.find((ex) => ex.name === selectedExerciseName);
-    return found || filteredExercises[0] || analytics.exercises[0];
-  }, [filteredExercises, selectedExerciseName, analytics.exercises]);
+    const found = analytics.exercises.find((ex) => ex.name === selectedExerciseName);
+    return found || analytics.exercises[0];
+  }, [selectedExerciseName, analytics.exercises]);
 
   return (
     <div
