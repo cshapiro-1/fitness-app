@@ -18,7 +18,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-describe("Coach Studio Onboarding Workflow Component Tests", () => {
+describe("Role Selection & Onboarding Workflow Component Tests", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue({
@@ -27,8 +27,49 @@ describe("Coach Studio Onboarding Workflow Component Tests", () => {
     } as any);
   });
 
-  it("should render Step 1 coach profile setup form with prefilled name", () => {
+  it("should render Step 0 role selection screen with Athlete and Coach options", () => {
     render(<OnboardingPage />);
+    expect(screen.getByText("Welcome to STRKYR Fitness")).toBeInTheDocument();
+    expect(screen.getByText("I'm an Athlete / Trainee")).toBeInTheDocument();
+    expect(screen.getByText("I'm a Coach / Personal Trainer")).toBeInTheDocument();
+  });
+
+  it("should allow completing Athlete onboarding as solo athlete with CLIENT role", async () => {
+    render(<OnboardingPage />);
+
+    // Select Athlete role
+    fireEvent.click(screen.getByText("I'm an Athlete / Trainee"));
+
+    expect(screen.getByText("Your Fitness Goals")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Collin Shapiro")).toBeInTheDocument();
+
+    // Advance to Step 2
+    fireEvent.click(screen.getByText("Continue"));
+    expect(screen.getByText("Connect with Your Coach")).toBeInTheDocument();
+    expect(screen.getByText("I'm Training Solo")).toBeInTheDocument();
+
+    // Finish
+    fireEvent.click(screen.getByText("Enter Athlete Portal 🚀"));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/user/role",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            role: "CLIENT",
+            name: "Collin Shapiro",
+            fitnessGoals: "Hypertrophy & Muscle Building (Intermediate (1-3 yrs))",
+          }),
+        })
+      );
+    });
+  });
+
+  it("should render Step 1 coach profile setup form after choosing Coach", () => {
+    render(<OnboardingPage />);
+    fireEvent.click(screen.getByText("I'm a Coach / Personal Trainer"));
+
     expect(screen.getByText("Coach Studio Setup")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Collin Shapiro")).toBeInTheDocument();
     expect(screen.getByText("Primary Specialty")).toBeInTheDocument();
@@ -37,6 +78,8 @@ describe("Coach Studio Onboarding Workflow Component Tests", () => {
 
   it("should transition to Step 2 and allow adding a real client or skipping without sample athletes", () => {
     render(<OnboardingPage />);
+    fireEvent.click(screen.getByText("I'm a Coach / Personal Trainer"));
+
     const continueBtn = screen.getByText("Continue to Client Setup");
     fireEvent.click(continueBtn);
 
@@ -48,6 +91,7 @@ describe("Coach Studio Onboarding Workflow Component Tests", () => {
 
   it("should complete coach onboarding through the 4-Pillar Walkthrough and set role as TRAINER", async () => {
     render(<OnboardingPage />);
+    fireEvent.click(screen.getByText("I'm a Coach / Personal Trainer"));
 
     // Step 1 -> Step 2
     fireEvent.click(screen.getByText("Continue to Client Setup"));

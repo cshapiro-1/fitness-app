@@ -161,9 +161,9 @@ describe("Mobile Revamped AnalyticsView Component", () => {
       totalSets: 12,
       totalVolume: 39700,
       weeklyAvgWorkouts: 3.5,
-      heaviestSet: { exercise: "Barbell Squat", weight: 315, reps: 5 },
-      highestRepSet: { exercise: "Barbell Bench Press", weight: 225, reps: 5 },
-      best1RM: { exercise: "Barbell Squat", weight: 315, reps: 5, estimated1RM: 354 },
+      heaviestSet: { exercise: "Barbell Squat", weight: 315, reps: 5, completedAt: "2026-03-01T12:00:00Z" },
+      highestRepSet: { exercise: "Barbell Bench Press", weight: 225, reps: 5, completedAt: "2026-03-01T12:00:00Z" },
+      best1RM: { exercise: "Barbell Squat", weight: 315, reps: 5, estimated1RM: 354, completedAt: "2026-03-01T12:00:00Z" },
       mostTrainedExercise: { exercise: "Barbell Bench Press", sessions: 2 },
     },
   };
