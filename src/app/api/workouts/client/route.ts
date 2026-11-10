@@ -75,14 +75,21 @@ export async function GET(req: NextRequest) {
     }
 
     if (userId) {
+      // Ensure coaches only pull their dedicated personal profile, and athletes only pull their own solo profile
+      const isTrainerRole = dbUser?.role === "TRAINER";
       const selfClients = await prisma.client.findMany({
         where: {
           userId,
-          OR: [
-            { name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)", "Solo Athlete"] } },
-            { name: { contains: "(You)" } },
-            { name: { contains: "Collin", mode: "insensitive" } },
-          ],
+          ...(isTrainerRole
+            ? {
+                OR: [
+                  { name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)"] } },
+                  { name: { contains: "(You)" } },
+                ],
+              }
+            : {
+                name: { in: ["Solo Athlete", "Personal", "My Workouts"] },
+              }),
         },
         select: { id: true },
       });

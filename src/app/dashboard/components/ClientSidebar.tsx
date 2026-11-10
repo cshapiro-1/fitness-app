@@ -1,6 +1,7 @@
 "use client";
 
-import { Users, UserPlus, ChevronRight, Trash2, Edit3, User, Link2, Dumbbell } from "lucide-react";
+import React from "react";
+import { Users, UserPlus, Trash2, Edit3, Link2, Zap, Dumbbell } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Client } from "../types";
 
@@ -27,26 +28,31 @@ export function ClientSidebar({
   onDeleteClient,
   onQuickInvite,
 }: ClientSidebarProps) {
+  const selfProfile = clients.find(
+    (c) => (c as any).isSelf || c.name.includes("(You)") || c.name === "My Workouts"
+  );
+  const athletes = clients.filter((c) => c.id !== selfProfile?.id);
+
   return (
     <aside className="sidebar hide-mobile-sidebar" data-tour="client-sidebar">
       {/* Sidebar Header */}
       <div className="sidebar-header">
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <Users size={15} />
-          <span>Clients</span>
+          <span>Clients &amp; Training</span>
         </div>
-        <span className="client-count">{clients.length}</span>
+        <span className="client-count">{athletes.length} athlete{athletes.length === 1 ? "" : "s"}</span>
       </div>
 
       {/* Add Client Action Button */}
-      <div style={{ padding: "0 12px 12px" }}>
+      <div style={{ padding: "0 12px 10px" }}>
         <button
           onClick={onOpenAddClient}
           className="btn-primary sidebar-add-btn"
           title="Add a new client profile"
         >
           <UserPlus size={15} />
-          <span>Add Client</span>
+          <span>Add Athlete</span>
         </button>
       </div>
 
@@ -58,49 +64,143 @@ export function ClientSidebar({
           </div>
         )}
 
-        {!loadingClients && !clients.length && (
-          <div className="empty-state">
-            No clients yet. Click <strong>Add Client</strong> above to get started.
-          </div>
-        )}
-
-        {clients.map((client) => {
-          const isSelfProfile = (client as any).isSelf || client.name.includes("(You)") || client.name.includes("My Workouts");
-          const isAccepted = client.inviteStatus === "ACCEPTED";
-          const isPending = client.inviteStatus === "PENDING";
-
-          return (
+        {/* SECTION 1: COACH PERSONAL TRAINING */}
+        {selfProfile && (
+          <div style={{ marginBottom: "14px" }}>
             <div
-              key={client.id}
-              className={`client-item${selected?.id === client.id ? " active" : ""}`}
-              style={isSelfProfile ? { borderLeft: selected?.id === client.id ? "3px solid #2563eb" : "3px solid #60a5fa", background: selected?.id === client.id ? undefined : "#f8faff" } : undefined}
-              onClick={() => onSelectClient(client)}
+              style={{
+                fontSize: "10px",
+                fontWeight: 800,
+                color: "#2563eb",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+                padding: "0 14px 6px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
             >
-              {/* Client Avatar Thumbnail */}
+              <Zap size={11} />
+              <span>My Personal Training</span>
+            </div>
+
+            <div
+              className={`client-item${selected?.id === selfProfile.id ? " active" : ""}`}
+              style={{
+                borderLeft: selected?.id === selfProfile.id ? "3px solid #2563eb" : "3px solid #93c5fd",
+                background: selected?.id === selfProfile.id ? undefined : "#f0f7ff",
+              }}
+              onClick={() => onSelectClient(selfProfile)}
+            >
               <div style={{ position: "relative", flexShrink: 0, marginRight: "10px" }}>
                 <UserAvatar
-                  src={client.image}
-                  name={client.name}
+                  src={selfProfile.image}
+                  name={selfProfile.name}
                   size={36}
                   style={{
-                    border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                    border: selected?.id === selfProfile.id ? "2px solid #2563eb" : "1px solid #bfdbfe",
                   }}
                 />
               </div>
 
               <div className="client-item-main">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span className="client-name" style={isSelfProfile ? { fontWeight: 700, color: "#0f172a" } : undefined}>
-                    {client.name}
+                  <span className="client-name" style={{ fontWeight: 800, color: "#0f172a" }}>
+                    {selfProfile.name}
                   </span>
-                  {isSelfProfile ? (
-                    <span
-                      className="client-status-badge"
-                      style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", fontWeight: 700, fontSize: "10px", padding: "1px 6px", borderRadius: "9999px" }}
-                    >
-                      You
+                  <span
+                    className="client-status-badge"
+                    style={{
+                      background: "#eff6ff",
+                      color: "#1d4ed8",
+                      border: "1px solid #bfdbfe",
+                      fontWeight: 700,
+                      fontSize: "10px",
+                      padding: "1px 6px",
+                      borderRadius: "9999px",
+                    }}
+                  >
+                    Personal
+                  </span>
+                </div>
+
+                <div className="client-meta">
+                  <span>{selfProfile._count?.workoutSessions ?? 0} personal workouts</span>
+                </div>
+              </div>
+
+              <div className="client-item-actions">
+                <button
+                  className="client-action-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenTrainerProfile) {
+                      onOpenTrainerProfile();
+                    } else {
+                      onOpenEditClient(selfProfile);
+                    }
+                  }}
+                  title="Edit Coach Profile & Settings"
+                >
+                  <Edit3 size={13} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SECTION 2: COACHED ATHLETES */}
+        <div>
+          <div
+            style={{
+              fontSize: "10px",
+              fontWeight: 800,
+              color: "#64748b",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              padding: "0 14px 6px",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
+            <Dumbbell size={11} />
+            <span>Coached Athletes ({athletes.length})</span>
+          </div>
+
+          {!loadingClients && athletes.length === 0 && (
+            <div className="empty-state" style={{ margin: "4px 12px", padding: "14px", fontSize: "12px" }}>
+              No athletes yet. Click <strong>Add Athlete</strong> above or share your invite link.
+            </div>
+          )}
+
+          {athletes.map((client) => {
+            const isAccepted = client.inviteStatus === "ACCEPTED";
+            const isPending = client.inviteStatus === "PENDING";
+
+            return (
+              <div
+                key={client.id}
+                className={`client-item${selected?.id === client.id ? " active" : ""}`}
+                onClick={() => onSelectClient(client)}
+              >
+                {/* Client Avatar Thumbnail */}
+                <div style={{ position: "relative", flexShrink: 0, marginRight: "10px" }}>
+                  <UserAvatar
+                    src={client.image}
+                    name={client.name}
+                    size={36}
+                    style={{
+                      border: selected?.id === client.id ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                    }}
+                  />
+                </div>
+
+                <div className="client-item-main">
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span className="client-name">
+                      {client.name}
                     </span>
-                  ) : (
                     <span
                       className={`client-status-badge ${
                         isAccepted
@@ -112,48 +212,42 @@ export function ClientSidebar({
                     >
                       {isAccepted ? "Active" : isPending ? "Invite Sent" : "Free"}
                     </span>
-                  )}
+                  </div>
+
+                  <div className="client-meta">
+                    <span>{client._count?.workoutSessions ?? 0} workouts logged</span>
+                    {client.email && (
+                      <span className="client-meta-extra" title={client.email}>
+                        • {client.email}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="client-meta">
-                  <span>{client._count?.workoutSessions ?? 0} workouts logged</span>
-                  {client.email && !isSelfProfile && (
-                    <span className="client-meta-extra" title={client.email}>
-                      • {client.email}
-                    </span>
+                <div className="client-item-actions">
+                  {onQuickInvite && (
+                    <button
+                      className="client-action-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onQuickInvite(client);
+                      }}
+                      title="Copy Athlete Invite Link"
+                      style={{ color: "#2563eb" }}
+                    >
+                      <Link2 size={13} />
+                    </button>
                   )}
-                </div>
-              </div>
-
-              <div className="client-item-actions">
-                {!isSelfProfile && onQuickInvite && (
                   <button
                     className="client-action-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onQuickInvite(client);
-                    }}
-                    title="Copy Athlete Invite Link"
-                    style={{ color: "#2563eb" }}
-                  >
-                    <Link2 size={13} />
-                  </button>
-                )}
-                <button
-                  className="client-action-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (isSelfProfile && onOpenTrainerProfile) {
-                      onOpenTrainerProfile();
-                    } else {
                       onOpenEditClient(client);
-                    }
-                  }}
-                  title={isSelfProfile ? "Edit Coach Profile & Settings" : "Edit Profile"}
-                >
-                  <Edit3 size={13} />
-                </button>
-                {!isSelfProfile && (
+                    }}
+                    title="Edit Profile"
+                  >
+                    <Edit3 size={13} />
+                  </button>
                   <button
                     className="client-action-btn delete"
                     onClick={(e) => {
@@ -164,11 +258,11 @@ export function ClientSidebar({
                   >
                     <Trash2 size={13} />
                   </button>
-                )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </aside>
   );

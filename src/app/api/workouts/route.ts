@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       }
 
       const isCoach = userId && targetClient.userId === userId;
-      const isAthlete = userEmail && targetClient.email?.toLowerCase() === userEmail;
+      const isAthlete = (userEmail && targetClient.email?.toLowerCase() === userEmail) || (session?.user as any)?.clientProfileId === targetClient.id;
       const isAdmin = (session?.user as any)?.isAdmin === true;
 
       if (!isCoach && !isAthlete && !isAdmin) {
@@ -51,11 +51,29 @@ export async function GET(req: NextRequest) {
         (targetClient.email && targetClient.email.toLowerCase().includes("collin"))
       );
 
-      if (targetClient && (targetClient.name === "My Workouts" || targetClient.name.includes("Self") || targetClient.name.includes("Personal") || targetClient.name.includes("(You)") || targetClient.id === (session?.user as any)?.clientProfileId)) {
+      // Determine if this is a coach viewing their OWN personal training profile
+      const isCoachSelf = Boolean(
+        userId &&
+        targetClient.userId === userId &&
+        (targetClient.id === (session?.user as any)?.clientProfileId ||
+         targetClient.name === "My Workouts" ||
+         targetClient.name.includes("Self") ||
+         targetClient.name.includes("Personal") ||
+         targetClient.name.includes("(You)"))
+      );
+
+      // Determine if this is an athlete viewing their own profile
+      const isAthleteSelf = Boolean(
+        targetClient.id === (session?.user as any)?.clientProfileId ||
+        (userEmail && targetClient.email?.toLowerCase() === userEmail)
+      );
+
+      if (isCoachSelf) {
         isSelfQuery = true;
+        // Strictly consolidate duplicate self-profiles belonging to THIS trainer
         const otherSelfClients = await prisma.client.findMany({
           where: {
-            userId: targetClient.userId,
+            userId: userId, // CRITICAL: Must be the trainer's user ID, never a coached client's coach ID
             OR: [
               { name: { in: ["My Workouts", "Personal", "Self", "My Workouts (Personal)"] } },
               { name: { contains: "(You)" } },
@@ -67,6 +85,21 @@ export async function GET(req: NextRequest) {
         otherSelfClients.forEach((c) => {
           if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
         });
+      } else if (isAthleteSelf) {
+        isSelfQuery = true;
+        // For athletes: NEVER query targetClient.userId (which is their coach's ID!).
+        // Only merge duplicate client records that share this athlete's verified email.
+        if (userEmail) {
+          const matchingAthleteClients = await prisma.client.findMany({
+            where: {
+              email: { equals: userEmail, mode: "insensitive" },
+            },
+            select: { id: true },
+          });
+          matchingAthleteClients.forEach((c) => {
+            if (!targetClientIds.includes(c.id)) targetClientIds.push(c.id);
+          });
+        }
       }
 
       if (isTargetCollin && (isUserCollin || isAdmin)) {
@@ -147,7 +180,7 @@ export async function GET(req: NextRequest) {
     } else {
       sessionWhereClause.OR = [
         ...(targetClientIds.length > 0 ? [{ clientId: { in: targetClientIds } }] : []),
-        ...((isSelfQuery || !urlClientId || urlClientId === "all") && userId ? [{ loggedById: userId }] : []),
+        ...((!urlClientId || urlClientId === "all") && userId && (session?.user as any)?.role !== "CLIENT" ? [{ loggedById: userId }] : []),
       ];
     }
 
