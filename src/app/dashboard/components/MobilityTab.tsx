@@ -27,6 +27,7 @@ import {
   Send,
   UserCheck,
   Activity,
+  Hourglass,
 } from "lucide-react";
 import { MOBILITY_ROUTINES, getMuscleGroupsFromWorkout } from "../utils/mobilityRoutines";
 import { AnatomyGuideModal } from "./AnatomyGuideModal";
@@ -103,6 +104,31 @@ function playTimerChime() {
   }
 }
 
+// Web Audio API beep synthesizer for countdown (3, 2, 1)
+function playCountdownBeep() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime); // 440Hz A4 soft pip
+
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.08);
+  } catch {
+    // Audio context may be restricted
+  }
+}
+
 export function MobilityTab({
   recentWorkoutExercises,
   clientId,
@@ -164,6 +190,38 @@ export function MobilityTab({
   const [routineComplete, setRoutineComplete] = useState(false);
   const [totalElapsedTime, setTotalElapsedTime] = useState(0);
   const [isWaitingManualDismiss, setIsWaitingManualDismiss] = useState(false);
+  const [transitionSeconds, setTransitionSeconds] = useState<number>(5);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+  const [transitionTimeLeft, setTransitionTimeLeft] = useState<number>(0);
+
+  // Load transition buffer preference from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("strkyr_stretch_transition_seconds");
+        if (saved !== null) {
+          const val = parseInt(saved, 10);
+          if (!isNaN(val) && val >= 0) {
+            setTransitionSeconds(val);
+          }
+        }
+      } catch {}
+    }
+  }, []);
+
+  const updateTransitionSeconds = (val: number) => {
+    setTransitionSeconds(val);
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("strkyr_stretch_transition_seconds", val.toString());
+      } catch {}
+    }
+    if (val === 0 && isTransitioning) {
+      setIsTransitioning(false);
+      setTransitionTimeLeft(0);
+      if (soundEnabled) playTimerChime();
+    }
+  };
 
   // Auto-detect muscles from recent workout
   useEffect(() => {
@@ -229,17 +287,29 @@ export function MobilityTab({
     }
   };
 
-  const setupMovement = useCallback((move: any) => {
+  const setupMovement = useCallback((move: any, side: "left" | "right" | "none" = "none", shouldTransition: boolean = false) => {
     const dur = move.duration ?? move.durationSeconds ?? perStretchSeconds ?? 60;
-    if (move.sides === "left_right") {
-      setCurrentSide("left");
-      setTimeLeft(Math.floor(dur / 2));
-    } else {
-      setCurrentSide("none");
-      setTimeLeft(dur);
-    }
+    const initialSide = side !== "none" ? side : (move.sides === "left_right" ? "left" : "none");
+    setCurrentSide(initialSide);
+
+    const sideDuration = initialSide !== "none" ? Math.floor(dur / 2) : dur;
+    setTimeLeft(sideDuration);
     setIsWaitingManualDismiss(false);
-  }, [perStretchSeconds]);
+
+    if (shouldTransition && transitionSeconds > 0) {
+      setIsTransitioning(true);
+      setTransitionTimeLeft(transitionSeconds);
+    } else {
+      setIsTransitioning(false);
+      setTransitionTimeLeft(0);
+    }
+  }, [perStretchSeconds, transitionSeconds]);
+
+  const startStretchNow = () => {
+    setIsTransitioning(false);
+    setTransitionTimeLeft(0);
+    if (soundEnabled) playTimerChime();
+  };
 
   const startRoutine = (routine: MobilityRoutine) => {
     setActiveRoutine(routine);
@@ -252,23 +322,27 @@ export function MobilityTab({
 
     if (routine.movements && routine.movements.length > 0) {
       const firstMove = routine.movements[0];
-      setupMovement(firstMove);
+      const initialSide = firstMove.sides === "left_right" ? "left" : "none";
+      setupMovement(firstMove, initialSide, transitionSeconds > 0);
     } else {
       setRoutineComplete(true);
     }
   };
 
-  const advanceToNextMovement = useCallback(() => {
+  const advanceToNextMovement = useCallback((shouldTransition: boolean = transitionSeconds > 0) => {
     if (!activeRoutine) return;
     if (currentMoveIndex + 1 < activeRoutine.movements.length) {
-      const nextMove = activeRoutine.movements[currentMoveIndex + 1];
-      setCurrentMoveIndex((prev) => prev + 1);
-      setupMovement(nextMove);
+      const nextIdx = currentMoveIndex + 1;
+      const nextMove = activeRoutine.movements[nextIdx];
+      setCurrentMoveIndex(nextIdx);
+      const initialSide = nextMove.sides === "left_right" ? "left" : "none";
+      setupMovement(nextMove, initialSide, shouldTransition);
     } else {
       setRoutineComplete(true);
+      setIsTransitioning(false);
       if (soundEnabled) playTimerChime();
     }
-  }, [activeRoutine, currentMoveIndex, setupMovement, soundEnabled]);
+  }, [activeRoutine, currentMoveIndex, setupMovement, soundEnabled, transitionSeconds]);
 
   const handleTimerComplete = useCallback(() => {
     if (!activeRoutine) return;
@@ -278,61 +352,80 @@ export function MobilityTab({
     if (soundEnabled) playTimerChime();
 
     if (autoAdvanceTimer) {
-      const moveDur = currentMove.duration ?? currentMove.durationSeconds ?? perStretchSeconds ?? 60;
       if (currentMove.sides === "left_right" && currentSide === "left") {
-        setCurrentSide("right");
-        setTimeLeft(Math.floor(moveDur / 2));
+        setupMovement(currentMove, "right", transitionSeconds > 0);
       } else {
-        advanceToNextMovement();
+        advanceToNextMovement(transitionSeconds > 0);
       }
     } else {
       setIsWaitingManualDismiss(true);
       setIsPaused(true);
     }
-  }, [activeRoutine, currentMoveIndex, currentSide, autoAdvanceTimer, soundEnabled, perStretchSeconds, advanceToNextMovement]);
+  }, [activeRoutine, currentMoveIndex, currentSide, autoAdvanceTimer, soundEnabled, advanceToNextMovement, setupMovement, transitionSeconds]);
 
   // Timer Interval Effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (activeRoutine && !isPaused && !routineComplete && timeLeft > 0 && !isWaitingManualDismiss) {
+    if (activeRoutine && !isPaused && !routineComplete && !isWaitingManualDismiss) {
       interval = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            handleTimerComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
         setTotalElapsedTime((prev) => prev + 1);
+
+        if (isTransitioning) {
+          setTransitionTimeLeft((prev) => {
+            if (prev <= 1) {
+              setIsTransitioning(false);
+              if (soundEnabled) playTimerChime();
+              return 0;
+            }
+            if (soundEnabled && prev <= 4) {
+              playCountdownBeep();
+            }
+            return prev - 1;
+          });
+        } else if (timeLeft > 0) {
+          setTimeLeft((prev) => {
+            if (prev <= 1) {
+              handleTimerComplete();
+              return 0;
+            }
+            return prev - 1;
+          });
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [activeRoutine, isPaused, routineComplete, timeLeft, isWaitingManualDismiss, handleTimerComplete]);
+  }, [activeRoutine, isPaused, routineComplete, timeLeft, isWaitingManualDismiss, isTransitioning, handleTimerComplete, soundEnabled]);
 
   const handleManualDismissNext = () => {
     if (!activeRoutine) return;
     const currentMove = activeRoutine.movements[currentMoveIndex];
     if (!currentMove) return;
 
-    const moveDur = currentMove.duration ?? currentMove.durationSeconds ?? perStretchSeconds ?? 60;
     setIsPaused(false);
     setIsWaitingManualDismiss(false);
 
     if (currentMove.sides === "left_right" && currentSide === "left") {
-      setCurrentSide("right");
-      setTimeLeft(Math.floor(moveDur / 2));
+      setupMovement(currentMove, "right", transitionSeconds > 0);
     } else {
-      advanceToNextMovement();
+      advanceToNextMovement(transitionSeconds > 0);
     }
   };
 
   const skipMovement = () => {
-    advanceToNextMovement();
+    if (!activeRoutine) return;
+    const currentMove = activeRoutine.movements[currentMoveIndex];
+    if (currentMove && currentMove.sides === "left_right" && currentSide === "left") {
+      setupMovement(currentMove, "right", transitionSeconds > 0);
+    } else {
+      advanceToNextMovement(transitionSeconds > 0);
+    }
   };
 
   const endRoutine = () => {
     setActiveRoutine(null);
     setIsWaitingManualDismiss(false);
+    setIsTransitioning(false);
+    setTransitionTimeLeft(0);
   };
 
   // Log completed recovery routine to workout history
@@ -499,20 +592,50 @@ export function MobilityTab({
     const moveCue = (currentMove as any).cue ?? (currentMove as any).coachingCue ?? "";
     const totalDurationForCurrentSide = currentSide !== "none" ? Math.floor(moveDur / 2) : moveDur;
     const progress = totalDurationForCurrentSide > 0 ? ((totalDurationForCurrentSide - timeLeft) / totalDurationForCurrentSide) * 100 : 0;
+    const transitionProgress = transitionSeconds > 0 ? ((transitionSeconds - transitionTimeLeft) / transitionSeconds) * 100 : 0;
 
     return (
       <div style={modalStyles.overlay}>
         <div style={modalStyles.card}>
           {/* Top Bar with Dismiss and Settings */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "8px" }}>
             <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748b" }}>
               Stretch {currentMoveIndex + 1} of {activeRoutine.movements.length}
+              {isTransitioning && (
+                <span style={{ color: "#d97706", marginLeft: "6px", fontWeight: 800 }}>
+                  (Get Ready)
+                </span>
+              )}
             </span>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              {/* Transition Buffer Toggle */}
+              <button
+                type="button"
+                onClick={() => updateTransitionSeconds(transitionSeconds > 0 ? 0 : 5)}
+                style={{
+                  background: transitionSeconds > 0 ? "#fef3c7" : "#f1f5f9",
+                  border: `1px solid ${transitionSeconds > 0 ? "#fde68a" : "#e2e8f0"}`,
+                  borderRadius: "8px",
+                  padding: "6px 10px",
+                  color: transitionSeconds > 0 ? "#b45309" : "#64748b",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                }}
+                title={transitionSeconds > 0 ? "5s transition buffer enabled. Tap to switch to instant (0s)." : "Instant transitions (0s). Tap to enable 5s buffer."}
+                data-testid="toggle-transition-buffer"
+              >
+                <Hourglass size={14} />
+                <span>{transitionSeconds > 0 ? `${transitionSeconds}s Buffer` : "0s Buffer"}</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "6px 10px", color: soundEnabled ? "#2563eb" : "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600 }}
+                style={{ background: soundEnabled ? "#eff6ff" : "#f1f5f9", border: `1px solid ${soundEnabled ? "#bfdbfe" : "#e2e8f0"}`, borderRadius: "8px", padding: "6px 10px", color: soundEnabled ? "#2563eb" : "#94a3b8", cursor: "pointer", display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 600 }}
                 title={soundEnabled ? "Sound chime enabled" : "Sound muted"}
               >
                 {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
@@ -526,7 +649,7 @@ export function MobilityTab({
                 title="Toggle whether the timer auto-advances to the next stretch"
               >
                 <FastForward size={14} />
-                <span>{autoAdvanceTimer ? "Auto-Advance ON" : "Manual Dismiss"}</span>
+                <span>{autoAdvanceTimer ? "Auto" : "Manual"}</span>
               </button>
 
               <button onClick={endRoutine} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }} title="Exit timer">
@@ -535,160 +658,289 @@ export function MobilityTab({
             </div>
           </div>
 
-          {/* Exercise Info */}
-          <div style={{ textAlign: "center", marginBottom: "32px" }}>
-            <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginBottom: "8px" }}>
-              {currentMove.name}
-            </h2>
-            {currentSide !== "none" && (
-              <div style={{ display: "inline-block", background: currentSide === "left" ? "#eff6ff" : "#f0fdf4", color: currentSide === "left" ? "#2563eb" : "#16a34a", padding: "4px 12px", borderRadius: "16px", fontSize: "13px", fontWeight: 700, marginBottom: "10px", border: `1px solid ${currentSide === "left" ? "#bfdbfe" : "#bbf7d0"}` }}>
-                {currentSide === "left" ? "👈 Left Side" : "👉 Right Side"}
-              </div>
-            )}
-            {moveCue && (
-              <p style={{ fontSize: "15px", fontStyle: "italic", color: "#475569", maxWidth: "480px", margin: "0 auto 10px" }}>
-                &ldquo;{moveCue}&rdquo;
-              </p>
-            )}
+          {/* Conditional Content: Transition View vs Stretch Execution View */}
+          {isTransitioning ? (
+            <div data-testid="transition-view">
+              {/* Transition Header */}
+              <div style={{ textAlign: "center", marginBottom: "20px" }}>
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  background: "#fef3c7",
+                  border: "1px solid #fde68a",
+                  color: "#b45309",
+                  padding: "5px 14px",
+                  borderRadius: "20px",
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  marginBottom: "12px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.04em",
+                }}>
+                  <Hourglass size={14} />
+                  <span>Get Ready to Switch</span>
+                </div>
 
-            <button
-              type="button"
-              onClick={() => handleOpenAnatomy(currentMove.name)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-                background: "#f0f9ff",
-                border: "1px solid #bae6fd",
-                color: "#0284c7",
-                padding: "5px 12px",
-                borderRadius: "20px",
-                fontSize: "12px",
-                fontWeight: 700,
-                cursor: "pointer",
-                boxShadow: "0 2px 6px rgba(2,132,199,0.1)",
-              }}
-            >
-              <Sparkles size={13} />
-              <span>View 3D Muscle Anatomy Guide</span>
-            </button>
-          </div>
-
-          {/* Circular Countdown Progress Timer */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "32px" }}>
-            <div style={{
-              width: "220px",
-              height: "220px",
-              borderRadius: "50%",
-              background: isWaitingManualDismiss ? "#dcfce7" : `conic-gradient(#2563eb ${progress}%, #e2e8f0 ${progress}%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "relative",
-              transition: "background 0.3s ease",
-            }}>
-              <div style={{
-                width: "200px",
-                height: "200px",
-                borderRadius: "50%",
-                background: "#ffffff",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                <span style={{ fontSize: "56px", fontWeight: 800, color: isWaitingManualDismiss ? "#16a34a" : "#0f172a", lineHeight: 1 }}>
-                  {formatTime(timeLeft)}
-                </span>
-                <span style={{ fontSize: "12px", color: "#64748b", marginTop: "8px", fontWeight: 600 }}>
-                  <Timer size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
-                  {formatTime(totalElapsedTime)} total
-                </span>
+                <div style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
+                  Next Stretch
+                </div>
+                <h2 style={{ fontSize: "26px", fontWeight: 800, color: "#0f172a", marginBottom: "6px" }}>
+                  {currentMove.name}
+                </h2>
+                {currentSide !== "none" && (
+                  <div style={{ display: "inline-block", background: currentSide === "left" ? "#eff6ff" : "#f0fdf4", color: currentSide === "left" ? "#2563eb" : "#16a34a", padding: "4px 12px", borderRadius: "16px", fontSize: "13px", fontWeight: 700, marginBottom: "8px", border: `1px solid ${currentSide === "left" ? "#bfdbfe" : "#bbf7d0"}` }}>
+                    {currentSide === "left" ? "👈 Left Side" : "👉 Right Side"}
+                  </div>
+                )}
+                {moveCue && (
+                  <p style={{ fontSize: "14px", fontStyle: "italic", color: "#475569", maxWidth: "460px", margin: "0 auto 8px" }}>
+                    &ldquo;{moveCue}&rdquo;
+                  </p>
+                )}
               </div>
-            </div>
-          </div>
 
-          {/* Manual Dismiss Notice or Playback Controls */}
-          {isWaitingManualDismiss ? (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-              <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "15px", display: "flex", alignItems: "center", gap: "6px" }}>
-                <CheckCircle2 size={18} />
-                <span>Time&apos;s Up! Ready to switch?</span>
-              </div>
-              <button
-                onClick={handleManualDismissNext}
-                style={{
-                  ...styles.primaryButton,
-                  width: "100%",
-                  padding: "14px",
-                  fontSize: "16px",
-                  background: "#16a34a",
+              {/* Transition Countdown Ring */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "24px" }}>
+                <div style={{
+                  width: "210px",
+                  height: "210px",
+                  borderRadius: "50%",
+                  background: `conic-gradient(#f59e0b ${transitionProgress}%, #fef3c7 ${transitionProgress}%)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: "8px",
-                  boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
-                }}
-              >
-                <span>{currentMove.sides === "left_right" && currentSide === "left" ? "Switch to Right Side ⏭️" : "Dismiss & Next Stretch ⏭️"}</span>
-              </button>
+                  position: "relative",
+                  transition: "background 0.3s ease",
+                  boxShadow: "0 10px 25px -5px rgba(245, 158, 11, 0.25)",
+                }}>
+                  <div style={{
+                    width: "186px",
+                    height: "186px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: "64px", fontWeight: 900, color: "#d97706", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                      {transitionTimeLeft}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#92400e", marginTop: "4px", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                      Get Ready
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#64748b", marginTop: "4px", fontWeight: 600 }}>
+                      <Clock size={13} style={{ display: "inline", verticalAlign: "middle", marginRight: "3px" }} />
+                      Hold: {totalDurationForCurrentSide}s
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Start Now Button & Controls */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={startStretchNow}
+                  data-testid="start-stretch-now"
+                  style={{
+                    ...styles.primaryButton,
+                    width: "100%",
+                    padding: "14px",
+                    fontSize: "16px",
+                    fontWeight: 800,
+                    background: "#2563eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    boxShadow: "0 4px 14px rgba(37,99,235,0.3)",
+                  }}
+                >
+                  <Play size={18} fill="#ffffff" />
+                  <span>Start Stretch Now ⏭️</span>
+                </button>
+
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px", marginTop: "4px" }}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAnatomy(currentMove.name)}
+                    style={{ background: "none", border: "none", color: "#0284c7", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Sparkles size={13} />
+                    <span>View Anatomy Guide</span>
+                  </button>
+                  <span style={{ color: "#cbd5e1" }}>·</span>
+                  <button
+                    type="button"
+                    onClick={skipMovement}
+                    style={{ background: "none", border: "none", color: "#64748b", fontSize: "12px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <SkipForward size={13} />
+                    <span>Skip Stretch</span>
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px" }}>
-              <button
-                onClick={() => setTimeLeft((t) => Math.max(0, t - 15))}
-                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "44px", height: "44px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}
-                title="Subtract 15 seconds"
-              >
-                -15s
-              </button>
+            <div data-testid="stretch-active-view">
+              {/* Exercise Info */}
+              <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                <h2 style={{ fontSize: "28px", fontWeight: 800, color: "#0f172a", marginBottom: "8px" }}>
+                  {currentMove.name}
+                </h2>
+                {currentSide !== "none" && (
+                  <div style={{ display: "inline-block", background: currentSide === "left" ? "#eff6ff" : "#f0fdf4", color: currentSide === "left" ? "#2563eb" : "#16a34a", padding: "4px 12px", borderRadius: "16px", fontSize: "13px", fontWeight: 700, marginBottom: "10px", border: `1px solid ${currentSide === "left" ? "#bfdbfe" : "#bbf7d0"}` }}>
+                    {currentSide === "left" ? "👈 Left Side" : "👉 Right Side"}
+                  </div>
+                )}
+                {moveCue && (
+                  <p style={{ fontSize: "15px", fontStyle: "italic", color: "#475569", maxWidth: "480px", margin: "0 auto 10px" }}>
+                    &ldquo;{moveCue}&rdquo;
+                  </p>
+                )}
 
-              <button
-                onClick={() => setIsPaused(!isPaused)}
-                style={{
-                  width: "60px",
-                  height: "60px",
+                <button
+                  type="button"
+                  onClick={() => handleOpenAnatomy(currentMove.name)}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    background: "#f0f9ff",
+                    border: "1px solid #bae6fd",
+                    color: "#0284c7",
+                    padding: "5px 12px",
+                    borderRadius: "20px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 6px rgba(2,132,199,0.1)",
+                  }}
+                >
+                  <Sparkles size={13} />
+                  <span>View 3D Muscle Anatomy Guide</span>
+                </button>
+              </div>
+
+              {/* Circular Countdown Progress Timer */}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "32px" }}>
+                <div style={{
+                  width: "220px",
+                  height: "220px",
                   borderRadius: "50%",
-                  background: "#2563eb",
-                  color: "#ffffff",
-                  border: "none",
-                  cursor: "pointer",
+                  background: isWaitingManualDismiss ? "#dcfce7" : `conic-gradient(#2563eb ${progress}%, #e2e8f0 ${progress}%)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-                }}
-                title={isPaused ? "Resume stretch" : "Pause stretch"}
-              >
-                {isPaused ? <Play size={26} style={{ marginLeft: "3px" }} /> : <Pause size={26} />}
-              </button>
+                  position: "relative",
+                  transition: "background 0.3s ease",
+                }}>
+                  <div style={{
+                    width: "200px",
+                    height: "200px",
+                    borderRadius: "50%",
+                    background: "#ffffff",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}>
+                    <span style={{ fontSize: "56px", fontWeight: 800, color: isWaitingManualDismiss ? "#16a34a" : "#0f172a", lineHeight: 1 }}>
+                      {formatTime(timeLeft)}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#64748b", marginTop: "8px", fontWeight: 600 }}>
+                      <Timer size={14} style={{ display: "inline", verticalAlign: "middle", marginRight: "4px" }} />
+                      {formatTime(totalElapsedTime)} total
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <button
-                onClick={() => setTimeLeft((t) => t + 15)}
-                style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "44px", height: "44px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}
-                title="Add 15 seconds"
-              >
-                +15s
-              </button>
+              {/* Manual Dismiss Notice or Playback Controls */}
+              {isWaitingManualDismiss ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                  <div style={{ color: "#16a34a", fontWeight: 700, fontSize: "15px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <CheckCircle2 size={18} />
+                    <span>Time&apos;s Up! Ready to switch?</span>
+                  </div>
+                  <button
+                    onClick={handleManualDismissNext}
+                    style={{
+                      ...styles.primaryButton,
+                      width: "100%",
+                      padding: "14px",
+                      fontSize: "16px",
+                      background: "#16a34a",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      boxShadow: "0 4px 12px rgba(22,163,74,0.3)",
+                    }}
+                  >
+                    <span>{currentMove.sides === "left_right" && currentSide === "left" ? "Switch to Right Side ⏭️" : "Dismiss & Next Stretch ⏭️"}</span>
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "16px" }}>
+                  <button
+                    onClick={() => setTimeLeft((t) => Math.max(0, t - 15))}
+                    style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "44px", height: "44px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}
+                    title="Subtract 15 seconds"
+                  >
+                    -15s
+                  </button>
 
-              <button
-                onClick={skipMovement}
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "50%",
-                  background: "#f1f5f9",
-                  color: "#475569",
-                  border: "none",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-                title="Skip to next stretch"
-              >
-                <SkipForward size={20} />
-              </button>
+                  <button
+                    onClick={() => setIsPaused(!isPaused)}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      background: "#2563eb",
+                      color: "#ffffff",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
+                    }}
+                    title={isPaused ? "Resume stretch" : "Pause stretch"}
+                  >
+                    {isPaused ? <Play size={26} style={{ marginLeft: "3px" }} /> : <Pause size={26} />}
+                  </button>
+
+                  <button
+                    onClick={() => setTimeLeft((t) => t + 15)}
+                    style={{ background: "#f1f5f9", border: "none", borderRadius: "50%", width: "44px", height: "44px", color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700 }}
+                    title="Add 15 seconds"
+                  >
+                    +15s
+                  </button>
+
+                  <button
+                    onClick={skipMovement}
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "50%",
+                      background: "#f1f5f9",
+                      color: "#475569",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    title="Skip to next stretch"
+                  >
+                    <SkipForward size={20} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -852,27 +1104,75 @@ export function MobilityTab({
               </div>
             </div>
 
-            {/* Step 3: Timer Auto-Advance Option */}
-            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>
-                <input
-                  type="checkbox"
-                  checked={autoAdvanceTimer}
-                  onChange={(e) => setAutoAdvanceTimer(e.target.checked)}
-                  style={{ width: "16px", height: "16px", accentColor: "#2563eb" }}
-                />
-                <span>Auto-advance timer when time expires (turn off for manual &ldquo;Next&rdquo; tap)</span>
-              </label>
+            {/* Step 3: Timer & Pacing Settings */}
+            <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Sliders size={15} color="#2563eb" />
+                <span>Timer &amp; Pacing Settings</span>
+              </div>
 
-              <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>
-                <input
-                  type="checkbox"
-                  checked={soundEnabled}
-                  onChange={(e) => setSoundEnabled(e.target.checked)}
-                  style={{ width: "16px", height: "16px", accentColor: "#2563eb" }}
-                />
-                <span>Play completion sound</span>
-              </label>
+              {/* 5-second Transition Buffer Option */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", background: "#ffffff", padding: "12px 14px", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <div>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Hourglass size={15} color="#d97706" />
+                    <span>Get Ready Transition Buffer</span>
+                    <span style={{ fontSize: "11px", fontWeight: 700, background: "#fef3c7", color: "#b45309", padding: "2px 7px", borderRadius: "10px" }}>Recommended</span>
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "3px" }}>
+                    Gives you 5 seconds between stretches to get into position before the timer begins.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  {[
+                    { value: 0, label: "0s (Instant)" },
+                    { value: 5, label: "5s Buffer" },
+                    { value: 10, label: "10s Buffer" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => updateTransitionSeconds(opt.value)}
+                      data-testid={`transition-option-${opt.value}`}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: transitionSeconds === opt.value ? 700 : 500,
+                        background: transitionSeconds === opt.value ? "#eff6ff" : "#ffffff",
+                        border: `1px solid ${transitionSeconds === opt.value ? "#2563eb" : "#cbd5e1"}`,
+                        color: transitionSeconds === opt.value ? "#1d4ed8" : "#475569",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>
+                  <input
+                    type="checkbox"
+                    checked={autoAdvanceTimer}
+                    onChange={(e) => setAutoAdvanceTimer(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "#2563eb" }}
+                  />
+                  <span>Auto-advance timer when time expires (turn off for manual &ldquo;Next&rdquo; tap)</span>
+                </label>
+
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px", fontWeight: 600, color: "#1e293b" }}>
+                  <input
+                    type="checkbox"
+                    checked={soundEnabled}
+                    onChange={(e) => setSoundEnabled(e.target.checked)}
+                    style={{ width: "16px", height: "16px", accentColor: "#2563eb" }}
+                  />
+                  <span>Play audio chimes</span>
+                </label>
+              </div>
             </div>
 
             {/* Generate Action Button */}
