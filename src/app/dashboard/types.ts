@@ -65,4 +65,5 @@ export type DraftWorkout = {
   notes: string;
   exercises: DraftExercise[];
   plannedWorkoutId?: string | null;
+  clientId?: string | null;
 };

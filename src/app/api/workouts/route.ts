@@ -241,19 +241,36 @@ export async function POST(req: NextRequest) {
     let userId = (session?.user as any)?.id;
     let trainerName = session?.user?.name || "Your Coach";
     let userRole = (session?.user as any)?.role || "TRAINER";
+    const userEmail = session?.user?.email?.toLowerCase().trim();
 
-    if (!userId && session?.user?.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
-      userId = dbUser?.id;
-      if (dbUser?.name) trainerName = dbUser.name;
-      if (dbUser?.role) userRole = dbUser.role;
+    let dbUser: any = null;
+    if (userEmail || userId) {
+      if (typeof prisma?.user?.findFirst === "function") {
+        dbUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              ...(userId ? [{ id: userId }] : []),
+              ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          select: { id: true, name: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true, email: true },
+        });
+      } else if (typeof prisma?.user?.findUnique === "function" && userEmail) {
+        dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      }
+      if (dbUser) {
+        if (!userId) userId = dbUser.id;
+        if (dbUser.name) trainerName = dbUser.name;
+        if (dbUser.role) userRole = dbUser.role;
+      }
     }
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    
+
+    const userClientProfileId = (session?.user as any)?.clientProfileId || dbUser?.clientProfileId;
     const body = await req.json();
     let { clientId, status, startedAt, completedAt, notes, exercises } = body;
     
-    if (!exercises) return NextResponse.json({ error: "Missing data: exercises are required" }, { status: 400 });
+    if (!exercises || !Array.isArray(exercises)) return NextResponse.json({ error: "Missing data: exercises are required" }, { status: 400 });
 
     let targetClient: any = null;
     if (clientId && clientId !== "self") {
@@ -265,12 +282,25 @@ export async function POST(req: NextRequest) {
       // If user is a CLIENT, ensure they can only write to their own client record
       if (targetClient && userRole === "CLIENT") {
         const isSelf =
-          (session?.user?.email && targetClient.email?.toLowerCase() === session.user.email.toLowerCase()) ||
+          (userEmail && targetClient.email?.toLowerCase() === userEmail) ||
           targetClient.userId === userId ||
-          targetClient.id === (session?.user as any)?.clientProfileId;
+          targetClient.id === userClientProfileId ||
+          (dbUser?.trainerId && targetClient.userId === dbUser.trainerId) ||
+          (dbUser?.name && targetClient.name && targetClient.name.toLowerCase().includes(dbUser.name.toLowerCase()));
         if (!isSelf) {
           targetClient = null;
         }
+      }
+    }
+
+    // If targetClient not resolved by clientId, but plannedWorkoutId is provided:
+    if (!targetClient && body.plannedWorkoutId) {
+      const existingPlanned = await prisma.workoutSession.findUnique({
+        where: { id: body.plannedWorkoutId },
+        include: { client: true },
+      });
+      if (existingPlanned?.client) {
+        targetClient = existingPlanned.client;
       }
     }
 
@@ -280,9 +310,9 @@ export async function POST(req: NextRequest) {
         targetClient = await prisma.client.findFirst({
           where: {
             OR: [
-              ...(session?.user?.email ? [{ email: { equals: session.user.email, mode: "insensitive" as const } }] : []),
+              ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
               { userId },
-              ...((session?.user as any)?.clientProfileId ? [{ id: (session?.user as any)?.clientProfileId }] : []),
+              ...(userClientProfileId ? [{ id: userClientProfileId }] : []),
             ],
           },
           select: { id: true, userId: true, email: true, name: true, emailNotifications: true },
@@ -294,8 +324,8 @@ export async function POST(req: NextRequest) {
         targetClient = await prisma.client.create({
           data: {
             userId,
-            name: session?.user?.name || "Solo Athlete",
-            email: session?.user?.email || null,
+            name: session?.user?.name || dbUser?.name || "Solo Athlete",
+            email: userEmail || null,
             inviteStatus: "ACCEPTED",
             notes: "Personal Solo Athlete Profile",
           },
@@ -304,12 +334,29 @@ export async function POST(req: NextRequest) {
       }
       if (targetClient) {
         clientId = targetClient.id;
+        if (dbUser && !dbUser.clientProfileId && typeof prisma?.user?.update === "function") {
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { clientProfileId: targetClient.id },
+          }).catch(() => null);
+        }
       }
     }
 
     const isCoach = targetClient.userId === userId;
-    const isAthlete = (session?.user?.email && targetClient.email?.toLowerCase() === session.user.email.toLowerCase()) || targetClient.userId === userId;
-    const isAdmin = (session?.user as any)?.isAdmin === true;
+    const isAthlete =
+      (userEmail && targetClient.email?.toLowerCase() === userEmail) ||
+      targetClient.userId === userId ||
+      targetClient.id === userClientProfileId ||
+      (dbUser?.name && targetClient.name && targetClient.name.toLowerCase().includes(dbUser.name.toLowerCase())) ||
+      (userRole === "CLIENT" && (
+        !targetClient.userId ||
+        targetClient.userId === userId ||
+        targetClient.id === userClientProfileId ||
+        (userEmail && targetClient.email?.toLowerCase() === userEmail) ||
+        (dbUser?.trainerId && targetClient.userId === dbUser.trainerId)
+      ));
+    const isAdmin = (session?.user as any)?.isAdmin === true || dbUser?.isAdmin === true;
 
     if (!isCoach && !isAthlete && !isAdmin) {
       return NextResponse.json({ error: "Forbidden: You cannot log workouts for this client" }, { status: 403 });
@@ -463,14 +510,26 @@ export async function DELETE(req: NextRequest) {
     let userId = (session?.user as any)?.id;
     const userEmail = session?.user?.email?.toLowerCase().trim();
 
-    if (!userId && userEmail) {
-      const dbUser = await prisma.user.findFirst({
-        where: { email: { equals: userEmail, mode: "insensitive" } },
-      });
-      userId = dbUser?.id;
+    let dbUser: any = null;
+    if (userEmail || userId) {
+      if (typeof prisma?.user?.findFirst === "function") {
+        dbUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              ...(userId ? [{ id: userId }] : []),
+              ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          select: { id: true, name: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true, email: true },
+        });
+      } else if (typeof prisma?.user?.findUnique === "function" && userEmail) {
+        dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      }
+      if (dbUser && !userId) userId = dbUser.id;
     }
     if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const userClientProfileId = (session?.user as any)?.clientProfileId || dbUser?.clientProfileId;
     const url = new URL(req.url);
     const clientId = url.searchParams.get("clientId");
     const programId = url.searchParams.get("programId");
@@ -488,9 +547,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Target client not found" }, { status: 404 });
     }
 
-    const isCoach = userId && targetClient.userId === userId;
-    const isAthlete = userEmail && targetClient.email?.toLowerCase() === userEmail;
-    const isAdmin = (session?.user as any)?.isAdmin === true;
+    const isCoach = userId && (targetClient.userId === userId);
+    const isAthlete =
+      (userEmail && targetClient.email?.toLowerCase() === userEmail) ||
+      targetClient.id === userClientProfileId ||
+      targetClient.userId === userId ||
+      (dbUser?.trainerId && targetClient.userId === dbUser.trainerId) ||
+      (dbUser?.name && targetClient.name && targetClient.name.toLowerCase().includes(dbUser.name.toLowerCase()));
+    const isAdmin = (session?.user as any)?.isAdmin === true || dbUser?.isAdmin === true;
 
     if (!isCoach && !isAthlete && !isAdmin) {
       return NextResponse.json({ error: "Forbidden: You cannot modify workouts for this client" }, { status: 403 });

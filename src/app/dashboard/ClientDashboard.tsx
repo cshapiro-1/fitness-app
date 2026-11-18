@@ -102,8 +102,7 @@ export function ClientDashboard({
   const athleteClientId =
     clientProfileId ||
     (session?.user as any)?.clientProfileId ||
-    workouts.find((w) => w.clientId && (w.client?.userId === (session?.user as any)?.id || w.client?.name?.includes("(You)")) )?.clientId ||
-    (session?.user as any)?.id ||
+    workouts.find((w) => w.clientId)?.clientId ||
     "self";
 
   const hasUnsavedWorkout = !!(activeWorkout && activeWorkout.exercises && activeWorkout.exercises.length > 0);
@@ -457,6 +456,7 @@ export function ClientDashboard({
   const beginPlannedWorkout = (workout: WorkoutSession) => {
     setActiveWorkout({
       plannedWorkoutId: workout.id,
+      clientId: workout.clientId,
       startedAt: new Date().toISOString(),
       notes: workout.notes || "",
       exercises: (workout.exercises || []).map((ex) => ({
@@ -486,16 +486,21 @@ export function ClientDashboard({
     if (!activeWorkout) return;
     setSavingPlan(true);
     try {
+      const resolvedClientId =
+        activeWorkout.clientId ||
+        (activeWorkout.plannedWorkoutId ? workouts.find((w) => w.id === activeWorkout.plannedWorkoutId)?.clientId : undefined) ||
+        athleteClientId;
+
       const payload = {
-        clientId: athleteClientId,
+        clientId: resolvedClientId,
         status: "PLANNED",
         notes: activeWorkout.notes || null,
-        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+        exercises: (activeWorkout.exercises || []).map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
           isBodyweight: !!ex.isBodyweight,
           category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
-          sets: ex.sets.map((s, sIndex) => ({
+          sets: (ex.sets || []).map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,
@@ -541,8 +546,8 @@ export function ClientDashboard({
           alert(err?.error || "Failed to save workout plan.");
         }
       }
-    } catch {
-      alert("Error saving workout plan.");
+    } catch (err: any) {
+      alert(err?.message || "Error saving workout plan.");
     } finally {
       setSavingPlan(false);
     }
@@ -552,19 +557,24 @@ export function ClientDashboard({
     if (!activeWorkout) return;
     setSavingWorkout(true);
     try {
+      const resolvedClientId =
+        activeWorkout.clientId ||
+        (activeWorkout.plannedWorkoutId ? workouts.find((w) => w.id === activeWorkout.plannedWorkoutId)?.clientId : undefined) ||
+        athleteClientId;
+
       const payload = {
-        clientId: athleteClientId,
+        clientId: resolvedClientId,
         status: "COMPLETED",
         startedAt: activeWorkout.startedAt,
         completedAt: new Date().toISOString(),
         notes: activeWorkout.notes || null,
         plannedWorkoutId: activeWorkout.plannedWorkoutId || null,
-        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+        exercises: (activeWorkout.exercises || []).map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
           isBodyweight: !!ex.isBodyweight,
           category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
-          sets: ex.sets.map((s, sIndex) => ({
+          sets: (ex.sets || []).map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,
@@ -597,8 +607,8 @@ export function ClientDashboard({
         const err = await res.json().catch(() => null);
         alert(err?.error || "Failed to log workout.");
       }
-    } catch {
-      alert("Error logging workout.");
+    } catch (err: any) {
+      alert(err?.message || "Error logging workout.");
     } finally {
       setSavingWorkout(false);
     }
@@ -860,7 +870,7 @@ export function ClientDashboard({
             data-tour="ai-copilot"
           >
             <Sparkles size={15} style={{ color: "#2563eb" }} />
-            <span>Ask AI</span>
+            <span className="hide-mobile">Ask AI</span>
           </button>
 
           {/* Unified Athlete Studio Menu & Profile */}
@@ -1062,9 +1072,12 @@ export function ClientDashboard({
                   const saved = await res.json();
                   setWorkouts((prev) => prev.map((w) => (w.id === saved.id ? saved : w)));
                   setTab("history");
+                } else {
+                  const errData = await res.json().catch(() => ({}));
+                  alert(errData.error || "Failed to complete workout.");
                 }
-              } catch {
-                alert("Failed to complete workout.");
+              } catch (err: any) {
+                alert(err?.message || "Failed to complete workout.");
               }
             }}
           />

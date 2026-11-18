@@ -283,8 +283,8 @@ export function RestTimer({ initialSeconds = 30, onClose }: RestTimerProps) {
     <div
       style={{
         position: "fixed",
-        bottom: "24px",
-        right: "24px",
+        bottom: "72px",
+        right: "16px",
         background: "#ffffff",
         borderRadius: "16px",
         border: `2px solid ${isAlarmRinging ? "#ef4444" : "#e2e8f0"}`,
@@ -292,6 +292,8 @@ export function RestTimer({ initialSeconds = 30, onClose }: RestTimerProps) {
           ? "0 0 30px rgba(239, 68, 68, 0.35), 0 20px 30px -10px rgba(0,0,0,0.25)"
           : "0 20px 30px -10px rgba(0,0,0,0.18)",
         width: "320px",
+        maxWidth: "calc(100vw - 32px)",
+        boxSizing: "border-box",
         zIndex: 9999,
         overflow: "hidden",
         fontFamily: "system-ui, -apple-system, sans-serif",

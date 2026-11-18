@@ -16,12 +16,14 @@ vi.mock("@/lib/prisma", () => ({
     workoutSession: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
     workoutExercise: {
       deleteMany: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -107,6 +109,56 @@ describe("Live Collaborative Workout API - GET & PATCH /api/workouts/[id]", () =
     });
 
     const res = await PATCH(req as any, { params: Promise.resolve({ id: "workout-live-1" }) });
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.status).toBe("COMPLETED");
+  });
+
+  it("should allow athlete to complete workout even if client.email is null when clientProfileId matches", async () => {
+    (getServerSession as any).mockResolvedValue({
+      user: { id: "user-collin-1", email: "collin.shapiro1@gmail.com", name: "Collin Shapiro", role: "CLIENT", clientProfileId: "client-collin-profile" },
+    });
+
+    (prisma.user.findFirst as any).mockResolvedValue({
+      id: "user-collin-1",
+      email: "collin.shapiro1@gmail.com",
+      role: "CLIENT",
+      clientProfileId: "client-collin-profile",
+    });
+
+    (prisma.workoutSession.findUnique as any).mockResolvedValue({
+      id: "workout-assigned-1",
+      status: "IN_PROGRESS",
+      clientId: "client-collin-profile",
+      loggedById: "trainer-jose",
+      client: {
+        id: "client-collin-profile",
+        email: null, // No email set on client record!
+        userId: "trainer-jose",
+        name: "Collin Shapiro",
+      },
+    });
+
+    (prisma.workoutSession.update as any).mockResolvedValue({
+      id: "workout-assigned-1",
+      status: "COMPLETED",
+      completedAt: new Date(),
+      loggedByName: "Collin Shapiro",
+      loggedByRole: "CLIENT",
+      exercises: [],
+    });
+
+    // 1-click complete from LiveWorkoutBanner (no exercises sent)
+    const req = new Request("http://localhost:3000/api/workouts/workout-assigned-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "COMPLETED",
+        completedAt: new Date().toISOString(),
+      }),
+    });
+
+    const res = await PATCH(req as any, { params: Promise.resolve({ id: "workout-assigned-1" }) });
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data.status).toBe("COMPLETED");

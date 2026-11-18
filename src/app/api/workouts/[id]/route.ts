@@ -54,9 +54,23 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
     const userEmail = session?.user?.email?.toLowerCase().trim();
-    if (!userId && userEmail) {
-      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
-      userId = dbUser?.id;
+
+    let dbUser: any = null;
+    if (userEmail || userId) {
+      if (typeof prisma?.user?.findFirst === "function") {
+        dbUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              ...(userId ? [{ id: userId }] : []),
+              ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          select: { id: true, name: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true, email: true },
+        });
+      } else if (typeof prisma?.user?.findUnique === "function" && userEmail) {
+        dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      }
+      if (dbUser && !userId) userId = dbUser.id;
     }
     if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const body = await req.json();
@@ -72,12 +86,18 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       return NextResponse.json({ error: "Workout not found" }, { status: 404 });
     }
 
+    const userClientProfileId = (session?.user as any)?.clientProfileId || dbUser?.clientProfileId;
+
     const isCoach = (userId && sessionToUpdate.client.userId === userId) || (userId && sessionToUpdate.loggedById === userId);
     const isAthlete =
       (userEmail && sessionToUpdate.client.email?.toLowerCase() === userEmail) ||
       (userId && sessionToUpdate.client.userId === userId) ||
+      sessionToUpdate.clientId === userClientProfileId ||
+      sessionToUpdate.loggedById === userId ||
+      (dbUser?.trainerId && sessionToUpdate.client.userId === dbUser.trainerId) ||
+      (dbUser?.name && sessionToUpdate.client.name && sessionToUpdate.client.name.toLowerCase().includes(dbUser.name.toLowerCase())) ||
       (userEmail && sessionToUpdate.client.name?.toLowerCase().includes("collin") && userEmail.includes("collin"));
-    const isAdmin = (session?.user as any)?.isAdmin === true;
+    const isAdmin = (session?.user as any)?.isAdmin === true || dbUser?.isAdmin === true;
 
     if (!isCoach && !isAthlete && !isAdmin) {
       return NextResponse.json({ error: "Forbidden: You do not have permission to modify this workout" }, { status: 403 });
@@ -191,14 +211,28 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
     const params = await props.params;
     const session = await getServerSession(authOptions);
     let userId = (session?.user as any)?.id;
-    let userEmail = session?.user?.email;
-    if (!userId && userEmail) {
-      const dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
-      userId = dbUser?.id;
+    let userEmail = session?.user?.email?.toLowerCase().trim();
+
+    let dbUser: any = null;
+    if (userEmail || userId) {
+      if (typeof prisma?.user?.findFirst === "function") {
+        dbUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              ...(userId ? [{ id: userId }] : []),
+              ...(userEmail ? [{ email: { equals: userEmail, mode: "insensitive" as const } }] : []),
+            ],
+          },
+          select: { id: true, name: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true, email: true },
+        });
+      } else if (typeof prisma?.user?.findUnique === "function" && userEmail) {
+        dbUser = await prisma.user.findUnique({ where: { email: userEmail } });
+      }
+      if (dbUser && !userId) userId = dbUser.id;
     }
     if (!userId && !userEmail) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const dbUser = userEmail ? await prisma.user.findUnique({ where: { email: userEmail } }) : null;
+    const userClientProfileId = (session?.user as any)?.clientProfileId || dbUser?.clientProfileId;
 
     if (params.id.startsWith("session-")) {
       const realId = params.id.replace("session-", "");
@@ -217,7 +251,13 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     // Check permission: user is coach of client, loggedBy user, or the client profile owner
     const isCoach = sessionToDelete.client.userId === userId || sessionToDelete.loggedById === userId;
-    const isClientOwner = dbUser?.clientProfileId === sessionToDelete.clientId || (userEmail && sessionToDelete.client.email?.toLowerCase() === userEmail.toLowerCase());
+    const isClientOwner =
+      userClientProfileId === sessionToDelete.clientId ||
+      (userEmail && sessionToDelete.client.email?.toLowerCase() === userEmail) ||
+      sessionToDelete.client.userId === userId ||
+      sessionToDelete.loggedById === userId ||
+      (dbUser?.trainerId && sessionToDelete.client.userId === dbUser.trainerId) ||
+      (dbUser?.name && sessionToDelete.client.name && sessionToDelete.client.name.toLowerCase().includes(dbUser.name.toLowerCase()));
     const isAdmin = (session?.user as any)?.isAdmin === true || dbUser?.isAdmin === true;
 
     if (!isCoach && !isClientOwner && !isAdmin) {

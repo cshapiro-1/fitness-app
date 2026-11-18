@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { GET as getWorkouts } from "@/app/api/workouts/route";
+import { GET as getWorkouts, POST as postWorkout } from "@/app/api/workouts/route";
 import { GET as getClientWorkouts } from "@/app/api/workouts/client/route";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -11,6 +11,10 @@ vi.mock("next-auth", () => ({
 
 vi.mock("@/lib/auth", () => ({
   authOptions: {},
+}));
+
+vi.mock("@/lib/email", () => ({
+  sendWorkoutNotification: vi.fn(),
 }));
 
 vi.mock("@/lib/rateLimit", () => ({
@@ -36,6 +40,12 @@ vi.mock("@/lib/prisma", () => ({
     workoutSession: {
       findMany: vi.fn(),
       count: vi.fn(),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    workoutExercise: {
+      deleteMany: vi.fn(),
     },
     workout: {
       findMany: vi.fn(),
@@ -245,5 +255,86 @@ describe("Trainer vs Trainee Workout Separation (Jose Dildine & Collin Shapiro)"
     expect(data.length).toBe(44);
     const hasJoseWorkouts = data.some((w: any) => w.notes.includes("Jose"));
     expect(hasJoseWorkouts).toBe(false);
+  });
+
+  it("should allow Collin (CLIENT) to complete an assigned workout created by Jose (TRAINER) via POST /api/workouts even if client.email is null", async () => {
+    (getServerSession as any).mockResolvedValue({
+      user: {
+        id: collinUserId,
+        name: "Collin Shapiro",
+        email: "collin.shapiro1@gmail.com",
+        role: "CLIENT",
+        clientProfileId: collinClientId,
+      },
+    });
+
+    (prisma.user.findFirst as any).mockResolvedValue({
+      id: collinUserId,
+      name: "Collin Shapiro",
+      email: "collin.shapiro1@gmail.com",
+      role: "CLIENT",
+      clientProfileId: collinClientId,
+      trainerId: joseUserId,
+    });
+
+    const clientWithoutEmail = {
+      id: collinClientId,
+      userId: joseUserId, // Coached by Jose!
+      name: "Collin Shapiro",
+      email: null, // Note: no email stored in client record
+    };
+
+    (prisma.client.findUnique as any).mockImplementation((args: any) => {
+      if (args.where?.id === collinClientId) return Promise.resolve(clientWithoutEmail);
+      return Promise.resolve(null);
+    });
+
+    (prisma.workoutSession.findUnique as any).mockResolvedValue({
+      id: "planned-workout-1",
+      clientId: collinClientId,
+      status: "PLANNED",
+      notes: "Leg Day Planned by Jose",
+      exercises: [],
+      client: clientWithoutEmail,
+    });
+
+    (prisma.workoutExercise.deleteMany as any).mockResolvedValue({ count: 0 });
+
+    (prisma.workoutSession.update as any).mockResolvedValue({
+      id: "planned-workout-1",
+      clientId: collinClientId,
+      status: "COMPLETED",
+      completedAt: new Date(),
+      loggedById: collinUserId,
+      loggedByName: "Collin Shapiro",
+      loggedByRole: "CLIENT",
+      exercises: [
+        {
+          name: "Barbell Back Squat",
+          sets: [{ weight: 315, reps: 5 }],
+        },
+      ],
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/workouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clientId: collinClientId,
+        plannedWorkoutId: "planned-workout-1",
+        status: "COMPLETED",
+        exercises: [
+          {
+            name: "Barbell Back Squat",
+            sets: [{ weight: 315, reps: 5 }],
+          },
+        ],
+      }),
+    });
+
+    const res = await postWorkout(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.status).toBe("COMPLETED");
   });
 });

@@ -221,12 +221,12 @@ export function EditAssignedWorkoutModal({
         startedAt: parsedDate,
         completedAt: targetCompletedAt,
         notes: notes.trim() || null,
-        exercises: exercises.map((ex, exIdx) => ({
-          name: ex.name.trim() || "Exercise",
+        exercises: (exercises || []).map((ex, exIdx) => ({
+          name: ex.name?.trim() || "Exercise",
           category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
           isBodyweight: !!ex.isBodyweight,
           order: exIdx,
-          sets: ex.sets.map((s: any, sIdx: number) => ({
+          sets: (ex.sets || []).map((s: any, sIdx: number) => ({
             order: sIdx,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,

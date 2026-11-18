@@ -16,10 +16,18 @@
   --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  -webkit-text-size-adjust: 100%;
+}
+
 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
 
 /* Layout */
-.app { display: flex; flex-direction: column; min-height: 100vh; }
+.app { display: flex; flex-direction: column; min-height: 100vh; width: 100%; max-width: 100vw; overflow-x: hidden; box-sizing: border-box; }
 
 .header {
   display: flex; align-items: center; justify-content: space-between;
@@ -108,7 +116,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .client-item.active .client-arrow { color: var(--primary); }
 
 /* Main */
-.main { flex: 1; padding: 24px; overflow-y: auto; }
+.main { flex: 1; padding: 24px; overflow-y: auto; min-width: 0; max-width: 100%; box-sizing: border-box; }
 .main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .client-heading { font-size: 1.25rem; font-weight: 700; }
 
@@ -435,7 +443,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
 /* Auth page */
 .auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); }
-.auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center; width: 340px; box-shadow: var(--shadow-md); }
+.auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px; text-align: center; width: 100%; max-width: 340px; box-shadow: var(--shadow-md); box-sizing: border-box; }
 .auth-logo { font-size: 2.5rem; margin-bottom: 12px; }
 .auth-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
 .auth-sub { color: var(--text-2); margin-bottom: 28px; font-size: 0.9rem; }
@@ -508,7 +516,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 }
 
 @media (max-width: 768px) {
-  .layout { flex-direction: column; }
+  .layout { flex-direction: column; width: 100%; max-width: 100vw; overflow-x: hidden; }
   
   /* Hide desktop sidebar on mobile */
   .sidebar {
@@ -539,10 +547,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     padding: 12px 14px;
     margin-bottom: 16px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .main {
-    padding: 14px 12px !important;
+    padding: 14px 10px 88px !important;
     max-width: 100% !important;
     width: 100% !important;
     box-sizing: border-box !important;
@@ -551,6 +561,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 
   .history-card {
     padding: 12px 14px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .form-grid { grid-template-columns: 1fr; gap: 14px; }
@@ -561,12 +573,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
   .nutrition-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
 
   .header {
-    padding: 0 12px;
+    padding: 0 10px;
     height: 54px;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
-  .header-left { gap: 8px; }
-  .header-title { font-size: 0.92rem; font-weight: 800; }
-  .header-right { gap: 6px; }
+  .header-left { gap: 8px; min-width: 0; }
+  .header-title { font-size: 0.92rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-right { gap: 6px; min-width: 0; }
   .hide-mobile { display: none !important; }
 
   /* Modern Pill Tab Control (Smooth Horizontal Scroll on Mobile) */
@@ -633,7 +649,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     border-top: 1px solid #e2e8f0;
     box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.08);
     z-index: 20;
-    margin: 20px -12px -14px -12px;
+    margin: 20px -10px -14px -10px;
+    width: calc(100% + 20px);
+    max-width: calc(100% + 20px);
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: 1fr 1.2fr;
     gap: 10px;

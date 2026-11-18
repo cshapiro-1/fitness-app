@@ -1124,7 +1124,7 @@ export function MobilityTab({
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                   {[
                     { value: 0, label: "0s (Instant)" },
                     { value: 5, label: "5s Buffer" },
@@ -1210,7 +1210,7 @@ export function MobilityTab({
           <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#0f172a", marginBottom: "14px" }}>
             Pre-Defined Recovery Protocols
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))", gap: "18px" }}>
             {routinesList.map((routine, idx) => (
               <RoutineCard
                 key={routine.id || idx}

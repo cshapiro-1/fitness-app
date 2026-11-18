@@ -968,7 +968,7 @@ export function WorkoutHistory({
 
                         {!isExCollapsed && (
                           /* 2-Column Responsive Layout: Sets on Left, AI Results on Right */
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px", alignItems: "stretch" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))", gap: "14px", alignItems: "stretch", width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
                             {/* Left Column: Set List with Inline PR Badges */}
                             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                               {exercise.sets.map((setEntry) => {

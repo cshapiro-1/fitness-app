@@ -180,7 +180,7 @@ export function SubscriptionBanner({ subInfo, onOpenProfile, onSubscribed }: Sub
       {/* Paywall / Upgrade Modal */}
       {showPaywallModal && (
         <div className="client-modal-backdrop" style={{ zIndex: 1000, position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div className="client-modal-card" style={{ background: "#ffffff", padding: "28px", borderRadius: "16px", width: "440px", maxWidth: "480px", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+          <div className="client-modal-card" style={{ background: "#ffffff", padding: "28px", borderRadius: "16px", width: "100%", maxWidth: "440px", boxSizing: "border-box", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
             <div style={{ textAlign: "center", marginBottom: "16px" }}>
               <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#eff6ff", color: "#2563eb", display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: "8px" }}>
                 <Zap size={24} />

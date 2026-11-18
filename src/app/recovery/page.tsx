@@ -28,22 +28,22 @@ export default function RecoveryPage() {
     <div className={`app ${isDark ? "dark-theme" : ""}`} style={{ minHeight: "100vh", background: isDark ? "#0f172a" : "#f8fafc" }}>
       {/* Top Header */}
       <header className="header" style={{ position: "sticky", top: 0, zIndex: 40, borderBottom: "1px solid #e2e8f0" }}>
-        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <div className="header-left" style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0 }}>
           <Link
             href="/dashboard"
             className="nav-btn"
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600, padding: "6px 12px", borderRadius: "8px" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontWeight: 600, padding: "6px 10px", borderRadius: "8px", flexShrink: 0 }}
             title="Return to Dashboard"
           >
             <ArrowLeft size={16} />
-            <span>Dashboard</span>
+            <span className="hide-mobile">Dashboard</span>
           </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#0f172a", fontWeight: 800, fontSize: "16px" }}>
-            <span>Recovery &amp; Mobility</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#0f172a", fontWeight: 800, fontSize: "15px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span>Recovery</span>
           </div>
         </div>
 
-        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <div className="header-right" style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0, flexShrink: 0 }}>
           <Link
             href="/anatomy"
             className="nav-btn"

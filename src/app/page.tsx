@@ -506,7 +506,7 @@ export default async function HomePage() {
           </div>
 
           {/* COACH SOFTWARE COMPARISON MATRIX */}
-          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "24px", overflowX: "auto" }}>
+          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "16px", padding: "20px 16px", width: "100%", maxWidth: "100%", boxSizing: "border-box", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
             <div style={{ textAlign: "center", marginBottom: "18px" }}>
               <h3 style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a", margin: "0 0 4px 0" }}>
                 Why Coaches Choose STRKYR Studio
@@ -516,7 +516,8 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
+            <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <table style={{ minWidth: "500px", width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #e2e8f0" }}>
                   <th style={{ padding: "10px 12px", color: "#64748b", fontWeight: 600 }}>Feature</th>
@@ -571,6 +572,7 @@ export default async function HomePage() {
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </section>

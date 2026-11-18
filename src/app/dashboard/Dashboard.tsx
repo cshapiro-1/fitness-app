@@ -563,11 +563,11 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
       plannedWorkoutId: workout.id,
       startedAt: new Date().toISOString(),
       notes: workout.notes || "",
-      exercises: workout.exercises.map((ex) => ({
+      exercises: (workout.exercises || []).map((ex) => ({
         name: ex.name,
         isBodyweight: ex.isBodyweight || ex.category === "BODYWEIGHT",
         category: ex.category || (ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH"),
-        sets: ex.sets.map((s) => ({
+        sets: (ex.sets || []).map((s) => ({
           weight: String(s.weight),
           reps: String(s.reps),
           notes: s.notes || "",
@@ -585,12 +585,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         clientId: selected.id,
         status: "PLANNED",
         notes: activeWorkout.notes || null,
-        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+        exercises: (activeWorkout.exercises || []).map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
           isBodyweight: !!ex.isBodyweight,
           category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
-          sets: ex.sets.map((s, sIndex) => ({
+          sets: (ex.sets || []).map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,
@@ -658,12 +658,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         completedAt: new Date().toISOString(),
         notes: activeWorkout.notes || null,
         plannedWorkoutId: activeWorkout.plannedWorkoutId || null,
-        exercises: activeWorkout.exercises.map((ex, exIndex) => ({
+        exercises: (activeWorkout.exercises || []).map((ex, exIndex) => ({
           name: ex.name,
           order: exIndex,
           isBodyweight: !!ex.isBodyweight,
           category: ex.isBodyweight ? "BODYWEIGHT" : "STRENGTH",
-          sets: ex.sets.map((s, sIndex) => ({
+          sets: (ex.sets || []).map((s, sIndex) => ({
             order: sIndex,
             weight: parseFloat(s.weight) || 0,
             reps: parseInt(s.reps, 10) || 0,
@@ -696,8 +696,8 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
         const err = await res.json().catch(() => null);
         alert(err?.error || "Failed to complete workout.");
       }
-    } catch {
-      alert("Error saving completed workout.");
+    } catch (err: any) {
+      alert(err?.message || "Error saving completed workout.");
     } finally {
       setSavingWorkout(false);
     }
@@ -777,7 +777,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             title={isSelectedSelf ? "Personal Workout Mode Active" : "Track your own personal training sessions"}
           >
             <Zap size={15} style={{ color: isSelectedSelf ? "#16a34a" : "#2563eb" }} />
-            <span>{isSelectedSelf ? "My Workouts Active" : "My Workouts"}</span>
+            <span className="hide-mobile">{isSelectedSelf ? "My Workouts Active" : "My Workouts"}</span>
           </button>
 
           {/* AI Performance Assistant Primary CTA */}
@@ -801,7 +801,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             data-tour="ai-copilot"
           >
             <Sparkles size={15} style={{ color: "#2563eb" }} />
-            <span>Ask AI</span>
+            <span className="hide-mobile">Ask AI</span>
           </button>
 
           {/* Unified Studio Menu & Profile */}
@@ -884,9 +884,12 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                           const saved = await res.json();
                           setWorkouts((prev) => prev.map((w) => (w.id === saved.id ? saved : w)));
                           setTab("history");
+                        } else {
+                          const errData = await res.json().catch(() => ({}));
+                          alert(errData.error || "Failed to complete workout.");
                         }
-                      } catch {
-                        alert("Failed to complete workout.");
+                      } catch (err: any) {
+                        alert(err?.message || "Failed to complete workout.");
                       }
                     }
                   }}
@@ -1041,8 +1044,8 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
               )}
 
               {/* Client Info Header */}
-              <div className="main-header" style={{ flexWrap: "wrap", gap: "14px", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 300px" }}>
+              <div className="main-header" style={{ flexWrap: "wrap", gap: "14px", alignItems: "center", justifyContent: "space-between", maxWidth: "100%", width: "100%", boxSizing: "border-box" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 min(100%, 300px)", minWidth: 0, maxWidth: "100%" }}>
                   {/* Client Picture in Header */}
                   <div style={{ position: "relative", flexShrink: 0 }}>
                           {selected.image ? (
@@ -1201,7 +1204,7 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                 </div>
 
                 {/* Actions: AI Program, Plate Calculator, Export Report, Invite, Tabs */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", maxWidth: "100%", boxSizing: "border-box" }}>
                   {/* AI Program Generator */}
                   <button
                     type="button"
