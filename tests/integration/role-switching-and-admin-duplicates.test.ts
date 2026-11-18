@@ -108,6 +108,7 @@ describe("Role Switching & Admin Duplicates Resolution", () => {
         data: {
           role: "CLIENT",
           clientProfileId: "collin-self-client-id",
+          hasCompletedOnboarding: true,
         },
       });
     });
@@ -150,6 +151,7 @@ describe("Role Switching & Admin Duplicates Resolution", () => {
         data: {
           role: "TRAINER",
           clientProfileId: "collin-self-client-id",
+          hasCompletedOnboarding: true,
         },
       });
     });

@@ -30,8 +30,10 @@ import {
   UserCheck,
   Sparkles,
   Activity,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
+import { UserAvatar } from "@/components/UserAvatar";
 import { Client, WorkoutSession, DraftWorkout, DraftExercise } from "./types";
 import { computeAnalytics } from "./utils/analytics";
 import { ClientSidebar } from "./components/ClientSidebar";
@@ -526,6 +528,16 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
     }
   };
 
+  const handleSelectPersonalWorkouts = useCallback(() => {
+    const selfProfile = clients.find(
+      (c: any) => c.isSelf || c.name.includes("(You)") || c.name === "My Workouts"
+    );
+    if (selfProfile) {
+      handleRequestSelectClient(selfProfile);
+      setTab("log");
+    }
+  }, [clients, hasUnsavedWorkout, selected]);
+
   const startWorkout = () => {
     setActiveWorkout({
       startedAt: new Date().toISOString(),
@@ -745,6 +757,29 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             <Menu size={18} />
           </button>
 
+          {/* Quick Switch to Trainer's Personal Training */}
+          <button
+            type="button"
+            onClick={handleSelectPersonalWorkouts}
+            className="nav-btn"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: isSelectedSelf ? "#15803d" : "#1e293b",
+              fontWeight: 700,
+              background: isSelectedSelf ? "#f0fdf4" : "#ffffff",
+              border: isSelectedSelf ? "1px solid #bbf7d0" : "1px solid #cbd5e1",
+              cursor: "pointer",
+              padding: "6px 12px",
+              borderRadius: "8px",
+            }}
+            title={isSelectedSelf ? "Personal Workout Mode Active" : "Track your own personal training sessions"}
+          >
+            <Zap size={15} style={{ color: isSelectedSelf ? "#16a34a" : "#2563eb" }} />
+            <span>{isSelectedSelf ? "My Workouts Active" : "My Workouts"}</span>
+          </button>
+
           {/* AI Performance Assistant Primary CTA */}
           <button
             type="button"
@@ -956,6 +991,55 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
             </div>
           ) : (
             <>
+              {/* Personal Workout Mode Notice Banner */}
+              {isSelectedSelf && (
+                <div
+                  style={{
+                    background: "linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%)",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "12px",
+                    padding: "10px 14px",
+                    marginBottom: "14px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "8px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Zap size={16} style={{ color: "#2563eb", flexShrink: 0 }} />
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#1e3a8a" }}>
+                      Personal Training Mode ({selected.name})
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      — Logging your own training. Athlete rosters are untouched.
+                    </span>
+                  </div>
+                  {clients.some((c: any) => !c.isSelf && !c.name.includes("(You)") && c.name !== "My Workouts") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const firstAthlete = clients.find(
+                          (c: any) => !c.isSelf && !c.name.includes("(You)") && c.name !== "My Workouts"
+                        );
+                        if (firstAthlete) handleRequestSelectClient(firstAthlete);
+                      }}
+                      className="btn-ghost"
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        color: "#2563eb",
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                      }}
+                    >
+                      Exit to Athlete Roster →
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Client Info Header */}
               <div className="main-header" style={{ flexWrap: "wrap", gap: "14px", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "14px", flex: "1 1 300px" }}>
@@ -1402,9 +1486,58 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
 
               {/* Client List */}
               <div style={{ maxHeight: "320px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "6px" }}>
-                {filteredMobileClients.map((client) => {
+                {/* 1. Trainer Personal Training (Pinned) */}
+                {(() => {
+                  const selfClient = clients.find(
+                    (c: any) => c.isSelf || c.name.includes("(You)") || c.name === "My Workouts"
+                  );
+                  if (!selfClient) return null;
+                  const isSelected = selected?.id === selfClient.id;
+                  return (
+                    <div style={{ marginBottom: "8px" }}>
+                      <div style={{ fontSize: "10px", fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "4px" }}>
+                        ⚡ My Personal Training
+                      </div>
+                      <div
+                        onClick={() => {
+                          handleRequestSelectClient(selfClient);
+                          setShowMobileClientDrawer(false);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          padding: "10px 12px",
+                          borderRadius: "10px",
+                          border: isSelected ? "2px solid #2563eb" : "1px solid #bfdbfe",
+                          background: isSelected ? "#eff6ff" : "#f0f7ff",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                          <UserAvatar src={selfClient.image} name={selfClient.name} size={34} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>{selfClient.name}</div>
+                            <div style={{ fontSize: "11px", color: "#2563eb", fontWeight: 600 }}>
+                              {selfClient._count?.workoutSessions ?? 0} personal workouts logged
+                            </div>
+                          </div>
+                        </div>
+                        <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "10px", background: "#dbeafe", color: "#1d4ed8" }}>
+                          Personal
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div style={{ fontSize: "10px", fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", margin: "4px 0" }}>
+                  Coached Athletes
+                </div>
+
+                {filteredMobileClients.filter((c: any) => !c.isSelf && !c.name.includes("(You)") && c.name !== "My Workouts").map((client) => {
                   const isSelected = selected?.id === client.id;
-                  const isSelfProfile = (client as any).isSelf || client.name.includes("(You)") || client.name === "My Workouts";
+                  const isSelfProfile = false;
                   const isAccepted = client.inviteStatus === "ACCEPTED";
 
                   return (
