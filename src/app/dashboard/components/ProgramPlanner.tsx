@@ -1991,7 +1991,7 @@ export function ProgramPlanner({
                   <p style={{ fontSize: "12px", color: "#94a3b8" }}>Try searching with a different term or clear the filter.</p>
                 </div>
               ) : (
-                filteredLibraryExercises.map((ex) => {
+                filteredLibraryExercises.slice(0, 60).map((ex) => {
                   const isBW = ex.equipment === "Bodyweight" || isDefaultBodyweight(ex.name);
                   const cat = isBW ? "BODYWEIGHT" : "STRENGTH";
                   const clarification = getWeightClarification(ex.name, false, cat);

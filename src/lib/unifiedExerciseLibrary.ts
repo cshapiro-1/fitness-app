@@ -19,6 +19,8 @@ export interface UnifiedExerciseItem {
   commonMistakes: string[];
   breathingPattern: string;
   diagramUrl: string;
+  animationUrl?: string;
+  thumbUrl?: string;
   diagramStatus: "APPROVED" | "PENDING_APPROVAL" | "REJECTED" | "NEEDS_REVISION";
   diagramNotes?: string;
   approvedByUserId?: string | null;

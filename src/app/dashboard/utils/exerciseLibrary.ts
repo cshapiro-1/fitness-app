@@ -170,6 +170,47 @@ export const EXERCISE_LIBRARY: ExerciseDefinition[] = [
   { name: "Medicine Ball Slam", muscleGroup: "Full Body", equipment: "Other" },
 ];
 
+import { ALL_EXERCISES } from "@/lib/exerciseDatabase";
+
+function mapMuscleToGroup(muscle: string, bodyPart: string): any {
+  const m = (muscle || "").toLowerCase();
+  const bp = (bodyPart || "").toLowerCase();
+  if (m === "pectorals" || bp === "chest") return "Chest";
+  if (m === "lats" || m === "traps" || m === "upper-back" || m === "spine" || bp === "back") return "Back";
+  if (m === "quads" || m === "hamstrings" || m === "calves" || m === "glutes" || m === "abductors" || m === "adductors" || bp === "legs") return "Legs";
+  if (m === "delts" || bp === "shoulders") return "Shoulders";
+  if (m === "biceps" || m === "triceps" || m === "forearms" || bp === "arms") return "Arms";
+  if (m === "abs" || bp === "waist" || bp === "core") return "Core";
+  if (bp === "cardio") return "Cardio";
+  return "Full Body";
+}
+
+function mapEquipment(eq: string): any {
+  const e = (eq || "").toLowerCase();
+  if (e.includes("barbell")) return "Barbell";
+  if (e.includes("dumbbell")) return "Dumbbell";
+  if (e.includes("cable")) return "Cable";
+  if (e.includes("bodyweight") || e.includes("body weight") || e.includes("assisted")) return "Bodyweight";
+  if (e.includes("kettlebell")) return "Kettlebell";
+  if (e.includes("machine") || e.includes("lever") || e.includes("smith")) return "Machine";
+  return "Other";
+}
+
+// Automatically populate the complete 1,323 indexed exercises from ExerciseDB
+const existingNames = new Set(EXERCISE_LIBRARY.map((e) => e.name.toLowerCase()));
+for (const item of ALL_EXERCISES) {
+  if (!existingNames.has(item.name.toLowerCase())) {
+    existingNames.add(item.name.toLowerCase());
+    EXERCISE_LIBRARY.push({
+      name: item.name,
+      muscleGroup: mapMuscleToGroup(item.muscle, item.bodyPart),
+      equipment: mapEquipment(item.equipment),
+      secondaryMuscle: item.secondaryMuscles?.[0],
+      isCompound: Boolean(item.secondaryMuscles && item.secondaryMuscles.length > 0),
+    });
+  }
+}
+
 /**
  * Fitness Abbreviations, Acronyms & Synonyms
  */

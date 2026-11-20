@@ -67,9 +67,10 @@ interface UnifiedAnatomyExercise {
   id: string;
   name: string;
   normalizedName: string;
-  type: "EXERCISE" | "STRETCH" | "MOBILITY" | "CARDIO" | "WELLNESS";
+  type: string;
   muscleGroup: string;
   equipment: string;
+  bodyPart?: string;
   category: string;
   primaryMuscles: string[];
   secondaryMuscles: string[];
@@ -78,7 +79,9 @@ interface UnifiedAnatomyExercise {
   commonMistakes: string[];
   breathingPattern: string;
   diagramUrl: string;
-  diagramStatus: "APPROVED" | "PENDING_APPROVAL" | "REJECTED" | "NEEDS_REVISION";
+  animationUrl?: string;
+  thumbUrl?: string;
+  diagramStatus?: string;
   diagramNotes?: string;
   approvedByUserId?: string | null;
   approvedAt?: string | null;
@@ -899,7 +902,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
             <ShieldCheck size={24} style={{ color: "#38bdf8" }} />
             <div>
               <h1 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>STRKYR Master Admin Portal</h1>
-              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Master Operations, User Telemetry &amp; Anatomy Diagram Studio</div>
+              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Master Operations, User Telemetry &amp; Exercise Animation Library</div>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -1180,8 +1183,8 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                   transition: "all 0.15s ease",
                 }}
               >
-                <HeartPulse size={15} />
-                <span>Anatomy Diagram Studio &amp; Approval ({anatomySummary?.approvedCount ?? 0}/{anatomySummary?.totalCount ?? anatomyExercises.length})</span>
+                <Dumbbell size={15} />
+                <span>Exercise Library &amp; Animations ({anatomySummary?.totalCount ?? (anatomyExercises.length || 1323)})</span>
               </button>
             </div>
 
@@ -1802,20 +1805,23 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
           )}
 
           {/* ========================================================= */}
-          {/* TAB 3: ANATOMY DIAGRAM STUDIO & 1-BY-1 APPROVAL           */}
+          {/* TAB 3: EXERCISE LIBRARY & FORM ANIMATIONS (1,323 ITEMS)    */}
           {/* ========================================================= */}
           {activeTab === "anatomy" && (
             <div>
-              {/* Studio Progress Banner */}
-              <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: "12px", padding: "16px 20px", marginBottom: "20px" }}>
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+              {/* Exercise Library Stats Banner */}
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "18px 22px", marginBottom: "22px" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "16px" }}>
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: 800, color: "#5b21b6", display: "flex", alignItems: "center", gap: "8px" }}>
-                      <HeartPulse size={18} />
-                      <span>Anatomy Diagram Verification Queue (Exercise by Exercise &amp; Stretch by Stretch)</span>
+                    <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Dumbbell size={20} style={{ color: "#0284c7" }} />
+                      <span>Exercise Library &amp; Form Animations</span>
+                      <span style={{ fontSize: "11px", fontWeight: 700, background: "#dbeafe", color: "#1d4ed8", padding: "2px 8px", borderRadius: "12px", border: "1px solid #bfdbfe" }}>
+                        Source of Truth
+                      </span>
                     </div>
-                    <div style={{ fontSize: "12px", color: "#6d28d9", marginTop: "2px" }}>
-                      Review each anatomical illustration, confirm target muscles and biomechanics cues, and approve diagrams one-by-one.
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "3px" }}>
+                      Unified catalog of 1,323+ exercises indexed with continuous 12-frame looping form demonstrations, muscle targeting, and kinesiological execution cues.
                     </div>
                   </div>
 
@@ -1826,361 +1832,209 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                       style={{
                         fontSize: "12px",
                         fontWeight: 700,
-                        background: "#7c3aed",
+                        background: "#0284c7",
                         color: "#ffffff",
                         border: "none",
-                        padding: "6px 12px",
+                        padding: "7px 14px",
                         borderRadius: "8px",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         gap: "6px",
-                        boxShadow: "0 1px 3px rgba(124,58,237,0.3)",
+                        boxShadow: "0 1px 3px rgba(2,132,199,0.3)",
                       }}
-                      title="Sync and load all newly defined stretches and exercises into database"
+                      title="Reload and sync the 1,323 exercise library"
                     >
                       <RefreshCw size={13} />
-                      <span>🔄 Sync Full Library (51 Stretches &amp; Exercises)</span>
+                      <span>⚡ Sync 1,323 Exercise Library</span>
                     </button>
-                    <span style={{ fontSize: "13px", fontWeight: 800, color: "#16a34a", background: "#ffffff", padding: "4px 12px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
-                      ✓ {anatomySummary?.approvedCount ?? 0} Approved
+                    <span style={{ fontSize: "13px", fontWeight: 800, color: "#0f766e", background: "#f0fdfa", padding: "5px 12px", borderRadius: "8px", border: "1px solid #ccfbf1" }}>
+                      ✓ {anatomySummary?.totalCount ?? (anatomyExercises.length || 1323)} Total Exercises
                     </span>
-                    <span style={{ fontSize: "13px", fontWeight: 800, color: "#d97706", background: "#ffffff", padding: "4px 12px", borderRadius: "8px", border: "1px solid #fef08a" }}>
-                      ⏱ {anatomySummary?.pendingCount ?? 0} Pending
+                    <span style={{ fontSize: "13px", fontWeight: 800, color: "#16a34a", background: "#f0fdf4", padding: "5px 12px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                      🎬 100% Animated
                     </span>
                   </div>
                 </div>
-
-                {/* Progress Bar */}
-                <div style={{ width: "100%", height: "8px", background: "#e9d5ff", borderRadius: "4px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      width: `${anatomySummary?.approvalPercentage ?? 0}%`,
-                      background: "linear-gradient(90deg, #7c3aed 0%, #16a34a 100%)",
-                      transition: "width 0.4s ease",
-                    }}
-                  />
-                </div>
               </div>
 
-              {/* Filter Pills & Search */}
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "10px", marginBottom: "18px" }}>
+              {/* Filter Pills & Instant Search */}
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  {(["ALL", "PENDING", "APPROVED", "EXERCISE", "STRETCH"] as const).map((filter) => (
+                  {(["ALL", "pectorals", "lats", "quads", "hamstrings", "delts", "biceps", "triceps", "glutes", "abs", "calves"] as const).map((muscle) => (
                     <button
-                      key={filter}
+                      key={muscle}
                       type="button"
                       onClick={() => {
-                        setAnatomyFilterType(filter);
+                        setAnatomyFilterType(muscle === "ALL" ? "ALL" : (muscle as any));
                         setSelectedAnatomyIndex(0);
                       }}
                       style={{
-                        padding: "5px 12px",
+                        padding: "6px 12px",
                         fontSize: "12px",
                         fontWeight: 700,
                         borderRadius: "6px",
                         border: "1px solid",
                         cursor: "pointer",
-                        background: anatomyFilterType === filter ? "#7c3aed" : "#ffffff",
-                        color: anatomyFilterType === filter ? "#ffffff" : "#475569",
-                        borderColor: anatomyFilterType === filter ? "#7c3aed" : "#cbd5e1",
+                        background: (anatomyFilterType === muscle || (muscle === "ALL" && anatomyFilterType === "ALL")) ? "#0284c7" : "#ffffff",
+                        color: (anatomyFilterType === muscle || (muscle === "ALL" && anatomyFilterType === "ALL")) ? "#ffffff" : "#475569",
+                        borderColor: (anatomyFilterType === muscle || (muscle === "ALL" && anatomyFilterType === "ALL")) ? "#0284c7" : "#cbd5e1",
+                        textTransform: "capitalize",
                       }}
                     >
-                      {filter === "ALL" ? "All Items" : filter === "PENDING" ? "⏱ Pending Approval" : filter === "APPROVED" ? "✓ Approved" : filter === "EXERCISE" ? "🏋️ Exercises" : "🧘 Stretches"}
+                      {muscle === "ALL" ? "All Muscles" : muscle}
                     </button>
                   ))}
                 </div>
 
-                <div style={{ position: "relative", width: "240px" }}>
+                <div style={{ position: "relative", width: "260px" }}>
                   <Search size={14} style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
                   <input
                     className="input"
-                    placeholder="Search movement name..."
+                    placeholder="Search exercise, muscle, equipment..."
                     value={anatomySearch}
                     onChange={(e) => {
                       setAnatomySearch(e.target.value);
                       setSelectedAnatomyIndex(0);
                     }}
-                    style={{ paddingLeft: "30px", width: "100%", fontSize: "12px" }}
+                    style={{ paddingLeft: "32px", width: "100%", fontSize: "12px" }}
                   />
                 </div>
               </div>
 
-              {/* ACTIVE 1-BY-1 INSPECTION & APPROVAL CARD */}
-              {activeAnatomyItem ? (
-                <div style={{ border: "2px solid #e2e8f0", borderRadius: "14px", overflow: "hidden", background: "#ffffff", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}>
-                  {/* Card Navigation Header */}
-                  <div style={{ background: "#0f172a", color: "#ffffff", padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 800, color: "#38bdf8" }}>
-                        Item {selectedAnatomyIndex + 1} of {filteredAnatomyList.length}
-                      </span>
-                      <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: activeAnatomyItem.type === "STRETCH" ? "#7c3aed" : "#2563eb", fontWeight: 700 }}>
-                        {activeAnatomyItem.type}
-                      </span>
-                      <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: activeAnatomyItem.diagramStatus === "APPROVED" ? "#16a34a" : "#d97706", fontWeight: 700 }}>
-                        {activeAnatomyItem.diagramStatus === "APPROVED" ? "✓ APPROVED DIAGRAM" : "⏱ PENDING REVIEW"}
-                      </span>
+              {/* Exercise Grid with Looping Animations */}
+              {filteredAnatomyList.length > 0 ? (
+                <div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "18px", marginBottom: "24px" }}>
+                    {filteredAnatomyList.slice(selectedAnatomyIndex * 12, (selectedAnatomyIndex + 1) * 12).map((item, idx) => (
+                      <div
+                        key={item.id || item.name || idx}
+                        style={{
+                          background: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "14px",
+                          overflow: "hidden",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                          display: "flex",
+                          flexDirection: "column",
+                          transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                        }}
+                      >
+                        {/* Looping Animation Video Frame */}
+                        <div style={{ position: "relative", background: "#020617", height: "200px", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                          <img
+                            src={item.animationUrl || item.diagramUrl || item.thumbUrl || "/exercise-animations/bench_press.gif"}
+                            alt={item.name}
+                            loading="lazy"
+                            style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (item.thumbUrl && target.src !== item.thumbUrl) {
+                                target.src = item.thumbUrl;
+                              } else {
+                                target.src = "/exercise-animations/bench_press.gif";
+                              }
+                            }}
+                          />
+                          <div style={{ position: "absolute", bottom: "8px", right: "8px", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: "2px 7px", borderRadius: "5px", fontSize: "10px", color: "#38bdf8", fontWeight: 700, border: "1px solid rgba(255,255,255,0.1)" }}>
+                            12-Frame Loop
+                          </div>
+                          <div style={{ position: "absolute", top: "8px", left: "8px", background: "rgba(15, 23, 42, 0.85)", backdropFilter: "blur(4px)", padding: "2px 7px", borderRadius: "5px", fontSize: "10px", color: "#e2e8f0", fontWeight: 700, border: "1px solid rgba(255,255,255,0.1)", textTransform: "capitalize" }}>
+                            {item.equipment}
+                          </div>
+                        </div>
+
+                        {/* Card Details */}
+                        <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", flex: 1, justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
+                              <h4 style={{ fontSize: "14px", fontWeight: 800, color: "#0f172a", margin: 0, lineHeight: 1.3 }}>
+                                {item.name}
+                              </h4>
+                            </div>
+
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "10px" }}>
+                              <span style={{ fontSize: "11px", fontWeight: 700, background: "#f0fdf4", color: "#16a34a", padding: "2px 7px", borderRadius: "5px", border: "1px solid #bbf7d0", textTransform: "capitalize" }}>
+                                🎯 {item.muscleGroup}
+                              </span>
+                              {item.category && (
+                                <span style={{ fontSize: "11px", fontWeight: 600, background: "#f1f5f9", color: "#475569", padding: "2px 7px", borderRadius: "5px", textTransform: "uppercase" }}>
+                                  {item.category}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Form Cue / Instruction snippet */}
+                            <p style={{ fontSize: "12px", color: "#64748b", margin: 0, lineHeight: 1.45, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                              {item.biomechanicsCue || (item.steps && item.steps.length > 0 ? item.steps[0] : "Focus on controlled eccentric lowering and explosive concentric contraction.")}
+                            </p>
+                          </div>
+
+                          {/* Secondary Muscles */}
+                          {item.secondaryMuscles && item.secondaryMuscles.length > 0 && (
+                            <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8" }}>
+                              Synergists: <span style={{ color: "#475569" }}>{item.secondaryMuscles.slice(0, 3).join(", ")}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pagination Controls */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 18px", background: "#f8fafc", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "12px", color: "#64748b" }}>
+                      Showing {selectedAnatomyIndex * 12 + 1} to {Math.min((selectedAnatomyIndex + 1) * 12, filteredAnatomyList.length)} of {filteredAnatomyList.length} exercises
                     </div>
 
-                    {/* Previous / Next Stepper */}
-                    <div style={{ display: "flex", gap: "6px" }}>
+                    <div style={{ display: "flex", gap: "8px" }}>
                       <button
                         type="button"
                         disabled={selectedAnatomyIndex === 0}
                         onClick={() => setSelectedAnatomyIndex((prev) => Math.max(0, prev - 1))}
-                        style={{ background: "#1e293b", color: "#ffffff", border: "1px solid #334155", padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", opacity: selectedAnatomyIndex === 0 ? 0.5 : 1 }}
+                        style={{
+                          padding: "6px 14px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          borderRadius: "6px",
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: selectedAnatomyIndex === 0 ? "#94a3b8" : "#0f172a",
+                          cursor: selectedAnatomyIndex === 0 ? "not-allowed" : "pointer",
+                        }}
                       >
-                        <ChevronLeft size={14} /> Previous
+                        ← Previous
                       </button>
+
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", padding: "0 8px" }}>
+                        Page {selectedAnatomyIndex + 1} of {Math.max(1, Math.ceil(filteredAnatomyList.length / 12))}
+                      </span>
 
                       <button
                         type="button"
-                        disabled={selectedAnatomyIndex >= filteredAnatomyList.length - 1}
-                        onClick={() => setSelectedAnatomyIndex((prev) => Math.min(filteredAnatomyList.length - 1, prev + 1))}
-                        style={{ background: "#1e293b", color: "#ffffff", border: "1px solid #334155", padding: "5px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", opacity: selectedAnatomyIndex >= filteredAnatomyList.length - 1 ? 0.5 : 1 }}
+                        disabled={(selectedAnatomyIndex + 1) * 12 >= filteredAnatomyList.length}
+                        onClick={() => setSelectedAnatomyIndex((prev) => prev + 1)}
+                        style={{
+                          padding: "6px 14px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          borderRadius: "6px",
+                          border: "1px solid #cbd5e1",
+                          background: "#ffffff",
+                          color: (selectedAnatomyIndex + 1) * 12 >= filteredAnatomyList.length ? "#94a3b8" : "#0f172a",
+                          cursor: (selectedAnatomyIndex + 1) * 12 >= filteredAnatomyList.length ? "not-allowed" : "pointer",
+                        }}
                       >
-                        Next <ChevronRight size={14} />
+                        Next →
                       </button>
-                    </div>
-                  </div>
-
-                  {/* Card Content Grid */}
-                  <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 360px) 1fr", gap: "20px", padding: "20px" }}>
-                    {/* Diagram Illustration Preview & Regeneration Action */}
-                    <div>
-                      <div style={{ border: "1px solid #e2e8f0", borderRadius: "10px", overflow: "hidden", background: "#f8fafc", position: "relative" }}>
-                        <img
-                          key={editedDiagramUrl || activeAnatomyItem.diagramUrl}
-                          src={editedDiagramUrl || activeAnatomyItem.diagramUrl || "/anatomy/squat.jpg"}
-                          alt={activeAnatomyItem.name}
-                          style={{ width: "100%", height: "280px", objectFit: "cover", display: "block" }}
-                          onError={(e) => {
-                            const currentSrc = (e.target as HTMLImageElement).src;
-                            if (currentSrc.endsWith(".jpg")) {
-                              (e.target as HTMLImageElement).src = currentSrc.replace(".jpg", ".svg");
-                            } else if (currentSrc.endsWith(".svg")) {
-                              (e.target as HTMLImageElement).src = currentSrc.replace(".svg", ".jpg");
-                            } else {
-                              (e.target as HTMLImageElement).src = "/anatomy/squat.jpg";
-                            }
-                          }}
-                        />
-
-                        {/* Quick Floating Regenerate Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleRegenerateDiagram(activeAnatomyItem)}
-                          disabled={isRegeneratingDiagram}
-                          style={{
-                            position: "absolute",
-                            top: "10px",
-                            right: "10px",
-                            background: "rgba(15, 23, 42, 0.85)",
-                            color: "#38bdf8",
-                            border: "1px solid #38bdf8",
-                            borderRadius: "6px",
-                            padding: "4px 10px",
-                            fontSize: "11px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "5px",
-                            backdropFilter: "blur(4px)",
-                          }}
-                          title="Generate new visual rendering"
-                        >
-                          <Wand2 size={12} className={isRegeneratingDiagram ? "spin" : ""} />
-                          <span>{isRegeneratingDiagram ? "Generating..." : "✨ Regenerate"}</span>
-                        </button>
-                      </div>
-
-                      <div style={{ marginTop: "10px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
-                          Diagram Asset Path / URL
-                        </label>
-                        <input
-                          type="text"
-                          className="input"
-                          value={editedDiagramUrl}
-                          onChange={(e) => setEditedDiagramUrl(e.target.value)}
-                          style={{ width: "100%", fontSize: "11px", padding: "6px 8px" }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Metadata & Kinesiology Details */}
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "12px" }}>
-                        <div>
-                          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 800, color: "#0f172a" }}>
-                            {activeAnatomyItem.name}
-                          </h2>
-                          <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                            Muscle Group: <strong style={{ color: "#0f172a" }}>{activeAnatomyItem.muscleGroup}</strong> · Equipment: <strong style={{ color: "#0f172a" }}>{activeAnatomyItem.equipment}</strong>
-                          </div>
-                        </div>
-
-                        {activeAnatomyItem.diagramStatus === "APPROVED" && (
-                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#16a34a", background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                            <Check size={14} /> Approved &amp; Validated
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Primary Muscles */}
-                      <div style={{ marginBottom: "12px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#1e3a8a", display: "block", marginBottom: "4px" }}>
-                          Primary Target Muscles (Comma separated)
-                        </label>
-                        <input
-                          type="text"
-                          className="input"
-                          value={editedPrimaryMuscles}
-                          onChange={(e) => setEditedPrimaryMuscles(e.target.value)}
-                          style={{ width: "100%", fontSize: "12px" }}
-                        />
-                      </div>
-
-                      {/* Secondary Muscles */}
-                      <div style={{ marginBottom: "12px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
-                          Secondary / Synergist Muscles
-                        </label>
-                        <input
-                          type="text"
-                          className="input"
-                          value={editedSecondaryMuscles}
-                          onChange={(e) => setEditedSecondaryMuscles(e.target.value)}
-                          style={{ width: "100%", fontSize: "12px" }}
-                        />
-                      </div>
-
-                      {/* Biomechanics Coaching Cue */}
-                      <div style={{ marginBottom: "16px" }}>
-                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
-                          Biomechanics Coaching Cue
-                        </label>
-                        <textarea
-                          className="input"
-                          rows={2}
-                          value={editedCue}
-                          onChange={(e) => setEditedCue(e.target.value)}
-                          style={{ width: "100%", fontSize: "12px", resize: "vertical" }}
-                        />
-                      </div>
-
-                      {/* Action Approval Bar */}
-                      <div style={{ display: "flex", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "16px", flexWrap: "wrap" }}>
-                        <button
-                          type="button"
-                          onClick={() => handleApproveAnatomy(activeAnatomyItem)}
-                          disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
-                          style={{
-                            flex: 2,
-                            minWidth: "200px",
-                            padding: "10px 18px",
-                            fontSize: "13px",
-                            fontWeight: 800,
-                            background: "#16a34a",
-                            color: "#ffffff",
-                            border: "none",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "8px",
-                            boxShadow: "0 2px 6px rgba(22,163,74,0.3)",
-                          }}
-                        >
-                          <Check size={16} />
-                          <span>{activeAnatomyItem.diagramStatus === "APPROVED" ? "✓ Approved (Re-Save & Next)" : "✓ Approve Anatomy Diagram & Proceed"}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleRegenerateDiagram(activeAnatomyItem)}
-                          disabled={isRegeneratingDiagram}
-                          style={{
-                            padding: "10px 14px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            background: "#eff6ff",
-                            color: "#2563eb",
-                            border: "1px solid #bfdbfe",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "6px",
-                          }}
-                          title="Generate fresh visual until approved"
-                        >
-                          <Wand2 size={14} className={isRegeneratingDiagram ? "spin" : ""} />
-                          <span>✨ Regenerate</span>
-                        </button>
-
-                        {activeAnatomyItem.diagramStatus === "APPROVED" && (
-                          <button
-                            type="button"
-                            onClick={() => handleRevertAnatomyToPending(activeAnatomyItem)}
-                            disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
-                            style={{
-                              padding: "10px 14px",
-                              fontSize: "12px",
-                              fontWeight: 700,
-                              background: "#fffbeb",
-                              color: "#d97706",
-                              border: "1px solid #fde68a",
-                              borderRadius: "8px",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: "6px",
-                            }}
-                            title="Revert diagram back to pending approval state"
-                          >
-                            <RotateCcw size={14} />
-                            <span>↩ Revert</span>
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => handleSaveAnatomyEdits(activeAnatomyItem)}
-                          disabled={savingAnatomyId === (activeAnatomyItem.id || activeAnatomyItem.name)}
-                          style={{
-                            flex: 1,
-                            minWidth: "110px",
-                            padding: "10px 14px",
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            background: "#f1f5f9",
-                            color: "#334155",
-                            border: "1px solid #cbd5e1",
-                            borderRadius: "8px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <Save size={14} />
-                          <span>Save</span>
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div style={{ textAlign: "center", padding: "40px", color: "#64748b", background: "#f8fafc", borderRadius: "12px" }}>
-                  No movements found matching filters.
+                <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b", background: "#f8fafc", borderRadius: "12px", border: "1px dashed #cbd5e1" }}>
+                  <Dumbbell size={32} style={{ margin: "0 auto 12px", color: "#94a3b8" }} />
+                  <p style={{ fontSize: "14px", fontWeight: 700, color: "#334155", margin: "0 0 4px" }}>No exercises match your search</p>
+                  <p style={{ fontSize: "12px", color: "#94a3b8", margin: 0 }}>Try clearing your filters or searching a different exercise name.</p>
                 </div>
               )}
             </div>

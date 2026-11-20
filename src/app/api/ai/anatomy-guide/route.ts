@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkRateLimit, RATE_LIMIT_PRESETS } from "@/lib/rateLimit";
 import { sanitizeText } from "@/lib/sanitize";
+import { findExerciseMatch } from "@/lib/exerciseDatabase";
 
 export interface AnatomyGuideData {
   image: string;
@@ -858,17 +859,35 @@ export async function POST(req: NextRequest) {
     }
 
     const chart = ANATOMY_CHARTS[matchedKey] || ANATOMY_CHARTS.squat;
+    const matchedExercise = findExerciseMatch(exerciseName);
+
+    const animationUrl = matchedExercise?.gifUrl || chart.image;
+    const thumbUrl = matchedExercise?.thumbUrl;
+    const equipment = matchedExercise?.equipment;
+    const bodyPart = matchedExercise?.bodyPart;
+    const muscleGroup = matchedExercise?.muscle;
+
+    // Use exerciseDatabase steps if available, or fallback to chart.steps
+    const steps = (matchedExercise?.instructions && matchedExercise.instructions.length > 0)
+      ? matchedExercise.instructions
+      : chart.steps;
 
     return NextResponse.json({
       success: true,
       exerciseName,
       chart: {
         ...chart,
-        title: chart.title.toLowerCase().includes(exerciseName.toLowerCase()) ? chart.title : `${exerciseName} — Visual Anatomy Guide`,
+        animationUrl,
+        thumbUrl,
+        equipment,
+        bodyPart,
+        muscleGroup,
+        steps,
+        title: chart.title.toLowerCase().includes(exerciseName.toLowerCase()) ? chart.title : `${exerciseName} — Form & Movement Guide`,
         queryName: exerciseName,
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to retrieve anatomy visual guide" }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to retrieve exercise form guide" }, { status: 500 });
   }
 }

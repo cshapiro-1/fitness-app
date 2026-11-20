@@ -470,7 +470,7 @@ export function ExerciseLibraryModal({
             </div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "6px" }}>
-              {filteredExercises.map((ex) => (
+              {filteredExercises.slice(0, 100).map((ex) => (
                 <div
                   key={ex.name}
                   onClick={() => {

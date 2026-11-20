@@ -9,6 +9,11 @@ export interface AnatomyGuideModalProps {
   exerciseName: string;
   chartData?: {
     image: string;
+    animationUrl?: string;
+    thumbUrl?: string;
+    equipment?: string;
+    bodyPart?: string;
+    muscleGroup?: string;
     title: string;
     primaryMuscles: string[];
     secondaryMuscles: string[];
@@ -69,10 +74,17 @@ export function AnatomyGuideModal({
               <Activity size={18} />
             </div>
             <div>
-              <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#f8fafc", margin: 0 }}>
-                {exerciseName}
-              </h3>
-              <div style={{ fontSize: "11px", color: "#94a3b8" }}>3D Medical Anatomy &amp; Form Guide</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <h3 style={{ fontSize: "17px", fontWeight: 800, color: "#f8fafc", margin: 0 }}>
+                  {exerciseName}
+                </h3>
+                {chartData?.equipment && (
+                  <span style={{ fontSize: "10px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.3)", padding: "2px 7px", borderRadius: "6px", fontWeight: 700, textTransform: "capitalize" }}>
+                    {chartData.equipment}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: "11px", color: "#94a3b8" }}>Exercise Form &amp; Movement Guide</div>
             </div>
           </div>
 
@@ -87,27 +99,31 @@ export function AnatomyGuideModal({
         {loading ? (
           <div style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}>
             <div className="spin-inline" style={{ width: "24px", height: "24px", margin: "0 auto 12px" }} />
-            <span>Rendering 3D Muscle Anatomy &amp; Form Guide...</span>
+            <span>Loading Movement Animation &amp; Form Guide...</span>
           </div>
         ) : chartData ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-            {/* High-Res Muscle Anatomy Illustration */}
-            <div style={{ position: "relative", borderRadius: "14px", overflow: "hidden", border: "1px solid #1e293b", background: "#020617" }}>
+            {/* Animated Exercise Execution Demonstration Frame */}
+            <div style={{ position: "relative", borderRadius: "14px", overflow: "hidden", border: "1px solid #1e293b", background: "#020617", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "220px" }}>
               <img
-                src={chartData.image}
-                alt={chartData.title}
-                style={{ width: "100%", height: "auto", display: "block", objectFit: "cover" }}
+                src={chartData.animationUrl || chartData.image}
+                alt={chartData.title || exerciseName}
+                style={{ width: "100%", maxHeight: "360px", objectFit: "contain", display: "block" }}
                 onError={(e) => {
                   const currentSrc = (e.target as HTMLImageElement).src;
-                  if (currentSrc.endsWith(".jpg")) {
-                    (e.target as HTMLImageElement).src = currentSrc.replace(".jpg", ".svg");
-                  } else if (currentSrc.endsWith(".svg")) {
-                    (e.target as HTMLImageElement).src = currentSrc.replace(".svg", ".jpg");
+                  if (chartData.thumbUrl && currentSrc !== chartData.thumbUrl) {
+                    (e.target as HTMLImageElement).src = chartData.thumbUrl;
+                  } else if (chartData.image && currentSrc !== chartData.image) {
+                    (e.target as HTMLImageElement).src = chartData.image;
                   } else {
-                    (e.target as HTMLImageElement).src = "/anatomy/squat.jpg";
+                    (e.target as HTMLImageElement).src = "/exercise-animations/bench_press.gif";
                   }
                 }}
               />
+              <div style={{ position: "absolute", bottom: "8px", right: "8px", background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)", padding: "3px 8px", borderRadius: "6px", fontSize: "10px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.5px", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", gap: "5px" }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#38bdf8" }} />
+                <span>FORM DEMO</span>
+              </div>
             </div>
 
             {/* Muscle Breakdown Badges */}

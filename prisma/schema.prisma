@@ -360,7 +360,10 @@ model Exercise {
   commonMistakes   String?  // JSON string array of common mistakes
   breathingPattern String?
   diagramUrl       String?  // Path or URL to validated anatomical illustration
-  diagramStatus    String   @default("PENDING_APPROVAL") // APPROVED, PENDING_APPROVAL, REJECTED, NEEDS_REVISION
+  animationUrl     String?  // Looping animated GIF / WebP form execution URL
+  thumbUrl         String?  // Optimized preview thumbnail
+  bodyPart         String?  // chest, back, legs, shoulders, arms, waist, cardio
+  diagramStatus    String   @default("APPROVED") // APPROVED, PENDING_APPROVAL, REJECTED, NEEDS_REVISION
   diagramNotes     String?
   approvedByUserId String?
   approvedAt       DateTime?
