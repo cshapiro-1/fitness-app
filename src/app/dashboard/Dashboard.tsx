@@ -1520,7 +1520,9 @@ export function Dashboard({ userName, userImage, isAdmin }: { userName: string; 
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
                           <UserAvatar src={selfClient.image} name={selfClient.name} size={34} />
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>{selfClient.name}</div>
+                            <div style={{ fontSize: "13px", fontWeight: 800, color: "#0f172a" }}>
+                              {selfClient.name ? selfClient.name.replace(/\s*\(You\)/gi, "").trim() : "My Workouts"}
+                            </div>
                             <div style={{ fontSize: "11px", color: "#2563eb", fontWeight: 600 }}>
                               {selfClient._count?.workoutSessions ?? 0} personal workouts logged
                             </div>

@@ -254,7 +254,7 @@ export async function GET(req: NextRequest) {
         (trainer.clientProfileId && c.id === trainer.clientProfileId) ||
         (c.loginUser?.id && c.loginUser.id === trainer.id) ||
         (tEmail && cEmail && cEmail === tEmail && (!c.userId || c.userId === trainer.id)) ||
-        (trainer.name && cName.toLowerCase().startsWith(trainer.name.toLowerCase()) && cName.includes("(You)")) ||
+        (trainer.name && cName.toLowerCase().startsWith(trainer.name.toLowerCase()) && (cName.includes("(You)") || cName.toLowerCase() === trainer.name.toLowerCase())) ||
         ((!c.userId || c.userId === trainer.id) && (
           cName === "My Workouts" ||
           cName === "My Workouts (Personal)" ||
@@ -263,6 +263,34 @@ export async function GET(req: NextRequest) {
         ))
       );
     };
+
+    // Self-healing cleanup: strip legacy "(You)" suffix from client names in DB
+    try {
+      if (typeof prisma?.client?.findMany === "function" && typeof prisma?.client?.update === "function") {
+        const clientsWithYou = await prisma.client.findMany({
+          where: { name: { contains: "(You)" } },
+          select: { id: true, name: true },
+        });
+        if (Array.isArray(clientsWithYou) && clientsWithYou.length > 0) {
+          for (const cl of clientsWithYou) {
+            const cleanName = cl.name.replace(/\s*\(You\)/gi, "").trim() || "My Workouts";
+            try {
+              const updatePromise = prisma.client.update({
+                where: { id: cl.id },
+                data: { name: cleanName },
+              });
+              if (updatePromise && typeof updatePromise.catch === "function") {
+                await updatePromise.catch(() => null);
+              } else if (updatePromise && typeof updatePromise.then === "function") {
+                await updatePromise;
+              }
+            } catch {}
+          }
+        }
+      }
+    } catch (cleanupErr) {
+      console.warn("Legacy (You) name cleanup warning:", cleanupErr);
+    }
 
     for (const trainer of (allTrainers as any[])) {
       const selfClients = allClients.filter(
@@ -452,7 +480,7 @@ export async function GET(req: NextRequest) {
 
       return {
         id: c.id,
-        name: c.name,
+        name: (c.name || "Client").replace(/\s*\(You\)/gi, "").trim(),
         email: c.email || c.loginUser?.email || "No email",
         phone: c.phone,
         image: c.image,

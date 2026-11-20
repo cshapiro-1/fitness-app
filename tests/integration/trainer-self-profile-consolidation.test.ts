@@ -240,7 +240,7 @@ describe("Trainer Profile & 'My Workouts' Consolidation (Zero Data Loss)", () =>
         ],
       },
       data: {
-        name: "Coach Collin (You)",
+        name: "Coach Collin",
         image: "https://example.com/coach-new.png",
         phone: "555-9999",
         notes: "Olympic Lifting Specialist",

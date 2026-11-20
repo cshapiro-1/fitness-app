@@ -106,7 +106,7 @@ export function ClientSidebar({
               <div className="client-item-main">
                 <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <span className="client-name" style={{ fontWeight: 800, color: "#0f172a" }}>
-                    {selfProfile.name}
+                    {selfProfile.name ? selfProfile.name.replace(/\s*\(You\)/gi, "").trim() : "My Workouts"}
                   </span>
                   <span
                     className="client-status-badge"

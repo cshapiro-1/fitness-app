@@ -233,7 +233,7 @@ describe("Onboarding & Role Separation API", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           userId: "new-coach-id",
-          name: "Coach Jordan (You)",
+          name: "Coach Jordan",
           email: "newcoach@example.com",
           inviteStatus: "ACCEPTED",
         }),

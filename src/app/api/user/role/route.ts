@@ -171,7 +171,7 @@ async function handleRoleUpdate(req: NextRequest) {
           trainerSelfClient = await prisma.client.create({
             data: {
               userId: session.user.id,
-              name: existingUser?.name ? `${existingUser.name} (You)` : "Personal Workouts (You)",
+              name: existingUser?.name || "My Workouts",
               email: existingUser?.email || null,
               image: existingUser?.image || null,
               inviteStatus: "ACCEPTED",

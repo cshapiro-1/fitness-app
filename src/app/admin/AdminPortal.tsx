@@ -1654,7 +1654,7 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                           <tr key={c.id} style={{ borderBottom: "1px solid #f1f5f9", background: c.isTrainerSelfProfile ? "#faf5ff" : undefined }}>
                             <td style={{ padding: "12px" }}>
                               <div style={{ fontWeight: 700, color: "#0f172a", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
-                                <span>{c.name}</span>
+                                <span>{c.name ? c.name.replace(/\s*\(You\)/gi, "").trim() : "Client"}</span>
                                 {c.isTrainerSelfProfile && (
                                   <span style={{ fontSize: "10px", background: "#f5f3ff", color: "#6d28d9", border: "1px solid #ddd6fe", padding: "1px 6px", borderRadius: "4px", fontWeight: 700 }}>
                                     🏋️ COACH SELF-LOG

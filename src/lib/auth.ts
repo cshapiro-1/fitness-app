@@ -219,7 +219,7 @@ export const authOptions: NextAuthOptions = {
                     trainerSelfClient = await prisma.client.create({
                       data: {
                         userId: dbUser.id,
-                        name: dbUser.name ? `${dbUser.name} (You)` : "Personal Workouts (You)",
+                        name: dbUser.name || "My Workouts",
                         email: cleanEmail,
                         image: incomingImage || dbUser.image,
                         inviteStatus: "ACCEPTED",

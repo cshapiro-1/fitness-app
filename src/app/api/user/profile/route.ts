@@ -126,7 +126,7 @@ export async function GET() {
             trainerSelfClient = await prisma.client.create({
               data: {
                 userId: user.id,
-                name: user.name ? `${user.name} (You)` : "Personal Workouts (You)",
+                name: user.name || "My Workouts",
                 email: user.email,
                 image: userAvatar,
                 phone: user.phone,
@@ -230,9 +230,7 @@ export async function PATCH(req: NextRequest) {
         if (phone !== undefined) clientSyncData.phone = phone?.trim() || null;
         if (notes !== undefined) clientSyncData.notes = notes?.trim() || null;
         if (fitnessGoals !== undefined) clientSyncData.fitnessGoals = fitnessGoals?.trim() || null;
-        if (name !== undefined && updated.role === "TRAINER") {
-          clientSyncData.name = name?.trim() ? `${name.trim()} (You)` : "Personal Workouts (You)";
-        } else if (name !== undefined) {
+        if (name !== undefined) {
           clientSyncData.name = name?.trim() || null;
         }
 
