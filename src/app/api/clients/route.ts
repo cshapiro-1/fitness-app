@@ -111,9 +111,9 @@ export async function GET(req: Request) {
       })[0];
     }
 
-    const selfDisplayName = trainerUser?.name
-      ? `${trainerUser.name} (You)`
-      : (primarySelfClient?.name || "My Workouts");
+    const selfDisplayName = (trainerUser?.name || primarySelfClient?.name || "My Workouts")
+      .replace(/\s*\(You\)/gi, "")
+      .trim();
 
     if (!primarySelfClient && trainerId) {
       try {
@@ -212,7 +212,9 @@ export async function GET(req: Request) {
       return {
         id: c.id,
         userId: c.userId,
-        name: isSelfProfile ? (c.name.includes("(You)") ? c.name : selfDisplayName) : (c.name || "Client"),
+        name: isSelfProfile
+          ? (c.name ? c.name.replace(/\s*\(You\)/gi, "").trim() : selfDisplayName)
+          : (c.name ? c.name.replace(/\s*\(You\)/gi, "").trim() : "Client"),
         image: isSelfProfile ? (c.image || trainerUser?.image || c.user?.image || null) : (c.image || c.loginUser?.image || null),
         email: isSelfProfile ? null : (c.email || c.loginUser?.email || null),
         phone: isSelfProfile ? (c.phone || trainerUser?.phone || null) : (c.phone || c.loginUser?.phone || null),

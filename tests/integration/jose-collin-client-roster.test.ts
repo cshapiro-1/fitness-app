@@ -193,16 +193,16 @@ describe("Jose Dildine & Collin Shapiro Client Relationship", () => {
     expect(res.status).toBe(200);
     const data = await res.json();
 
-    // Verify it formats Collin as Self with (You) for Collin's own UI
+    // Verify it formats Collin as Self with clean name without (You)
     expect(data.length).toBe(1);
-    expect(data[0].name).toBe("Collin Shapiro (You)");
+    expect(data[0].name).toBe("Collin Shapiro");
     expect(data[0].isSelf).toBe(true);
 
     // Verify DB update did NOT change client name in database because userId !== user-collin
     expect(prisma.client.update).not.toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "cmu72hiyb000004ignycanesd" },
-        data: expect.objectContaining({ name: "Collin Shapiro (You)" }),
+        data: expect.objectContaining({ name: "Collin Shapiro" }),
       })
     );
   });

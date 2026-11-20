@@ -51,7 +51,15 @@ export async function GET(req: NextRequest) {
         },
       }).catch(() => null);
 
-      // Self-heal: Ensure Collin Shapiro is attributed as a client of Coach Jose Dildine
+      // 1. Database name sanitization: strip legacy "(You)" suffix across all Client and User records
+      await prisma.$executeRawUnsafe(`
+        UPDATE "Client" SET "name" = REGEXP_REPLACE("name", '\\s*\\(You\\)', '', 'gi') WHERE "name" ILIKE '%(You)%';
+      `).catch(() => null);
+      await prisma.$executeRawUnsafe(`
+        UPDATE "User" SET "name" = REGEXP_REPLACE("name", '\\s*\\(You\\)', '', 'gi') WHERE "name" ILIKE '%(You)%';
+      `).catch(() => null);
+
+      // 2. Self-heal Coach Jose Dildine
       const joseTrainer = await prisma.user.findFirst({
         where: {
           OR: [
@@ -61,6 +69,8 @@ export async function GET(req: NextRequest) {
           ],
         },
       });
+
+      // 3. Self-heal Collin Shapiro (Athlete & STRKYR Admin, NOT a coach)
       const collinClientRecord = await prisma.client.findFirst({
         where: {
           OR: [
@@ -69,16 +79,21 @@ export async function GET(req: NextRequest) {
           ],
         },
       });
-      if (joseTrainer && collinClientRecord && collinClientRecord.userId !== joseTrainer.id) {
-        await prisma.client.update({
-          where: { id: collinClientRecord.id },
-          data: {
-            userId: joseTrainer.id,
-            name: "Collin Shapiro",
-            email: "collin.shapiro1@gmail.com",
-            fitnessGoals: collinClientRecord.fitnessGoals || "Strength, Hypertrophy & L5-S1 Spine Integrity",
-          },
-        });
+
+      if (joseTrainer && collinClientRecord) {
+        if (collinClientRecord.userId !== joseTrainer.id || collinClientRecord.name !== "Collin Shapiro") {
+          await prisma.client.update({
+            where: { id: collinClientRecord.id },
+            data: {
+              userId: joseTrainer.id,
+              name: "Collin Shapiro",
+              email: "collin.shapiro1@gmail.com",
+              fitnessGoals: collinClientRecord.fitnessGoals || "Strength, Hypertrophy & L5-S1 Spine Integrity",
+            },
+          }).catch(() => null);
+        }
+
+        // Always ensure Collin User record is role: "CLIENT", isAdmin: true
         await prisma.user.updateMany({
           where: {
             OR: [
@@ -87,10 +102,107 @@ export async function GET(req: NextRequest) {
             ],
           },
           data: {
+            role: "CLIENT",
+            isAdmin: true,
             clientProfileId: collinClientRecord.id,
             trainerId: joseTrainer.id,
           },
+        }).catch(() => null);
+
+        // Delete any duplicate self-client profiles for Collin
+        const collinUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: { equals: "collin.shapiro1@gmail.com", mode: "insensitive" } },
+              { id: "cmrtedsh9000004l5104w7z9i" },
+            ],
+          },
         });
+        if (collinUser) {
+          const dupCollinClients = await prisma.client.findMany({
+            where: {
+              userId: collinUser.id,
+              id: { not: collinClientRecord.id },
+            },
+          });
+          if (dupCollinClients.length > 0) {
+            const dupIds = dupCollinClients.map((c) => c.id);
+            await prisma.workoutSession.updateMany({
+              where: { clientId: { in: dupIds } },
+              data: { clientId: collinClientRecord.id },
+            }).catch(() => null);
+            await prisma.workout.updateMany({
+              where: { clientId: { in: dupIds } },
+              data: { clientId: collinClientRecord.id },
+            }).catch(() => null);
+            await prisma.client.deleteMany({
+              where: { id: { in: dupIds } },
+            }).catch(() => null);
+          }
+        }
+      }
+
+      // 4. Self-heal Graham Malott (grahamlone@gmail.com) -> Merge duplicate into Jose's client record
+      if (joseTrainer) {
+        const grahamClients = await prisma.client.findMany({
+          where: { email: { equals: "grahamlone@gmail.com", mode: "insensitive" } },
+        });
+        if (grahamClients.length > 1) {
+          const primaryGraham = grahamClients.find((c) => c.userId === joseTrainer.id) || grahamClients[0];
+          const dupGrahams = grahamClients.filter((c) => c.id !== primaryGraham.id);
+          const dupIds = dupGrahams.map((c) => c.id);
+
+          await prisma.workoutSession.updateMany({
+            where: { clientId: { in: dupIds } },
+            data: { clientId: primaryGraham.id },
+          }).catch(() => null);
+          await prisma.workout.updateMany({
+            where: { clientId: { in: dupIds } },
+            data: { clientId: primaryGraham.id },
+          }).catch(() => null);
+          await prisma.client.deleteMany({
+            where: { id: { in: dupIds } },
+          }).catch(() => null);
+
+          await prisma.user.updateMany({
+            where: { email: { equals: "grahamlone@gmail.com", mode: "insensitive" } },
+            data: {
+              role: "CLIENT",
+              trainerId: joseTrainer.id,
+              clientProfileId: primaryGraham.id,
+            },
+          }).catch(() => null);
+        }
+      }
+
+      // 5. Demote any non-coach users with 0 coached athletes from TRAINER to CLIENT
+      const potentialTrainers = await prisma.user.findMany({
+        where: {
+          role: { in: ["TRAINER", "trainer"] },
+          email: { not: joseTrainer?.email || "chisailor87@gmail.com" },
+          id: { not: joseTrainer?.id || "cmrtjiy4u000004l4cxexlvdz" },
+        },
+        include: {
+          clients: { select: { id: true, email: true, name: true } },
+        },
+      });
+
+      for (const pt of potentialTrainers) {
+        const ptEmail = (pt.email || "").toLowerCase().trim();
+        const realCoachedClients = (pt.clients || []).filter((c) => {
+          const cEmail = (c.email || "").toLowerCase().trim();
+          const cName = (c.name || "").toLowerCase().trim();
+          return cEmail !== ptEmail && !cName.includes(ptEmail) && c.id !== pt.clientProfileId;
+        });
+
+        if (realCoachedClients.length === 0) {
+          try {
+            await prisma.user.update({
+              where: { id: pt.id },
+              data: { role: "CLIENT" },
+            });
+          } catch {}
+        }
       }
     } catch (schemaErr) {
       console.warn("Schema self-heal warning:", schemaErr);
@@ -487,8 +599,10 @@ export async function GET(req: NextRequest) {
         createdAt: c.createdAt,
         trainerId: clientTrainerId,
         trainerName: isTrainerSelfProfile
-          ? `${trainerForClient?.name || "Coach"} (Self)`
-          : (c.user?.name || c.user?.email || "Unassigned"),
+          ? `${(trainerForClient?.name || "Coach").replace(/\s*\(You\)/gi, "").trim()} (Self)`
+          : ((!clientTrainerId || clientTrainerId === clientUser?.id || (c.user && c.user.role === "CLIENT"))
+              ? "Solo Athlete"
+              : ((c.user?.name || c.user?.email || "Unassigned").replace(/\s*\(You\)/gi, "").trim())),
         workoutsLogged: c._count?.workoutSessions || 0,
         isRegistered: !!c.loginUser,
         isTrainerSelfProfile,

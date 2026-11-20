@@ -1683,6 +1683,10 @@ export function AdminPortal({ userName = "Admin" }: { userName?: string } = {}) 
                                 <span style={{ fontSize: "12px", fontWeight: 600, color: "#6d28d9", background: "#f5f3ff", border: "1px solid #ddd6fe", padding: "2px 8px", borderRadius: "6px" }}>
                                   👤 Self (Coach Log)
                                 </span>
+                              ) : c.trainerName === "Solo Athlete" ? (
+                                <span style={{ fontSize: "12px", fontWeight: 600, color: "#475569", background: "#f1f5f9", border: "1px solid #cbd5e1", padding: "2px 8px", borderRadius: "6px" }}>
+                                  👤 Solo Athlete
+                                </span>
                               ) : (
                                 <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", border: "1px solid #bfdbfe", padding: "2px 8px", borderRadius: "6px" }}>
                                   🏋️ {c.trainerName}

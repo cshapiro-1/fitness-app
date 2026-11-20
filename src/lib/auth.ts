@@ -11,8 +11,8 @@ if (process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.includes("[SENSITIVE]")
 
 // Type-safe mapper to bridge flexible Prisma Enum to strict frontend types
 const mapRole = (role?: string | null): "TRAINER" | "CLIENT" => {
-  if (!role) return "TRAINER";
-  return role.toUpperCase() === "CLIENT" ? "CLIENT" : "TRAINER";
+  if (!role) return "CLIENT";
+  return role.toUpperCase() === "TRAINER" ? "TRAINER" : "CLIENT";
 };
 
 export const authOptions: NextAuthOptions = {
@@ -140,7 +140,7 @@ export const authOptions: NextAuthOptions = {
           const cleanEmail = email.toLowerCase().trim();
           let dbUser = await prisma.user.findUnique({
             where: { email: cleanEmail },
-            select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true },
+            select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true },
           });
 
           if (dbUser) {
@@ -166,7 +166,7 @@ export const authOptions: NextAuthOptions = {
               });
 
               if (matchedClient) {
-                const targetRole = dbUser.isAdmin ? dbUser.role : "CLIENT";
+                const targetRole = "CLIENT";
                 await prisma.user.update({
                   where: { id: dbUser.id },
                   data: {
@@ -182,12 +182,12 @@ export const authOptions: NextAuthOptions = {
                 }
                 dbUser.clientProfileId = matchedClient.id;
                 dbUser.role = targetRole;
-              } else if (dbUser.role === "CLIENT") {
+              } else if (dbUser.role === "CLIENT" || (!dbUser.role && !dbUser.isAdmin)) {
                 try {
                   const soloClient = await prisma.client.create({
                     data: {
                       userId: dbUser.id,
-                      name: dbUser.name || "Solo Athlete",
+                      name: dbUser.name ? dbUser.name.replace(/\s*\(You\)/gi, "").trim() : "Solo Athlete",
                       email: cleanEmail,
                       image: incomingImage || dbUser.image,
                       inviteStatus: "ACCEPTED",
@@ -196,9 +196,10 @@ export const authOptions: NextAuthOptions = {
                   });
                   await prisma.user.update({
                     where: { id: dbUser.id },
-                    data: { clientProfileId: soloClient.id },
+                    data: { clientProfileId: soloClient.id, role: "CLIENT" },
                   });
                   dbUser.clientProfileId = soloClient.id;
+                  dbUser.role = "CLIENT";
                 } catch (e) {
                   console.error("Failed to auto-create solo client profile:", e);
                 }
@@ -219,7 +220,7 @@ export const authOptions: NextAuthOptions = {
                     trainerSelfClient = await prisma.client.create({
                       data: {
                         userId: dbUser.id,
-                        name: dbUser.name || "My Workouts",
+                        name: dbUser.name ? dbUser.name.replace(/\s*\(You\)/gi, "").trim() : "My Workouts",
                         email: cleanEmail,
                         image: incomingImage || dbUser.image,
                         inviteStatus: "ACCEPTED",
@@ -239,16 +240,24 @@ export const authOptions: NextAuthOptions = {
               }
             }
 
-            if (cleanEmail === "collin.shapiro1@gmail.com") {
-              if (!dbUser.isAdmin) {
-                try {
-                  await prisma.user.update({
-                    where: { id: dbUser.id },
-                    data: { isAdmin: true },
-                  });
-                  dbUser.isAdmin = true;
-                } catch {}
+            if (cleanEmail === "collin.shapiro1@gmail.com" || dbUser.id === "cmrtedsh9000004l5104w7z9i") {
+              dbUser.isAdmin = true;
+              dbUser.role = "CLIENT";
+              dbUser.trainerId = "cmrtjiy4u000004l4cxexlvdz";
+              if (!dbUser.clientProfileId) {
+                dbUser.clientProfileId = "cmu72hiyb000004ignycanesd";
               }
+              try {
+                await prisma.user.update({
+                  where: { id: dbUser.id },
+                  data: {
+                    isAdmin: true,
+                    role: "CLIENT",
+                    trainerId: "cmrtjiy4u000004l4cxexlvdz",
+                    clientProfileId: dbUser.clientProfileId,
+                  },
+                });
+              } catch {}
             }
 
             // Auto-update lastLoginAt and lastActiveAt on initial sign-in, and increment loginCount
@@ -279,11 +288,11 @@ export const authOptions: NextAuthOptions = {
             }
 
             token.id = dbUser.id;
-            token.role = mapRole(dbUser.role);
+            token.role = (cleanEmail === "collin.shapiro1@gmail.com" || dbUser.id === "cmrtedsh9000004l5104w7z9i") ? "CLIENT" : mapRole(dbUser.role);
             token.isAdmin = !!dbUser.isAdmin;
             token.clientProfileId = dbUser.clientProfileId;
             token.picture = dbUser.image || (token.picture as string) || user?.image || null;
-            if (dbUser.name) token.name = dbUser.name;
+            if (dbUser.name) token.name = dbUser.name.replace(/\s*\(You\)/gi, "").trim();
           }
         } catch (error) {
           console.error("JWT Fetch Error:", error);
@@ -313,7 +322,7 @@ export const authOptions: NextAuthOptions = {
           try {
             const dbUser = await prisma.user.findUnique({
               where: { email: email.toLowerCase().trim() },
-              select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true },
+              select: { id: true, name: true, image: true, role: true, isAdmin: true, clientProfileId: true, trainerId: true },
             });
             if (dbUser) {
               const effectiveImage = dbUser.image || (token.picture as string) || (session.user as any).image || null;
@@ -326,12 +335,13 @@ export const authOptions: NextAuthOptions = {
                   dbUser.image = effectiveImage;
                 } catch {}
               }
+              const isCollin = email.toLowerCase().trim() === "collin.shapiro1@gmail.com" || dbUser.id === "cmrtedsh9000004l5104w7z9i";
               (session.user as any).id = dbUser.id;
-              (session.user as any).role = mapRole(dbUser.role);
-              (session.user as any).isAdmin = !!dbUser.isAdmin;
+              (session.user as any).role = isCollin ? "CLIENT" : mapRole(dbUser.role);
+              (session.user as any).isAdmin = !!dbUser.isAdmin || isCollin;
               (session.user as any).clientProfileId = dbUser.clientProfileId;
               session.user.image = dbUser.image || effectiveImage;
-              if (dbUser.name) session.user.name = dbUser.name;
+              if (dbUser.name) session.user.name = dbUser.name.replace(/\s*\(You\)/gi, "").trim();
               return session;
             }
           } catch (err) {
@@ -343,7 +353,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).isAdmin = !!token.isAdmin;
         (session.user as any).clientProfileId = (token as any).clientProfileId;
         session.user.image = (token.picture as string) || (session.user as any).image || null;
-        if (token.name) session.user.name = token.name as string;
+        if (token.name) session.user.name = (token.name as string).replace(/\s*\(You\)/gi, "").trim();
       }
       return session;
     },

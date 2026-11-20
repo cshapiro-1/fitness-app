@@ -174,7 +174,7 @@ describe("Trainer Profile & 'My Workouts' Consolidation (Zero Data Loss)", () =>
 
     const selfProfile = data.find((c: any) => c.isSelf);
     expect(selfProfile).toBeDefined();
-    expect(selfProfile.name).toBe("Collin Shapiro (You)");
+    expect(selfProfile.name).toBe("Collin Shapiro");
     expect(selfProfile.image).toBe("https://example.com/collin.jpg");
     expect(selfProfile.id).toBe("client-my-workouts-legacy");
 
